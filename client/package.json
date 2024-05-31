@@ -1,22 +1,20 @@
 {
-  "name": "battleship-client",
+  "name": "battleship",
   "version": "1.2.0",
   "main": "src/main.js",
   "scripts": {
-    "dev": "webpack-dev-server --config webpack/config.dev.js --open",
+    "start": "webpack-dev-server --config webpack/config.dev.js --open",
     "build": "webpack --config webpack/config.prod.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phaserjs/template-webpack.git"
+    "url": "git+https://github.com/adrikum/battleship.git",
+    "directory": "client"
   },
-  "author": "Phaser Studio <support@phaser.io> (https://phaser.io/)",
+  "author": "",
   "license": "MIT",
-  "licenseUrl": "http://www.opensource.org/licenses/mit-license.php",
-  "bugs": {
-    "url": "https://github.com/phaserjs/template-webpack/issues"
-  },
-  "homepage": "https://github.com/phaserjs/template-webpack#readme",
+  "homepage": "https://github.com/adrikum/battleship#readme",
+  "description": "",
   "devDependencies": {
     "@babel/core": "^7.24.5",
     "@babel/preset-env": "^7.24.5",
@@ -35,6 +33,7 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
-    "phaser": "^3.80.1"
+    "phaser": "^3.80.1",
+    "socket.io-client": "^4.7.5"
   }
 }
