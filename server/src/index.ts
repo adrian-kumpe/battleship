@@ -23,8 +23,13 @@ interface SocketData {
 }
 
 const httpServer = createServer();
-const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer);
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
+  cors: {
+    origin: ['http://localhost:3000', 'https://battleship-server-4725bfddd6bf.herokuapp.com'],
+  },
+});
 const clientList: ClientList = new ClientList();
+const PORT = process.env.PORT || 3000;
 
 io.on('connection', (socket: Socket) => {
   console.log('Client connected', socket.id);
@@ -53,4 +58,4 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-httpServer.listen(3000, () => console.log(`Server running on port 3000`));
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
