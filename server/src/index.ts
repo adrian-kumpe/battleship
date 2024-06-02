@@ -23,7 +23,11 @@ interface SocketData {
 }
 
 const httpServer = createServer();
-const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer);
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
+  cors: {
+    origin: ['http://localhost:3000', 'https://battleship-server-4725bfddd6bf.herokuapp.com'],
+  },
+});
 const clientList: ClientList = new ClientList();
 
 io.on('connection', (socket: Socket) => {
