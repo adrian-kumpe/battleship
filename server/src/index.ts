@@ -10,7 +10,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  login: (args: { name: string; room: RoomId }) => void;
+  login: (args: { name: string; room: RoomId }, callback: any) => void;
 }
 
 interface InterServerEvents {
@@ -42,7 +42,7 @@ io.engine.on('connection_error', (err) => {
 io.on('connection', (socket: Socket) => {
   console.log('Client connected', socket.id);
 
-  socket.on('login', (args: { name: string; room: RoomId }) => {
+  socket.on('login', (args: { name: string; room: RoomId }, callback) => {
     console.log('Client joined Room', args.room.id + args.room.player);
     const { error } =
       clientList.addClient({
@@ -55,6 +55,7 @@ io.on('connection', (socket: Socket) => {
       return;
     }
     socket.join(args.room.id);
+    callback();
   });
 
   socket.on('disconnect', () => {

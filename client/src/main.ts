@@ -26,4 +26,6 @@ export default new Game(config);
 
 console.log(socket);
 
-socket.emit('login', { name: 'test1', room: { id: 'test', player: '2' } });
+socket.emit('login', { name: 'test1', room: { id: 'test', player: '2' } }, () => {
+  console.log('callback funktioniert');
+});
