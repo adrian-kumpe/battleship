@@ -12,6 +12,7 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   createRoom: (args: { clientName: string; roomId: RoomId }, cb: (error?: string) => void) => void;
   joinRoom: (args: { clientName: string; roomId: RoomId }, cb: (error?: string) => void) => void;
+  alexaTestConnection: (args: { test: string }, cb: () => void) => void;
 }
 
 interface InterServerEvents {
@@ -37,6 +38,11 @@ io.engine.on('connection_error', (err) => {
 
 io.on('connection', (socket: Socket) => {
   console.info('Client connected', socket.id);
+
+  socket.on('alexaTestConnection', (args: { test: string }, cb) => {
+    console.log('alexaTestConnection wurde aufgerufen');
+    cb();
+  });
 
   /** adds client w/ new room to the clientList */
   // todo spieleinformationen für den raum müssen gespeichert werden
