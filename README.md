@@ -29,3 +29,9 @@ Implement voice control for your game by using the Alexa Skills Kit (ASK), which
 | `npm install`    | Install project dependencies; compile Typescript |
 | `npm start`      | Launch a development web server                  |
 
+### Alexa Skill
+
+Voice control for Battleship is facilitated through a custom skill for Alexa. The repository **battleship-alexa-skill** can be imported into an Alexa Skill. The code will then be hosted in an AWS repository. Changes can be pushed to the GitHub repository as follows:
+1. `git remote add temp https://github.com/adrikum/battleship-alexa-skill.git`
+1. `git push temp master`
+1. `git remote remove temp`
