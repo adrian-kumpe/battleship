@@ -25,19 +25,3 @@ const config: Types.Core.GameConfig = {
 export default new Game(config);
 
 console.log(socket);
-
-socket.on('notification', (text) => {
-  console.info(text);
-});
-
-socket.emit('createRoom', { clientName: 'Spieler 2', roomId: { id: 'foo', player: '2' } }, (error?: string) => {
-  if (error) {
-    console.warn(error);
-  }
-});
-socket.emit('joinRoom', { clientName: 'Spieasdfler 2', roomId: { id: 'fasdfoo', player: '2' } }, (error?: string) => {
-  console.log('hier müsste eine warnung stehen');
-  if (error) {
-    console.warn(error);
-  }
-});
