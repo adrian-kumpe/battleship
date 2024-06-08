@@ -31,6 +31,7 @@ export interface ServerToClientEvents {
   gameStart: () => void;
   /** the game ends if a winner is determined */
   gameOver: (winner: string) => void; // todo
+  attack: (cell: string, player: Player) => void;
 }
 
 export interface ClientToServerEvents {
