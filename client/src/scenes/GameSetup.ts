@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { socket } from '../sockets';
 
 export const enum GameModes {
   '8X8' = 0,
@@ -39,6 +40,10 @@ export class GameSetup extends Scene {
 
   constructor() {
     super('GameSetup');
+
+    socket.on('gameStart', () => {
+      this.changeScene();
+    });
   }
 
   create(data: { gameMode: GameModes }) {
@@ -59,11 +64,18 @@ export class GameSetup extends Scene {
     this.playersShipsOnGrid = this.placeShipsOnGridRandomly();
     this.opponentsShipsOnGrid = this.placeShipsOnGridRandomly();
 
-    this.changeScene();
+    socket.emit(
+      'gameReady',
+      { shipConfig: '' + this.playersShipsOnGrid + this.opponentsShipsOnGrid },
+      (error?: string) => {
+        if (error) {
+          console.log(error);
+        }
+      },
+    );
   }
 
   changeScene() {
-    console.log('Grid zeichnen');
     this.scene.start('Game', {
       player: this.playersShipsOnGrid,
       opponent: this.opponentsShipsOnGrid,

@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
+import { socket } from '../sockets';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
