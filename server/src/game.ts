@@ -2,6 +2,7 @@ import { AttackResult, Coord, PartialShipConfig } from '@shared/models';
 import { Client } from '.';
 
 export class BattleshipGameBoard {
+  private dirtyCoord: Coord[] = [];
   private _shipConfig?: (PartialShipConfig & { calculatedCoord: Coord[] })[] = [];
   public set shipConfig(shipConfig: (PartialShipConfig & Coord)[]) {
     this._shipConfig = shipConfig.map((s) => {
@@ -34,7 +35,12 @@ export class BattleshipGameBoard {
     );
   }
 
+  public getValidAttack(coord: Coord): string | undefined {
+    return this.dirtyCoord.some((c) => c.x === coord.x && c.y === coord.y) ? 'Coord already attacked' : undefined;
+  }
+
   public placeAttack(coord: Coord): AttackResult {
+    this.dirtyCoord.push(coord);
     this._shipConfig?.forEach((s) => {
       const index = s.calculatedCoord.findIndex((c) => c.x === coord.x && c.y === coord.y);
       if (index > -1) {

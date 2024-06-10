@@ -11,6 +11,8 @@ import { Server, Socket } from 'socket.io';
 import { Room, RoomList } from './room';
 import { BattleshipGameBoard } from './game';
 
+// todo Error type alias mit string | undefined
+
 export interface Client {
   socketId: string;
   clientName: string;
@@ -45,11 +47,13 @@ io.on('connection', (socket: Socket) => {
     const client: Client = { socketId: socket.id, clientName: args.clientName };
     const newRoomId = roomList.getNewRoomId();
     const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
-    // const { error } = clientList.checkCreateRoom(client) ?? clientList.checkJoinRoom(client) ?? {};
-    // if (error) return cb(error);
+    const error = roomList.getClientAlreadyInRoom(socket.id);
+    if (error) {
+      return cb(error);
+    }
+    console.info(`[${newRoomId}] was created by ${args.clientName} ${socket.id}`);
     roomList.addRoom(room);
     socket.join(newRoomId);
-    console.info(`Room ${newRoomId} was created by ${args.clientName} ${socket.id}`);
     io.to(newRoomId).emit('notification', `${args.clientName} joined the game`);
     cb({ roomConfig: room.roomConfig });
   });
@@ -57,37 +61,47 @@ io.on('connection', (socket: Socket) => {
   /** adds client to an existing room of the roomList */
   socket.on('joinRoom', (args: { roomId: string; clientName: string }, cb) => {
     const client: Client = { socketId: socket.id, clientName: args.clientName };
-    // const { error } = clientList.checkJoinRoom(client) ?? {};
-    // if (error) return cb(error);
-    const room = roomList.getRoom(args.roomId)!; // todo fehlerbehebung für !
+    const room = roomList.getRoom(args.roomId);
+    const error = roomList.getClientAlreadyInRoom(socket.id) ?? roomList.getRoomIdUnknown(args.roomId);
+    if (error || !room) {
+      return cb(error ?? 'Internal error');
+    }
+    console.info(`[${args.roomId}] Client ${args.clientName} ${socket.id} joined the game`);
     room.player2 = new BattleshipGameBoard(client);
     socket.join(args.roomId);
-    console.info(`Client ${args.clientName} ${socket.id} joined Room ${args.roomId}`);
     io.to(args.roomId).emit('notification', `${args.clientName} joined the game`);
     cb({ roomConfig: room.roomConfig });
   });
 
   socket.on('disconnect', () => {});
 
+  /** sets shipConfig of player; if both players are ready start the game */
   socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
-    // if (error) return cb(error);
-    const room = roomList.getRoomBySocketId(socket.id)!; // todo fehlerbehebung !
-    const { player } = room.getPlayerBySocketId(socket.id)!; // todo fehlerbehebung !
+    const room = roomList.getRoomBySocketId(socket.id);
+    const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
+    const error = undefined;
+    if (error || !room || !player) {
+      return cb(error ?? 'Internal error');
+    }
+    console.info(`[${room.roomConfig.roomId}] Client ${player.client.clientName} ${socket.id} ready to start`);
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
-      console.info(`Room ${room.roomConfig.roomId} is ready to start`);
+      console.info(`[${room.roomConfig.roomId}] All players are ready to start`);
       io.to(room.roomConfig.roomId).emit('gameStart');
     }
   });
 
+  /** player attacks */
   socket.on('attack', (args: { coord: Coord }, cb) => {
-    // if (error) return cb(error);
-    const room = roomList.getRoomBySocketId(socket.id)!; // todo fehlerbehebung !
-    const { player, playerNo } = room.getPlayerBySocketId(socket.id)!; // todo fehlerbehebung !
+    const room = roomList.getRoomBySocketId(socket.id);
+    const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
+    let error = room?.getGameNotStartedYet ?? room?.getIsPlayersTurn(playerNo) ?? player?.getValidAttack(args.coord);
+    if (error || !room || !player || playerNo === undefined) {
+      return cb(error ?? 'Internal error');
+    }
     const attackResult = player.placeAttack(args.coord);
-    console.info(
-      `Attack ${args.coord.x}-${args.coord.y} in room ${room.roomConfig.roomId} on player ${playerNo} was placed`,
-    );
+    room.playerChange();
+    console.info(`[${room.roomConfig.roomId}] Player ${playerNo} placed an attack on ${args.coord.x}-${args.coord.y}`);
     io.to(room.roomConfig.roomId).emit(
       'attack',
       Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
