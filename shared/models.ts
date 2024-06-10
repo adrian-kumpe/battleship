@@ -21,7 +21,7 @@ export const availableShips: (Ship & { count: number })[] = [
   { size: 1, count: 1, name: 'escort' },
 ];
 
-export interface ShipConfig {
+export interface PartialShipConfig {
   ship: Ship;
   shipId: number;
   orientation: '↔️' | '↕️';
@@ -56,7 +56,7 @@ export interface ClientToServerEvents {
   /** create a game w/ settings */
   createRoom: (
     args: { roomConfig: Omit<RoomConfig, 'roomId'>; clientName: string },
-    cb: (args: { roomConfig: RoomConfig }, error?: string) => void
+    cb: (args: { roomConfig: RoomConfig }, error?: string) => void // vlt nur die roomid zurückschicken?
   ) => void;
   /** join a game */
   joinRoom: (
@@ -64,7 +64,7 @@ export interface ClientToServerEvents {
     cb: (args: { roomConfig: RoomConfig }, error?: string) => void
   ) => void;
   /** commit shipConfig; if both players are ready server emits gameStart event */
-  gameReady: (args: { shipsConfig: (ShipConfig & Coord)[] }, cb: (error?: string) => void) => void;
+  gameReady: (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb: (error?: string) => void) => void;
   /** place an attack */
   attack: (args: { coord: Coord }, cb: (error?: string) => void) => void;
   alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: () => void) => void;

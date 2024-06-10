@@ -1,4 +1,11 @@
-import { ClientToServerEvents, Coord, PlayerNo, RoomConfig, ServerToClientEvents, ShipConfig } from '@shared/models';
+import {
+  ClientToServerEvents,
+  Coord,
+  PlayerNo,
+  RoomConfig,
+  ServerToClientEvents,
+  PartialShipConfig,
+} from '@shared/models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { Room, RoomList } from './room';
@@ -62,11 +69,11 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {});
 
-  socket.on('gameReady', (args: { shipsConfig: (ShipConfig & Coord)[] }, cb) => {
+  socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
     // if (error) return cb(error);
     const room = roomList.getRoomBySocketId(socket.id)!; // todo fehlerbehebung !
     const { player } = room.getPlayerBySocketId(socket.id)!; // todo fehlerbehebung !
-    player.shipsConfig = args.shipsConfig;
+    player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
       console.info(`Room ${room.roomConfig.roomId} is ready to start`);
       io.to(room.roomConfig.roomId).emit('gameStart');

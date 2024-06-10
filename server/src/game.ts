@@ -1,10 +1,10 @@
-import { AttackResult, Coord, ShipConfig } from '@shared/models';
+import { AttackResult, Coord, PartialShipConfig } from '@shared/models';
 import { Client } from '.';
 
 export class BattleshipGameBoard {
-  private _shipsConfig?: (ShipConfig & { calculatedCoord: Coord[] })[] = [];
-  public set shipsConfig(shipsConfig: (ShipConfig & Coord)[]) {
-    this._shipsConfig = shipsConfig.map((s) => {
+  private _shipConfig?: (PartialShipConfig & { calculatedCoord: Coord[] })[] = [];
+  public set shipConfig(shipConfig: (PartialShipConfig & Coord)[]) {
+    this._shipConfig = shipConfig.map((s) => {
       const calculatedCoord: Coord[] = [];
       for (let i = 0; i < s.ship.size; i++) {
         if (s.orientation === '↔️') {
@@ -25,15 +25,17 @@ export class BattleshipGameBoard {
   constructor(public client: Client) {}
 
   public getPlayerReady(): boolean {
-    return !!this._shipsConfig;
+    return !!this._shipConfig;
   }
 
   public getGameOver(): boolean {
-    return !!this._shipsConfig && this._shipsConfig.flatMap(({ calculatedCoord }) => calculatedCoord).length > 0;
+    return (
+      this._shipConfig !== undefined && this._shipConfig.flatMap(({ calculatedCoord }) => calculatedCoord).length > 0
+    );
   }
 
   public placeAttack(coord: Coord): AttackResult {
-    this._shipsConfig?.forEach((s) => {
+    this._shipConfig?.forEach((s) => {
       const index = s.calculatedCoord.findIndex((c) => c.x === coord.x && c.y === coord.y);
       if (index > -1) {
         s.calculatedCoord.splice(index, 1);
