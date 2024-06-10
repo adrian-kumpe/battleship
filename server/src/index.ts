@@ -1,18 +1,14 @@
+import { ClientToServerEvents, Coord, PlayerNo, RoomConfig, ServerToClientEvents, PartialShipConfig } from './models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { ClientList, RoomId } from './clients';
+import { Room, RoomList } from './room';
+import { BattleshipGameBoard } from './game';
 
-export interface ServerToClientEvents {
-  // noArg: () => void;
-  // basicEmit: (a: number, b: string, c: Buffer) => void;
-  // withAck: (d: string, callback: (e: number) => void) => void;
-  notification: (text: string) => void;
-}
+// todo Error type alias mit string | undefined
 
-export interface ClientToServerEvents {
-  createRoom: (args: { clientName: string; roomId: RoomId }, cb: (error?: string) => void) => void;
-  joinRoom: (args: { clientName: string; roomId: RoomId }, cb: (error?: string) => void) => void;
-  alexaTestConnection: (args: { test: string }, cb: () => void) => void;
+export interface Client {
+  socketId: string;
+  clientName: string;
 }
 
 interface InterServerEvents {
@@ -26,7 +22,7 @@ interface SocketData {
 
 const httpServer = createServer();
 const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer);
-const clientList: ClientList = new ClientList();
+const roomList: RoomList = new RoomList();
 const PORT = process.env.PORT || 3000;
 
 io.engine.on('connection_error', (err) => {
@@ -39,53 +35,78 @@ io.engine.on('connection_error', (err) => {
 io.on('connection', (socket: Socket) => {
   console.info('Client connected', socket.id);
 
-  socket.on('alexaTestConnection', (args: { test: string }, cb) => {
+  /** adds new room to the roomList */
+  socket.on('createRoom', (args: { roomConfig: Omit<RoomConfig, 'roomId'>; clientName: string }, cb) => {
+    const client: Client = { socketId: socket.id, clientName: args.clientName };
+    const newRoomId = roomList.getNewRoomId();
+    const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
+    const error = roomList.getClientAlreadyInRoom(socket.id);
+    if (error) {
+      return cb(error);
+    }
+    console.info(`[${newRoomId}] was created by ${args.clientName} ${socket.id}`);
+    roomList.addRoom(room);
+    socket.join(newRoomId);
+    io.to(newRoomId).emit('notification', `${args.clientName} joined the game`);
+    cb({ roomConfig: room.roomConfig });
+  });
+
+  /** adds client to an existing room of the roomList */
+  socket.on('joinRoom', (args: { roomId: string; clientName: string }, cb) => {
+    const client: Client = { socketId: socket.id, clientName: args.clientName };
+    const room = roomList.getRoom(args.roomId);
+    const error = roomList.getClientAlreadyInRoom(socket.id) ?? roomList.getRoomIdUnknown(args.roomId);
+    if (error || !room) {
+      return cb(error ?? 'Internal error');
+    }
+    console.info(`[${args.roomId}] Client ${args.clientName} ${socket.id} joined the game`);
+    room.player2 = new BattleshipGameBoard(client);
+    socket.join(args.roomId);
+    io.to(args.roomId).emit('notification', `${args.clientName} joined the game`);
+    cb({ roomConfig: room.roomConfig });
+  });
+
+  socket.on('disconnect', () => {});
+
+  /** sets shipConfig of player; if both players are ready start the game */
+  socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
+    const room = roomList.getRoomBySocketId(socket.id);
+    const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
+    const error = undefined;
+    if (error || !room || !player) {
+      return cb(error ?? 'Internal error');
+    }
+    console.info(`[${room.roomConfig.roomId}] Client ${player.client.clientName} ${socket.id} ready to start`);
+    player.shipConfig = args.shipConfig;
+    if (room.getGameReady()) {
+      console.info(`[${room.roomConfig.roomId}] All players are ready to start`);
+      io.to(room.roomConfig.roomId).emit('gameStart');
+    }
+  });
+
+  /** player attacks */
+  socket.on('attack', (args: { coord: Coord }, cb) => {
+    const room = roomList.getRoomBySocketId(socket.id);
+    const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
+    let error = room?.getGameNotStartedYet ?? room?.getIsPlayersTurn(playerNo) ?? player?.getValidAttack(args.coord);
+    if (error || !room || !player || playerNo === undefined) {
+      return cb(error ?? 'Internal error');
+    }
+    const attackResult = player.placeAttack(args.coord);
+    room.playerChange();
+    console.info(`[${room.roomConfig.roomId}] Player ${playerNo} placed an attack on ${args.coord.x}-${args.coord.y}`);
+    io.to(room.roomConfig.roomId).emit(
+      'attack',
+      Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
+    );
+    if (player.getGameOver()) {
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
+    }
+  });
+
+  socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
     console.log('alexaTestConnection wurde aufgerufen');
     cb();
-  });
-
-  /** adds client w/ new room to the clientList */
-  // todo spieleinformationen für den raum müssen gespeichert werden
-  socket.on('createRoom', (args: { clientName: string; roomId: RoomId }, cb) => {
-    const client = {
-      id: socket.id,
-      clientName: args.clientName,
-      roomId: args.roomId,
-    };
-    const { error } = clientList.checkCreateRoom(client) ?? clientList.checkJoinRoom(client) ?? {};
-    if (error) return cb(error);
-    console.info(`Room ${args.roomId.id}${args.roomId.player} was created by ${args.clientName} ${socket.id}`);
-    clientList.addClient(client);
-    socket.join(args.roomId.id);
-    io.to(args.roomId.id).emit('notification', `${args.clientName} joined the game`);
-    cb();
-  });
-
-  /** adds client w/ existing room to the clientList */
-  socket.on('joinRoom', (args: { clientName: string; roomId: RoomId }, cb) => {
-    const client = {
-      id: socket.id,
-      clientName: args.clientName,
-      roomId: args.roomId,
-    };
-    const { error } = clientList.checkJoinRoom(client) ?? {};
-    if (error) return cb(error);
-    console.info(`Client ${args.clientName} ${socket.id} joined Room ${args.roomId.id}${args.roomId.player}`);
-    clientList.addClient(client);
-    socket.join(args.roomId.id);
-    io.to(args.roomId.id).emit('notification', `${args.clientName} joined the game`);
-    cb();
-  });
-
-  /** removes client from the clientList */
-  socket.on('disconnect', () => {
-    const client = clientList.getClient(socket.id);
-    if (client) {
-      console.info(`Client ${client.clientName} ${socket.id} disconnected`);
-      clientList.deleteClient(socket.id);
-    } else {
-      console.info(`${socket.id} disconnected`);
-    }
   });
 });
 
