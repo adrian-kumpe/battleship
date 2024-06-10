@@ -7,6 +7,7 @@ import { Preloader } from './scenes/Preloader';
 
 import { Game, Types } from 'phaser';
 import { socket } from './sockets';
+import { GameMode } from '@shared/models';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -26,3 +27,15 @@ const config: Types.Core.GameConfig = {
 export default new Game(config);
 
 console.log(socket);
+
+const roomConfig = {
+  mode: GameMode['8X8'],
+};
+socket.emit('createRoom', { roomConfig: roomConfig, clientName: 'Test' }, (args, error) => {
+  if (error) {
+    console.warn(error);
+  }
+  if (args) {
+    console.log(args);
+  }
+});
