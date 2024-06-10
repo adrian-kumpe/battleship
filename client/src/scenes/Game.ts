@@ -1,58 +1,50 @@
 import { Scene } from 'phaser';
-import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { ShipsOnGrid } from './GameSetup';
+//import { BattleshipGrid } from '../elements/BattleshipGrid';
 import { socket } from '../sockets';
-import { Player } from '@shared/models';
+import { PlayerNo, RoomConfig } from '@shared/models';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
   gameText: Phaser.GameObjects.Text;
 
-  attackGrid: BattleshipGrid;
-  defenseGrid: BattleshipGrid;
+  /*attackGrid: BattleshipGrid;
+  defenseGrid: BattleshipGrid;*/
 
   constructor() {
     super('Game');
 
-    socket.on('attack', (args: { cell: string; player: Player; result: 'H' | 'M' }) => {
-      let x: number = +args.cell.charAt(0);
-      let y: number = +args.cell.charAt(1);
+    socket.on('attack', (args) => {
+      //let x: number = args.coord.x;
+      //let y: number = args.coord.y;
 
-      if (args.player == Player.PLAYER1) {
+      if (args.playerNo == PlayerNo.PLAYER1) {
         //const shipId = this.attackGrid.placeMove(x, y);
-        const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.result);
+        //const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
+        //this.drawMove(xPx, yPx, args.result);
       } else {
         //const shipId = this.attackGrid.placeMove(x, y);
-        const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.result);
+        //const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
+        //this.drawMove(xPx, yPx, args.result);
       }
     });
 
-    socket.on('gameOver', (winner: string) => {
-      this.scene.start('GameOver', { winner: winner });
+    socket.on('gameOver', (args) => {
+      this.scene.start('GameOver', { winner: args.winner.toString() });
     });
   }
 
-  create(data: { player: ShipsOnGrid; opponent: ShipsOnGrid; gridSize: number }) {
+  create(args: { roomConfig: RoomConfig }) {
     this.camera = this.cameras.main;
     this.drawGrid();
     this.camera.setBackgroundColor(0x00ff00);
 
     this.background = this.add.image(512, 384, 'background');
     this.background.setAlpha(0.5);
+    console.log(args);
 
-    this.attackGrid = new BattleshipGrid(
-      data.gridSize,
-      { gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 },
-      data.opponent,
-    );
-    this.defenseGrid = new BattleshipGrid(
-      data.gridSize,
-      { gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 },
-      data.player,
-    );
+    //this.attackGrid = new BattleshipGrid(args.roomConfig.mode, { gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 });
+    //this.defenseGrid = new BattleshipGrid(args.roomConfig.mode, { gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 });
   }
 
   /*changeScene(data: { winner: string }) {
@@ -114,9 +106,9 @@ export class Game extends Scene {
     this.checkGameOver();
   }*/
 
-  private displayShipWasSunken(shipId: number) {
+  /*private displayShipWasSunken(shipId: number) {
     alert('Schiff ' + shipId + ' wurde versenkt!');
-  }
+  }*/
 
   drawGrid() {
     const gridSize = 8;
@@ -133,7 +125,7 @@ export class Game extends Scene {
         rect.setInteractive();
         rect.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
           if (pointer.leftButtonDown()) {
-            socket.emit('attack', { cell: '' + x + y }, (error?: string) => {
+            socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
               if (error) {
                 console.log(error);
               }
@@ -199,11 +191,11 @@ export class Game extends Scene {
     });
   }
 
-  private drawMove(xPx: number, yPx: number, char: string) {
+  /*private drawMove(xPx: number, yPx: number, char: string) {
     this.gameText = this.add.text(xPx + 15, yPx + 15, char, {
       fontFamily: 'Arial Black',
       fontSize: 24,
       color: '#000000',
     });
-  }
+  }*/
 }
