@@ -3,7 +3,7 @@ import { Client } from '.';
 
 export class BattleshipGameBoard {
   private dirtyCoord: Coord[] = [];
-  private _shipConfig?: (PartialShipConfig & { calculatedCoord: Coord[] })[] = [];
+  private _shipConfig?: (PartialShipConfig & { calculatedCoord: Coord[] })[];
   public set shipConfig(shipConfig: (PartialShipConfig & Coord)[]) {
     this._shipConfig = shipConfig.map((s) => {
       const calculatedCoord: Coord[] = [];
@@ -30,8 +30,9 @@ export class BattleshipGameBoard {
   }
 
   public getGameOver(): boolean {
+    //console.log(this._shipConfig?.flatMap(({ calculatedCoord }) => calculatedCoord));
     return (
-      this._shipConfig !== undefined && this._shipConfig.flatMap(({ calculatedCoord }) => calculatedCoord).length > 0
+      this._shipConfig !== undefined && this._shipConfig.flatMap(({ calculatedCoord }) => calculatedCoord).length === 0
     );
   }
 
