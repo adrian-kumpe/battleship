@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-//import { BattleshipGrid } from '../elements/BattleshipGrid';
+import { BattleshipGrid } from '../elements/BattleshipGrid';
 import { socket } from '../sockets';
 import { PlayerNo, RoomConfig } from '@shared/models';
 
@@ -8,24 +8,22 @@ export class Game extends Scene {
   background: Phaser.GameObjects.Image;
   gameText: Phaser.GameObjects.Text;
 
-  /*attackGrid: BattleshipGrid;
-  defenseGrid: BattleshipGrid;*/
+  attackGrid: BattleshipGrid;
+  defenseGrid: BattleshipGrid;
 
   constructor() {
     super('Game');
 
     socket.on('attack', (args) => {
-      //let x: number = args.coord.x;
-      //let y: number = args.coord.y;
+      let x: number = args.coord.x;
+      let y: number = args.coord.y;
 
       if (args.playerNo == PlayerNo.PLAYER1) {
-        //const shipId = this.attackGrid.placeMove(x, y);
-        //const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
-        //this.drawMove(xPx, yPx, args.result);
+        const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
+        this.drawMove(xPx, yPx, args.result);
       } else {
-        //const shipId = this.attackGrid.placeMove(x, y);
-        //const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
-        //this.drawMove(xPx, yPx, args.result);
+        const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
+        this.drawMove(xPx, yPx, args.result);
       }
     });
 
@@ -43,31 +41,13 @@ export class Game extends Scene {
     this.background.setAlpha(0.5);
     console.log(args);
 
-    //this.attackGrid = new BattleshipGrid(args.roomConfig.mode, { gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 });
-    //this.defenseGrid = new BattleshipGrid(args.roomConfig.mode, { gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 });
+    this.attackGrid = new BattleshipGrid({ gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 });
+    this.defenseGrid = new BattleshipGrid({ gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 });
   }
 
   /*changeScene(data: { winner: string }) {
     this.scene.start('GameOver', data);
   }
-
-
-  private checkGameOver(): boolean {
-    if (this.attackGrid.getAllShipsSunken()) {
-      // player has won the game
-      alert('player has won the game');
-      this.changeScene({ winner: 'player' });
-      return true;
-    }
-    if (this.defenseGrid.getAllShipsSunken()) {
-      // the opponent has won the game
-      alert('the opponent has won the game');
-      this.changeScene({ winner: 'opponent' });
-      return true;
-    }
-    return false;
-  }
-
 
   private playerMove(x: number, y: number) {
     if (this.attackGrid.isValidMove(x, y)) {
@@ -125,7 +105,7 @@ export class Game extends Scene {
         rect.setInteractive();
         rect.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
           if (pointer.leftButtonDown()) {
-            socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
+            socket.emit('attack', { coord: { x: col, y: row } }, (error?: string) => {
               if (error) {
                 console.log(error);
               }
@@ -191,11 +171,11 @@ export class Game extends Scene {
     });
   }
 
-  /*private drawMove(xPx: number, yPx: number, char: string) {
+  private drawMove(xPx: number, yPx: number, char: string) {
     this.gameText = this.add.text(xPx + 15, yPx + 15, char, {
       fontFamily: 'Arial Black',
       fontSize: 24,
       color: '#000000',
     });
-  }*/
+  }
 }
