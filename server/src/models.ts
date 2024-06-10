@@ -56,12 +56,12 @@ export interface ClientToServerEvents {
   /** create a game w/ settings */
   createRoom: (
     args: { roomConfig: Omit<RoomConfig, 'roomId'>; clientName: string },
-    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void // vlt nur die roomid zurückschicken?
+    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void, // vlt nur die roomid zurückschicken?
   ) => void;
   /** join a game */
   joinRoom: (
     args: { roomId: string; clientName: string },
-    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void
+    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
   ) => void;
   /** commit shipConfig; if both players are ready server emits gameStart event */
   gameReady: (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb: (error?: string) => void) => void;
