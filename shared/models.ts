@@ -69,3 +69,6 @@ export interface ClientToServerEvents {
   attack: (args: { coord: Coord }, cb: (error?: string) => void) => void;
   alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: () => void) => void;
 }
+
+// todo bekommt man mitgeteilt, wie der andere Spieler heißt
+// todo der client braucht eig nie die roomId

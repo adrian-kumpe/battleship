@@ -88,7 +88,8 @@ io.on('connection', (socket: Socket) => {
   socket.on('attack', (args: { coord: Coord }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
-    let error = room?.getGameNotStartedYet ?? room?.getIsPlayersTurn(playerNo) ?? player?.getValidAttack(args.coord);
+    const error =
+      room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(playerNo) ?? player?.getValidAttack(args.coord);
     if (error || !room || !player || playerNo === undefined) {
       return cb(error ?? 'Internal error');
     }
