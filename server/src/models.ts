@@ -46,7 +46,7 @@ export interface AttackResult {
 export interface ServerToClientEvents {
   notification: (text: string) => void; // todo
   /** if both players have emitted gameReady the game can start */
-  gameStart: () => void;
+  gameStart: (args: { first: PlayerNo }) => void;
   /** the game ends if a winner is determined */
   gameOver: (args: { winner: PlayerNo }) => void;
   attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo }) => void;
