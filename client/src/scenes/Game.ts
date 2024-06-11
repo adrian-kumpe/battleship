@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { ShipsOnGrid } from './GameSetup';
+import { socket } from '../sockets';
+import { PlayerNo, RoomConfig } from '@shared/models';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -12,57 +13,42 @@ export class Game extends Scene {
 
   constructor() {
     super('Game');
+
+    socket.on('attack', (args) => {
+      let x: number = args.coord.x;
+      let y: number = args.coord.y;
+
+      if (args.playerNo == PlayerNo.PLAYER1) {
+        const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
+        this.drawMove(xPx, yPx, args.result);
+      } else {
+        const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
+        this.drawMove(xPx, yPx, args.result);
+      }
+    });
+
+    socket.on('gameOver', (args) => {
+      this.scene.start('GameOver', { winner: args.winner.toString() });
+    });
   }
 
-  create(data: { player: ShipsOnGrid; opponent: ShipsOnGrid; gridSize: number }) {
+  create(args: { roomConfig: RoomConfig }) {
     this.camera = this.cameras.main;
     this.drawGrid();
     this.camera.setBackgroundColor(0x00ff00);
 
     this.background = this.add.image(512, 384, 'background');
     this.background.setAlpha(0.5);
+    console.log(args);
 
-    this.attackGrid = new BattleshipGrid(
-      data.gridSize,
-      { gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 },
-      data.opponent,
-    );
-    this.defenseGrid = new BattleshipGrid(
-      data.gridSize,
-      { gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 },
-      data.player,
-    );
+    this.attackGrid = new BattleshipGrid({ gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 });
+    this.defenseGrid = new BattleshipGrid({ gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 });
   }
 
-  changeScene(data: { winner: string }) {
+  /*changeScene(data: { winner: string }) {
     this.scene.start('GameOver', data);
   }
 
-  /**
-   * checks whether the game is still in progress
-   * @returns whether the game is over
-   */
-  private checkGameOver(): boolean {
-    if (this.attackGrid.getAllShipsSunken()) {
-      // player has won the game
-      alert('player has won the game');
-      this.changeScene({ winner: 'player' });
-      return true;
-    }
-    if (this.defenseGrid.getAllShipsSunken()) {
-      // the opponent has won the game
-      alert('the opponent has won the game');
-      this.changeScene({ winner: 'opponent' });
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * performs a player move if x and y are valid
-   * @param x coordinate
-   * @param y coordinate
-   */
   private playerMove(x: number, y: number) {
     if (this.attackGrid.isValidMove(x, y)) {
       const shipId = this.attackGrid.placeMove(x, y);
@@ -98,11 +84,11 @@ export class Game extends Scene {
       this.drawMove(xPx, yPx, 'M');
     }
     this.checkGameOver();
-  }
+  }*/
 
-  private displayShipWasSunken(shipId: number) {
+  /*private displayShipWasSunken(shipId: number) {
     alert('Schiff ' + shipId + ' wurde versenkt!');
-  }
+  }*/
 
   drawGrid() {
     const gridSize = 8;
@@ -119,7 +105,11 @@ export class Game extends Scene {
         rect.setInteractive();
         rect.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
           if (pointer.leftButtonDown()) {
-            this.playerMove(col, row);
+            socket.emit('attack', { coord: { x: col, y: row } }, (error?: string) => {
+              if (error) {
+                console.log(error);
+              }
+            });
           }
           if (pointer.rightButtonDown()) {
             alert('rechtsklick');

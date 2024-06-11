@@ -68,6 +68,8 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {});
 
+  socket.on('disconnect', () => {});
+
   /** sets shipConfig of player; if both players are ready start the game */
   socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
