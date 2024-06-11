@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { socket } from '../sockets';
-import { Coord, PartialShipConfig, RoomConfig } from '@shared/models';
+import { Coord, PartialShipConfig, PlayerNo, RoomConfig } from '@shared/models';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -17,17 +17,19 @@ export class GameSetup extends Scene {
   ];
   private baseShipId = 1000;
   private roomConfig: RoomConfig;
+  private ownPlayerNo: PlayerNo;
 
   constructor() {
     super('GameSetup');
 
     socket.on('gameStart', () => {
-      this.scene.start('Game', { roomConfig: this.roomConfig });
+      this.scene.start('Game', { roomConfig: this.roomConfig, ownPlayerNo: this.ownPlayerNo });
     });
   }
 
-  create(args: { roomConfig: RoomConfig }) {
+  create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
     this.roomConfig = args.roomConfig;
+    this.ownPlayerNo = args.ownPlayerNo;
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xff4500);
 

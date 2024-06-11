@@ -30,7 +30,6 @@ export class BattleshipGameBoard {
   }
 
   public getGameOver(): boolean {
-    //console.log(this._shipConfig?.flatMap(({ calculatedCoord }) => calculatedCoord));
     return (
       this._shipConfig !== undefined && this._shipConfig.flatMap(({ calculatedCoord }) => calculatedCoord).length === 0
     );
@@ -42,14 +41,14 @@ export class BattleshipGameBoard {
 
   public placeAttack(coord: Coord): AttackResult {
     this.dirtyCoord.push(coord);
-    this._shipConfig?.forEach((s) => {
+    for (const s of this._shipConfig ?? []) {
       const index = s.calculatedCoord.findIndex((c) => c.x === coord.x && c.y === coord.y);
       if (index > -1) {
         s.calculatedCoord.splice(index, 1);
         // todo ist es sinnvoll, dass hier das Ship zurückgegeben wird?
         return { result: 'H', sunkenShip: s.calculatedCoord.length === 0 ? s.ship : undefined };
       }
-    });
+    }
     return {
       result: 'M',
     };
