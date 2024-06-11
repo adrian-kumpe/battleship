@@ -81,7 +81,7 @@ io.on('connection', (socket: Socket) => {
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.clientName} ${socket.id} ready to start`);
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
-      console.info(`[${room.roomConfig.roomId}] All players are ready to start`);
+      console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
       io.to(room.roomConfig.roomId).emit('gameStart');
     }
   });
@@ -103,7 +103,8 @@ io.on('connection', (socket: Socket) => {
       Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
     );
     if (player.getGameOver()) {
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
+      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
     }
   });
 
