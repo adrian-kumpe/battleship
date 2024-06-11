@@ -6,6 +6,8 @@ export class MainMenu extends Scene {
   background: GameObjects.Image;
   logo: GameObjects.Image;
   title: GameObjects.Text;
+  newGameButton: GameObjects.Text;
+  joinGameButton: GameObjects.Text;
 
   constructor() {
     super('MainMenu');
@@ -27,9 +29,21 @@ export class MainMenu extends Scene {
       })
       .setOrigin(0.5);
 
-    this.input.once('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.leftButtonDown()) {
-        //create
+    const buttonConfig = {
+      fontFamily: 'Arial Black',
+      fontSize: 20,
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      padding: { x: 20, y: 10 },
+      align: 'center',
+      fixedWidth: 260,
+    };
+
+    this.newGameButton = this.add
+      .text(362, 570, 'Neues Spiel starten', buttonConfig)
+      .setOrigin(0.5)
+      .setInteractive()
+      .on('pointerdown', () => {
         socket.emit(
           'createRoom',
           { roomConfig: { mode: GameMode['8X8'] }, clientName: 'Spieler' },
@@ -43,9 +57,13 @@ export class MainMenu extends Scene {
             }
           },
         );
-      }
-      if (pointer.rightButtonDown()) {
-        //join
+      });
+
+    this.joinGameButton = this.add
+      .text(662, 570, 'Spiel beitreten', buttonConfig)
+      .setOrigin(0.5)
+      .setInteractive()
+      .on('pointerdown', () => {
         socket.emit(
           'joinRoom',
           { roomId: '1000', clientName: 'Spieler2' },
@@ -59,7 +77,6 @@ export class MainMenu extends Scene {
             }
           },
         );
-      }
-    });
+      });
   }
 }
