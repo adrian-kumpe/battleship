@@ -26,10 +26,10 @@ const roomList: RoomList = new RoomList();
 const PORT = process.env.PORT || 3000;
 
 io.engine.on('connection_error', (err) => {
-  console.log(err.req); // the request object
-  console.log(err.code); // the error code, for example 1
-  console.log(err.message); // the error message, for example "Session ID unknown"
-  console.log(err.context); // some additional error context
+  console.warn(err.req); // the request object
+  console.warn(err.code); // the error code, for example 1
+  console.warn(err.message); // the error message, for example "Session ID unknown"
+  console.warn(err.context); // some additional error context
 });
 
 io.on('connection', (socket: Socket) => {
@@ -66,15 +66,15 @@ io.on('connection', (socket: Socket) => {
     cb({ roomConfig: room.roomConfig });
   });
 
-  socket.on('disconnect', () => {});
-
-  socket.on('disconnect', () => {});
+  socket.on('disconnect', () => {
+    console.info('Client disconnected', socket.id);
+  });
 
   /** sets shipConfig of player; if both players are ready start the game */
   socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
-    const error = undefined;
+    const error = undefined; // todo shipConfig müsste validiert werden
     if (error || !room || !player) {
       return cb(error ?? 'Internal error');
     }
@@ -97,7 +97,9 @@ io.on('connection', (socket: Socket) => {
     }
     const attackResult = player.placeAttack(args.coord);
     room.playerChange();
-    console.info(`[${room.roomConfig.roomId}] Player ${playerNo} placed an attack on ${args.coord.x}-${args.coord.y}`);
+    console.info(
+      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
+    );
     io.to(room.roomConfig.roomId).emit(
       'attack',
       Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
@@ -110,8 +112,9 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
     console.log('alexaTestConnection wurde aufgerufen');
+    console.log(args);
     cb();
   });
 });
 
-httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
