@@ -1,4 +1,4 @@
-import { PlayerNo, RoomConfig } from './models';
+import { PlayerNo, RoomConfig } from '../../shared/models';
 import { BattleshipGameBoard } from './game';
 
 export class RoomList {
