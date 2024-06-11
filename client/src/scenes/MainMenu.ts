@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { socket } from '../sockets';
-import { GameMode, RoomConfig } from '@shared/models';
+import { GameMode, PlayerNo, RoomConfig } from '@shared/models';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -36,7 +36,7 @@ export class MainMenu extends Scene {
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);
-              this.scene.start('GameSetup', { roomConfig: args.roomConfig });
+              this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER1 });
             }
             if (error) {
               console.log(error);
@@ -52,7 +52,7 @@ export class MainMenu extends Scene {
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);
-              this.scene.start('GameSetup', { roomConfig: args.roomConfig });
+              this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER2 });
             }
             if (error) {
               console.log(error);

@@ -10,15 +10,17 @@ export class Game extends Scene {
 
   attackGrid: BattleshipGrid;
   defenseGrid: BattleshipGrid;
+  private ownPlayerNo: PlayerNo;
+  // private roomConfig: RoomConfig;
 
   constructor() {
     super('Game');
 
     socket.on('attack', (args) => {
-      let x: number = args.coord.x;
-      let y: number = args.coord.y;
+      const x = args.coord.x;
+      const y = args.coord.y;
 
-      if (args.playerNo == PlayerNo.PLAYER1) {
+      if (args.playerNo === this.ownPlayerNo) {
         const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
         this.drawMove(xPx, yPx, args.result);
       } else {
@@ -32,14 +34,16 @@ export class Game extends Scene {
     });
   }
 
-  create(args: { roomConfig: RoomConfig }) {
+  create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
     this.camera = this.cameras.main;
     this.drawGrid();
     this.camera.setBackgroundColor(0x00ff00);
 
     this.background = this.add.image(512, 384, 'background');
     this.background.setAlpha(0.5);
-    console.log(args);
+
+    this.ownPlayerNo = args.ownPlayerNo;
+    // this.roomConfig = args.roomConfig;
 
     this.attackGrid = new BattleshipGrid({ gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 });
     this.defenseGrid = new BattleshipGrid({ gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 });
