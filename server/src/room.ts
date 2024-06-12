@@ -38,7 +38,7 @@ export class RoomList {
 }
 
 export class Room {
-  private currentPlayer: PlayerNo;
+  public currentPlayer: PlayerNo;
   public roomConfig: RoomConfig;
   public player2?: BattleshipGameBoard;
 

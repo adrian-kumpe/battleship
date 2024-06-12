@@ -36,14 +36,12 @@ export class Game extends Scene {
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
     this.camera = this.cameras.main;
+    this.ownPlayerNo = args.ownPlayerNo;
     this.drawGrid();
     this.camera.setBackgroundColor(0x00ff00);
 
     this.background = this.add.image(512, 384, 'background');
     this.background.setAlpha(0.5);
-
-    this.ownPlayerNo = args.ownPlayerNo;
-    // this.roomConfig = args.roomConfig;
 
     this.attackGrid = new BattleshipGrid({ gridOffsetX: 50, gridOffsetY: 170, cellSize: 50 });
     this.defenseGrid = new BattleshipGrid({ gridOffsetX: 550, gridOffsetY: 170, cellSize: 50 });
@@ -123,19 +121,25 @@ export class Game extends Scene {
       }
     }
 
-    /*this.gameText = */ this.add.text(offsetX + 15, offsetY - 35, 'A    B    C    D    E    F    G    H', {
+    this.add.text(420, 50, 'Player Nr. ' + (this.ownPlayerNo + 1).toString(), {
+      fontFamily: 'Arial Black',
+      fontSize: 28,
+      color: '#000000',
+    });
+
+    this.add.text(offsetX + 15, offsetY - 35, 'A    B    C    D    E    F    G    H', {
       fontFamily: 'Arial Black',
       fontSize: 24,
       color: '#000000',
     });
 
-    /*this.gameText = */ this.add.text(offsetX - 25, offsetY + 5, '1 \n\n2 \n\n3 \n\n4 \n\n5 \n\n6 \n\n7 \n\n8', {
+    this.add.text(offsetX - 25, offsetY + 5, '1 \n\n2 \n\n3 \n\n4 \n\n5 \n\n6 \n\n7 \n\n8', {
       fontFamily: 'Arial Black',
       fontSize: 23,
       color: '#000000',
     });
 
-    /*this.gameText = */ this.add.text(
+    this.add.text(
       offsetX,
       offsetY + 435,
       'There are 3 ships to hit\n    aircraft-carrier with size: 5\n    cruiser with size: 3\n    destroyer with size: 2',
@@ -156,19 +160,19 @@ export class Game extends Scene {
       }
     }
 
-    /*this.gameText = */ this.add.text(offsetX + 15, offsetY - 35, 'A    B    C    D    E    F    G    H', {
+    this.add.text(offsetX + 15, offsetY - 35, 'A    B    C    D    E    F    G    H', {
       fontFamily: 'Arial Black',
       fontSize: 24,
       color: '#000000',
     });
 
-    /*this.gameText = */ this.add.text(offsetX - 25, offsetY + 5, '1 \n\n2 \n\n3 \n\n4 \n\n5 \n\n6 \n\n7 \n\n8', {
+    this.add.text(offsetX - 25, offsetY + 5, '1 \n\n2 \n\n3 \n\n4 \n\n5 \n\n6 \n\n7 \n\n8', {
       fontFamily: 'Arial Black',
       fontSize: 23,
       color: '#000000',
     });
 
-    /*this.gameText = */ this.add.text(offsetX, offsetY + 435, "The opponent tries to guess \nyour ships' positions.", {
+    this.add.text(offsetX, offsetY + 435, "The opponent tries to guess \nyour ships' positions.", {
       fontFamily: 'Arial Black',
       fontSize: 24,
       color: '#000000',

@@ -22,7 +22,8 @@ export class GameSetup extends Scene {
   constructor() {
     super('GameSetup');
 
-    socket.on('gameStart', () => {
+    socket.on('gameStart', (args) => {
+      alert('Player Nr. ' + (args.first + 1) + ' starts');
       this.scene.start('Game', { roomConfig: this.roomConfig, ownPlayerNo: this.ownPlayerNo });
     });
   }

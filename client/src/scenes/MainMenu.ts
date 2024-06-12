@@ -46,7 +46,7 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'createRoom',
-          { roomConfig: { mode: GameMode['8X8'] }, clientName: 'Spieler' },
+          { roomConfig: { mode: GameMode['8X8'] }, clientName: 'Spieler1' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);

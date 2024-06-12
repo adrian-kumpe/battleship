@@ -89,7 +89,8 @@ io.on('connection', (socket: Socket) => {
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
-      io.to(room.roomConfig.roomId).emit('gameStart');
+      //console.log(room.currentPlayer + ' beginnt');
+      io.to(room.roomConfig.roomId).emit('gameStart', { first: room.currentPlayer });
     }
   });
 
