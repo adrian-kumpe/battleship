@@ -1,4 +1,4 @@
-import { AttackResult, Coord, PartialShipConfig } from '../../shared/models';
+import { AttackResult, Coord, PartialShipConfig } from './shared/models';
 import { Client } from '.';
 
 export class BattleshipGameBoard {

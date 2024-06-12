@@ -5,7 +5,7 @@ import {
   RoomConfig,
   ServerToClientEvents,
   PartialShipConfig,
-} from '../../shared/models';
+} from './shared/models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { Room, RoomList } from './room';
