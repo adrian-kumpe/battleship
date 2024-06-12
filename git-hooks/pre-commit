@@ -1,0 +1,11 @@
+#!/bin/sh
+
+CLIENT_MODELS="client/src/shared/models.ts"
+SERVER_MODELS="server/src/shared/models.ts"
+
+if ! diff -q "$CLIENT_MODELS" "$SERVER_MODELS" > /dev/null; then
+  echo "Error: The shared/model.ts files inside client/src/ and server/src/ are not identical."
+  exit 1
+fi
+
+exit 0
