@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { socket } from '../sockets';
-import { GameMode, PlayerNo, RoomConfig } from '@shared/models';
+import { GameMode, PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;

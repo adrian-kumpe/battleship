@@ -18,9 +18,6 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.js', '.json'],
-    alias: {
-      '@shared': path.resolve(__dirname, '../../shared'),
-    },
   },
   devtool: false,
   performance: {

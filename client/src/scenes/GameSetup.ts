@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { socket } from '../sockets';
-import { Coord, PartialShipConfig, PlayerNo, RoomConfig } from '@shared/models';
+import { Coord, PartialShipConfig, PlayerNo, RoomConfig } from '../shared/models';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
