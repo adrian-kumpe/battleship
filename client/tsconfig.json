@@ -16,11 +16,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "rootDir": "../" /* Specify the root folder within your source files. */,
-    "paths": {
-      "@shared/*": ["../shared/*"]
-    }
+    "rootDir": "./src"
   },
-  "include": ["src/**/*", "../shared/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
