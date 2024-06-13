@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { socket } from '../sockets';
+import { socket } from '../main';
 import { GameMode, PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {

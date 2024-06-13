@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { socket } from '../sockets';
 import { PlayerNo, RoomConfig } from '../shared/models';
+import { socket } from '../main';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
