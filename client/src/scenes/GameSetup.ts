@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { socket } from '../sockets';
+import { socket } from '../main';
 import { Coord, PartialShipConfig, PlayerNo, RoomConfig } from '../shared/models';
 
 export class GameSetup extends Scene {
