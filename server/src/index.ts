@@ -11,8 +11,6 @@ import { Server, Socket } from 'socket.io';
 import { Room, RoomList } from './room';
 import { BattleshipGameBoard } from './game';
 
-// todo Error type alias mit string | undefined
-
 export interface Client {
   socketId: string;
   clientName: string;
@@ -47,7 +45,7 @@ io.on('connection', (socket: Socket) => {
     const client: Client = { socketId: socket.id, clientName: args.clientName };
     const newRoomId = roomList.getNewRoomId();
     const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
-    const error = roomList.getClientAlreadyInRoom(socket.id);
+    const error = roomList.checkClientAlreadyInRoom(socket.id);
     if (error) {
       return cb(error);
     }
@@ -62,7 +60,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('joinRoom', (args: { roomId: string; clientName: string }, cb) => {
     const client: Client = { socketId: socket.id, clientName: args.clientName };
     const room = roomList.getRoom(args.roomId);
-    const error = roomList.getClientAlreadyInRoom(socket.id) ?? roomList.getRoomIdUnknown(args.roomId);
+    const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
     if (error || !room) {
       return cb(error ?? 'Internal error');
     }
@@ -89,38 +87,50 @@ io.on('connection', (socket: Socket) => {
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
-      //console.log(room.currentPlayer + ' beginnt');
+      console.info(`[${room.roomConfig.roomId}] Player ${room.currentPlayer} begins`);
       io.to(room.roomConfig.roomId).emit('gameStart', { first: room.currentPlayer });
     }
   });
+
+  const performAttack = (room: Room, player: BattleshipGameBoard, playerNo: PlayerNo, coord: Coord) => {
+    const attackResult = player.placeAttack(coord);
+    room.playerChange();
+    console.info(
+      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
+    );
+    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
+    if (player.getGameOver()) {
+      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
+      roomList.deleteRoom(room.roomConfig.roomId);
+    }
+  };
 
   /** player attacks */
   socket.on('attack', (args: { coord: Coord }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error =
-      room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(playerNo) ?? player?.getValidAttack(args.coord);
+      room?.checkGameStarted() ?? room?.checkPlayersTurn(playerNo) ?? player?.checkCoordAvailable(args.coord);
     if (error || !room || !player || playerNo === undefined) {
       return cb(error ?? 'Internal error');
     }
-    const attackResult = player.placeAttack(args.coord);
-    room.playerChange();
-    console.info(
-      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
-    );
-    io.to(room.roomConfig.roomId).emit(
-      'attack',
-      Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
-    );
-    if (player.getGameOver()) {
-      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
-    }
+    performAttack(room, player, playerNo, args.coord);
   });
 
+  /** player attacks using voice input */
   socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
-    console.log('alexaTestConnection wurde aufgerufen');
-    console.log(args);
+    const room = roomList.getRoom(args.roomId);
+    const player = room?.getPlayerByPlayerNo(args.playerNo);
+    const error =
+      room?.checkGameStarted() ?? room?.checkPlayersTurn(args.playerNo) ?? player?.checkCoordAvailable(args.coord);
+    if (error || !room || !player) {
+      // todo sinnvolle errors
+      console.log(error ?? 'Internal error');
+      return cb(); // Alexa can't receive error messages // todo test
+    }
+    console.info(`[${args.roomId}] Alexa connected`);
+    performAttack(room, player, args.playerNo, args.coord);
     cb();
   });
 });
