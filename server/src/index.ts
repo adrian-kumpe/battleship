@@ -45,7 +45,7 @@ io.on('connection', (socket: Socket) => {
     const client: Client = { socketId: socket.id, clientName: args.clientName };
     const newRoomId = roomList.getNewRoomId();
     const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
-    const error = roomList.getClientAlreadyInRoom(socket.id);
+    const error = roomList.checkClientAlreadyInRoom(socket.id);
     if (error) {
       return cb(error);
     }
@@ -60,7 +60,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('joinRoom', (args: { roomId: string; clientName: string }, cb) => {
     const client: Client = { socketId: socket.id, clientName: args.clientName };
     const room = roomList.getRoom(args.roomId);
-    const error = roomList.getClientAlreadyInRoom(socket.id) ?? roomList.getRoomIdUnknown(args.roomId);
+    const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
     if (error || !room) {
       return cb(error ?? 'Internal error');
     }
@@ -111,7 +111,7 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error =
-      room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(playerNo) ?? player?.getValidAttack(args.coord);
+      room?.checkGameStarted() ?? room?.checkPlayersTurn(playerNo) ?? player?.checkCoordAvailable(args.coord);
     if (error || !room || !player || playerNo === undefined) {
       return cb(error ?? 'Internal error');
     }
@@ -123,7 +123,7 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoom(args.roomId);
     const player = room?.getPlayerByPlayerNo(args.playerNo);
     const error =
-      room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(args.playerNo) ?? player?.getValidAttack(args.coord);
+      room?.checkGameStarted() ?? room?.checkPlayersTurn(args.playerNo) ?? player?.checkCoordAvailable(args.coord);
     if (error || !room || !player) {
       // todo sinnvolle errors
       console.log(error ?? 'Internal error');

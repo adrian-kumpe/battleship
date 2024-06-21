@@ -35,10 +35,6 @@ export class BattleshipGameBoard {
     );
   }
 
-  public getValidAttack(coord: Coord): string | undefined {
-    return this.dirtyCoord.some((c) => c.x === coord.x && c.y === coord.y) ? 'Coord already attacked' : undefined;
-  }
-
   public placeAttack(coord: Coord): AttackResult {
     this.dirtyCoord.push(coord);
     for (const s of this._shipConfig ?? []) {
@@ -52,5 +48,9 @@ export class BattleshipGameBoard {
     return {
       result: 'M',
     };
+  }
+
+  public checkCoordAvailable(coord: Coord): string | undefined {
+    return this.dirtyCoord.some((c) => c.x === coord.x && c.y === coord.y) ? 'Coord already attacked' : undefined;
   }
 }
