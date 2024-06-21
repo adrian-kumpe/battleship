@@ -60,6 +60,10 @@ export class Room {
         : undefined;
   }
 
+  public getPlayerByPlayerNo(playerNo: PlayerNo): BattleshipGameBoard | undefined {
+    return playerNo === PlayerNo.PLAYER1 ? this.player1 : this.player2;
+  }
+
   public getGameReady(): boolean {
     return this.player1.getPlayerReady() && !!this.player2?.getPlayerReady();
   }

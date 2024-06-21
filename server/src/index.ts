@@ -103,6 +103,7 @@ io.on('connection', (socket: Socket) => {
     if (error || !room || !player || playerNo === undefined) {
       return cb(error ?? 'Internal error');
     }
+    // todo Angriff in Funktion
     const attackResult = player.placeAttack(args.coord);
     room.playerChange();
     console.info(
@@ -112,6 +113,7 @@ io.on('connection', (socket: Socket) => {
       'attack',
       Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
     );
+    // todo Gewinn in eine Funktion
     if (player.getGameOver()) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
@@ -119,7 +121,30 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
-    console.log('alexaTestConnection wurde aufgerufen');
+    const room = roomList.getRoom(args.roomId);
+    const player = room?.getPlayerByPlayerNo(args.playerNo);
+    const error =
+      room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(args.playerNo) ?? player?.getValidAttack(args.coord);
+    if (error || !room || !player) {
+      // todo sinnvolle überprüfungen
+      return cb(); // Alexa can't receive error messages // todo test
+    }
+    // todo copy paste
+    const attackResult = player.placeAttack(args.coord);
+    room.playerChange();
+    console.info(
+      `[${room.roomConfig.roomId}] Alexa (Player ${args.playerNo}) attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
+    );
+    io.to(room.roomConfig.roomId).emit(
+      'attack',
+      Object.assign(attackResult, { coord: args.coord, playerNo: args.playerNo }),
+    );
+    if (player.getGameOver()) {
+      console.info(`[${room.roomConfig.roomId}] Player ${args.playerNo} has won the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: args.playerNo }); // todo ist das richtig herum?
+    }
+
+    console.info(`has won the game`);
     console.log(args);
     cb();
   });
