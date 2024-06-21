@@ -11,8 +11,6 @@ import { Server, Socket } from 'socket.io';
 import { Room, RoomList } from './room';
 import { BattleshipGameBoard } from './game';
 
-// todo Error type alias mit string | undefined
-
 export interface Client {
   socketId: string;
   clientName: string;
@@ -89,10 +87,24 @@ io.on('connection', (socket: Socket) => {
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
-      //console.log(room.currentPlayer + ' beginnt');
+      console.info(`[${room.roomConfig.roomId}] Player ${room.currentPlayer} begins`);
       io.to(room.roomConfig.roomId).emit('gameStart', { first: room.currentPlayer });
     }
   });
+
+  const performAttack = (room: Room, player: BattleshipGameBoard, playerNo: PlayerNo, coord: Coord) => {
+    const attackResult = player.placeAttack(coord);
+    room.playerChange();
+    console.info(
+      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
+    );
+    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
+    if (player.getGameOver()) {
+      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
+      roomList.deleteRoom(room.roomConfig.roomId);
+    }
+  };
 
   /** player attacks */
   socket.on('attack', (args: { coord: Coord }, cb) => {
@@ -103,48 +115,22 @@ io.on('connection', (socket: Socket) => {
     if (error || !room || !player || playerNo === undefined) {
       return cb(error ?? 'Internal error');
     }
-    // todo Angriff in Funktion
-    const attackResult = player.placeAttack(args.coord);
-    room.playerChange();
-    console.info(
-      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
-    );
-    io.to(room.roomConfig.roomId).emit(
-      'attack',
-      Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
-    );
-    // todo Gewinn in eine Funktion
-    if (player.getGameOver()) {
-      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
-    }
+    performAttack(room, player, playerNo, args.coord);
   });
 
+  /** player attacks using voice input */
   socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
-    console.info('Alexa attacked!' + JSON.stringify(args));
     const room = roomList.getRoom(args.roomId);
     const player = room?.getPlayerByPlayerNo(args.playerNo);
     const error =
       room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(args.playerNo) ?? player?.getValidAttack(args.coord);
     if (error || !room || !player) {
-      // todo sinnvolle überprüfungen
+      // todo sinnvolle errors
       console.log(error ?? 'Internal error');
       return cb(); // Alexa can't receive error messages // todo test
     }
-    // todo copy paste
-    const attackResult = player.placeAttack(args.coord);
-    room.playerChange();
-    console.info(
-      `[${room.roomConfig.roomId}] Alexa (Player ${args.playerNo}) attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
-    );
-    io.to(room.roomConfig.roomId).emit(
-      'attack',
-      Object.assign(attackResult, { coord: args.coord, playerNo: args.playerNo }),
-    );
-    if (player.getGameOver()) {
-      console.info(`[${room.roomConfig.roomId}] Player ${args.playerNo} has won the game`);
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: args.playerNo }); // todo ist das richtig herum?
-    }
+    console.info(`[${args.roomId}] Alexa connected`);
+    performAttack(room, player, args.playerNo, args.coord);
     cb();
   });
 });
