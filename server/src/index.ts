@@ -121,12 +121,14 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
+    console.info('Alexa attacked!' + JSON.stringify(args));
     const room = roomList.getRoom(args.roomId);
     const player = room?.getPlayerByPlayerNo(args.playerNo);
     const error =
       room?.getGameNotStartedYet() ?? room?.getIsPlayersTurn(args.playerNo) ?? player?.getValidAttack(args.coord);
     if (error || !room || !player) {
       // todo sinnvolle überprüfungen
+      console.log(error ?? 'Internal error');
       return cb(); // Alexa can't receive error messages // todo test
     }
     // todo copy paste
@@ -143,9 +145,6 @@ io.on('connection', (socket: Socket) => {
       console.info(`[${room.roomConfig.roomId}] Player ${args.playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: args.playerNo }); // todo ist das richtig herum?
     }
-
-    console.info(`has won the game`);
-    console.log(args);
     cb();
   });
 });
