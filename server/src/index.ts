@@ -4,7 +4,7 @@ import {
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
-  PartialShipConfig,
+  ShipMetaInformation,
 } from './shared/models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
@@ -13,7 +13,7 @@ import { BattleshipGameBoard } from './game';
 
 export interface Client {
   socketId: string;
-  clientName: string;
+  playerName: string;
 }
 
 interface InterServerEvents {
@@ -41,33 +41,33 @@ io.on('connection', (socket: Socket) => {
   console.info('Client connected', socket.id);
 
   /** adds new room to the roomList */
-  socket.on('createRoom', (args: { roomConfig: Omit<RoomConfig, 'roomId'>; clientName: string }, cb) => {
-    const client: Client = { socketId: socket.id, clientName: args.clientName };
+  socket.on('createRoom', (args: { roomConfig: Omit<RoomConfig, 'roomId'>; playerName: string }, cb) => {
+    const client: Client = { socketId: socket.id, playerName: args.playerName };
     const newRoomId = roomList.getNewRoomId();
     const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
     const error = roomList.checkClientAlreadyInRoom(socket.id);
     if (error) {
       return cb(error);
     }
-    console.info(`[${newRoomId}] was created by ${args.clientName} ${socket.id}`);
+    console.info(`[${newRoomId}] was created by ${args.playerName} ${socket.id}`);
     roomList.addRoom(room);
     socket.join(newRoomId);
-    io.to(newRoomId).emit('notification', `${args.clientName} joined the game`);
+    io.to(newRoomId).emit('notification', { text: `${args.playerName} joined the game` });
     cb({ roomConfig: room.roomConfig });
   });
 
   /** adds client to an existing room of the roomList */
-  socket.on('joinRoom', (args: { roomId: string; clientName: string }, cb) => {
-    const client: Client = { socketId: socket.id, clientName: args.clientName };
+  socket.on('joinRoom', (args: { roomId: string; playerName: string }, cb) => {
+    const client: Client = { socketId: socket.id, playerName: args.playerName };
     const room = roomList.getRoom(args.roomId);
     const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
     if (error || !room) {
       return cb(error ?? 'Internal error');
     }
-    console.info(`[${args.roomId}] Client ${args.clientName} ${socket.id} joined the game`);
+    console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
     room.player2 = new BattleshipGameBoard(client);
     socket.join(args.roomId);
-    io.to(args.roomId).emit('notification', `${args.clientName} joined the game`);
+    io.to(args.roomId).emit('notification', { text: `${args.playerName} joined the game` });
     cb({ roomConfig: room.roomConfig });
   });
 
@@ -76,19 +76,25 @@ io.on('connection', (socket: Socket) => {
   });
 
   /** sets shipConfig of player; if both players are ready start the game */
-  socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
+  socket.on('gameReady', (args: { shipConfig: (ShipMetaInformation & Coord)[] }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error = undefined; // todo shipConfig müsste validiert werden
     if (error || !room || !player) {
       return cb(error ?? 'Internal error');
     }
-    console.info(`[${room.roomConfig.roomId}] Client ${player.client.clientName} ${socket.id} ready to start`);
+    console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
       console.info(`[${room.roomConfig.roomId}] Player ${room.currentPlayer} begins`);
-      io.to(room.roomConfig.roomId).emit('gameStart', { first: room.currentPlayer });
+      io.to(room.roomConfig.roomId).emit('gameStart', {
+        playerConfig: {
+          [PlayerNo.PLAYER1]: room.player1.client.playerName,
+          [PlayerNo.PLAYER2]: room.player2!.client.playerName,
+          firstTurn: room.currentPlayer,
+        },
+      });
     }
   });
 

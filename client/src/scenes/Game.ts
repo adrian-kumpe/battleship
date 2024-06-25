@@ -22,10 +22,10 @@ export class Game extends Scene {
 
       if (args.playerNo === this.ownPlayerNo) {
         const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.result);
+        this.drawMove(xPx, yPx, args.hit ? 'H' : 'M');
       } else {
         const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.result);
+        this.drawMove(xPx, yPx, args.hit ? 'H' : 'M');
       }
     });
 

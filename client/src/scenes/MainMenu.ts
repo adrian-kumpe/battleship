@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { socket } from '../main';
-import { GameMode, PlayerNo, RoomConfig } from '../shared/models';
+import { PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -46,7 +46,7 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'createRoom',
-          { roomConfig: { mode: GameMode['8X8'] }, clientName: 'Spieler1' },
+          { roomConfig: { gameBoardSize: 8, availableShips: [1, 1, 1, 1, 1] }, playerName: 'Spieler1' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);
@@ -66,7 +66,7 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'joinRoom',
-          { roomId: '1000', clientName: 'Spieler2' },
+          { roomId: '1000', playerName: 'Spieler2' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);
