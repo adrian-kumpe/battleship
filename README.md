@@ -19,15 +19,18 @@ Implement voice control for your game by using the Alexa Skills Kit (ASK), which
 | Command         | Description                                    |
 | --------------- | ---------------------------------------------- |
 | `npm install`   | Install project dependencies                   |
-| `npm start`     | Launch a development web server                |
 | `npm run build` | Create a production build in the `dist` folder |
+| `npm start`     | Launches the production build                  |
+| `npm run dev`   | Launch a development web server                |
+
 
 ### Server
 
-| Command       | Description                                      |
-| ------------- | ------------------------------------------------ |
-| `npm install` | Install project dependencies; compile Typescript |
-| `npm start`   | Launch a development web server                  |
+| Command        | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `npm install`  | Install project dependencies                    |
+| `npm run build`| Create a build in the `dist` folder             |
+| `npm start`    | Launches the build                              |
 
 ### Alexa Skill
 
