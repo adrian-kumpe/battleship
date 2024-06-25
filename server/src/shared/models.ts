@@ -9,7 +9,7 @@ export interface RoomConfig {
   availableShips: number[];
 }
 
-/** clientName of players; playerNo who starts the game */
+/** playerName of players; playerNo who starts the game */
 export interface PlayerConfig {
   [PlayerNo.PLAYER1]: string;
   [PlayerNo.PLAYER2]: string;
@@ -46,28 +46,63 @@ export interface AttackResult {
 }
 
 export interface ServerToClientEvents {
-  notification: (text: string) => void; // todo
-  /** if both players have emitted gameReady the game can start */
+  /**
+   * sends a notification
+   * @param text
+   */
+  notification: (args: { text: string }) => void;
+  /**
+   * starts the game when both players have emitted gameReady
+   * @param playerConfig w/ all player names and firstTurn
+   */
   gameStart: (args: { playerConfig: PlayerConfig }) => void;
-  /** the game ends if a winner is determined */
+  /**
+   * ends the game when a winner is determined
+   * @param winner
+   */
   gameOver: (args: { winner: PlayerNo }) => void;
+  /**
+   * informs all players when an attack was successfully placed
+   * @param AttackResult w/ hit and sunkenShip information (if available)
+   * @param coord that was attacked
+   * @param playerNo who placed the attack
+   */
   attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo }) => void;
 }
 
 export interface ClientToServerEvents {
-  /** create a game w/ settings */
+  /** creates a game w/ desired settings
+   * @param roomConfig desired config for the game
+   * @param playerName player's name
+   * @returns completed roomConfig
+   */
   createRoom: (
-    args: { roomConfig: Omit<RoomConfig, 'roomId'>; clientName: string },
+    args: { roomConfig: Omit<RoomConfig, 'roomId'>; playerName: string },
     cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
   ) => void;
-  /** join a game */
+  /**
+   * joins a game
+   * @param roomId id to join a room e.g. "1000"
+   * @param playerName player's name
+   * @returns roomConfig
+   */
   joinRoom: (
-    args: { roomId: string; clientName: string },
+    args: { roomId: string; playerName: string },
     cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
   ) => void;
-  /** commit shipConfig; if both players are ready server emits gameStart event */
+  /**
+   * commits shipConfig; if both players are ready, the server can emit gameStart
+   * @param shipConfig placement of the player's ships
+   */
   gameReady: (args: { shipConfig: (ShipMetaInformation & Coord)[] }, cb: (error?: string) => void) => void;
-  /** place an attack */
+  /**
+   * places an attack
+   * @param coord to attack
+   */
   attack: (args: { coord: Coord }, cb: (error?: string) => void) => void;
+  /**
+   * attack placed by Alexa (voice control)
+   * @param coord to attack
+   */
   alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: () => void) => void;
 }
