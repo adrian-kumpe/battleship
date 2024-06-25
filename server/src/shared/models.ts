@@ -9,7 +9,7 @@ export interface RoomConfig {
   availableShips: number[];
 }
 
-/** playerName of players; playerNo who starts the game */
+/** playerName of both players; playerNo who starts the game */
 export interface PlayerConfig {
   [PlayerNo.PLAYER1]: string;
   [PlayerNo.PLAYER2]: string;
@@ -21,6 +21,7 @@ export interface Ship {
   size: number;
 }
 
+/** @constant */
 export const shipDefinitions: Ship[] = [
   { size: 5, name: 'aircraft-carrier' },
   { size: 4, name: 'battleship' },
@@ -45,6 +46,7 @@ export interface AttackResult {
   sunkenShip?: ShipMetaInformation & Coord;
 }
 
+/** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
 export interface ServerToClientEvents {
   /**
    * sends a notification
@@ -70,10 +72,11 @@ export interface ServerToClientEvents {
   attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo }) => void;
 }
 
+/** client to server events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
 export interface ClientToServerEvents {
   /** creates a game w/ desired settings
    * @param roomConfig desired config for the game
-   * @param playerName player's name
+   * @param playerName
    * @returns completed roomConfig
    */
   createRoom: (
@@ -83,7 +86,7 @@ export interface ClientToServerEvents {
   /**
    * joins a game
    * @param roomId id to join a room e.g. "1000"
-   * @param playerName player's name
+   * @param playerName
    * @returns roomConfig
    */
   joinRoom: (
