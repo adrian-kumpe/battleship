@@ -4,7 +4,7 @@ import {
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
-  PartialShipConfig,
+  ShipMetaInformation,
 } from './shared/models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
@@ -76,7 +76,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   /** sets shipConfig of player; if both players are ready start the game */
-  socket.on('gameReady', (args: { shipConfig: (PartialShipConfig & Coord)[] }, cb) => {
+  socket.on('gameReady', (args: { shipConfig: (ShipMetaInformation & Coord)[] }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error = undefined; // todo shipConfig müsste validiert werden
@@ -88,7 +88,13 @@ io.on('connection', (socket: Socket) => {
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
       console.info(`[${room.roomConfig.roomId}] Player ${room.currentPlayer} begins`);
-      io.to(room.roomConfig.roomId).emit('gameStart', { first: room.currentPlayer });
+      io.to(room.roomConfig.roomId).emit('gameStart', {
+        playerConfig: {
+          [PlayerNo.PLAYER1]: room.player1.client.clientName,
+          [PlayerNo.PLAYER2]: room.player2!.client.clientName,
+          firstTurn: room.currentPlayer,
+        },
+      });
     }
   });
 

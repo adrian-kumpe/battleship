@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { socket } from '../main';
-import { Coord, PartialShipConfig, PlayerNo, RoomConfig } from '../shared/models';
+import { Coord, PlayerNo, RoomConfig, ShipMetaInformation, shipDefinitions } from '../shared/models';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -8,13 +8,6 @@ export class GameSetup extends Scene {
   gameOverText: Phaser.GameObjects.Text;
 
   gridSize: number;
-  private availableShips = [
-    { name: 'aircraft-carrier', size: 5 },
-    { name: 'battleship', size: 4 },
-    { name: 'cruiser', size: 3 },
-    { name: 'destroyer', size: 2 },
-    { name: 'escort', size: 1 },
-  ];
   private baseShipId = 1000;
   private roomConfig: RoomConfig;
   private ownPlayerNo: PlayerNo;
@@ -23,7 +16,7 @@ export class GameSetup extends Scene {
     super('GameSetup');
 
     socket.on('gameStart', (args) => {
-      alert('Player Nr. ' + (args.first + 1) + ' starts');
+      alert('Player Nr. ' + (args.playerConfig.firstTurn + 1) + ' starts');
       this.scene.start('Game', { roomConfig: this.roomConfig, ownPlayerNo: this.ownPlayerNo });
     });
   }
@@ -50,11 +43,11 @@ export class GameSetup extends Scene {
     return this.baseShipId++;
   }
 
-  private placeShipsOnGridRandomly(): (PartialShipConfig & Coord)[] {
+  private placeShipsOnGridRandomly(): (ShipMetaInformation & Coord)[] {
     return [
-      { ship: this.availableShips[0], shipId: this.getShipId(), orientation: '↕️', x: 0, y: 0 },
-      { ship: this.availableShips[2], shipId: this.getShipId(), orientation: '↔️', x: 2, y: 0 },
-      { ship: this.availableShips[3], shipId: this.getShipId(), orientation: '↕️', x: 3, y: 3 },
+      { ship: shipDefinitions[0], shipId: this.getShipId(), orientation: '↕️', x: 0, y: 0 },
+      { ship: shipDefinitions[2], shipId: this.getShipId(), orientation: '↔️', x: 2, y: 0 },
+      { ship: shipDefinitions[3], shipId: this.getShipId(), orientation: '↕️', x: 3, y: 3 },
     ];
   }
 }
