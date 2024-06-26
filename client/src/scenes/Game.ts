@@ -23,9 +23,11 @@ export class Game extends Scene {
       if (args.playerNo === this.ownPlayerNo) {
         const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(x, y);
         this.drawMove(xPx, yPx, args.hit ? 'H' : 'M');
+        this.drawFrame(xPx, yPx);
       } else {
         const { xPx, yPx } = this.defenseGrid.getGridCellToCoordinate(x, y);
         this.drawMove(xPx, yPx, args.hit ? 'H' : 'M');
+        this.drawFrame(xPx, yPx);
       }
     });
 
@@ -185,5 +187,11 @@ export class Game extends Scene {
       fontSize: 24,
       color: '#000000',
     });
+  }
+
+  private drawFrame(x: number, y: number) {
+    const frame = this.add.rectangle(x, y, 50, 50, 0xffffff);
+    frame.setAlpha(0);
+    frame.setStrokeStyle(6, 0xc10307).setOrigin(0).strokeColor;
   }
 }
