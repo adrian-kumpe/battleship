@@ -30,6 +30,7 @@ Implement voice control for your game by using the Alexa Skills Kit (ASK), which
 | `npm install`   | Install project dependencies        |
 | `npm run build` | Create a build in the `dist` folder |
 | `npm start`     | Launch the build                    |
+| `npm run dev`   | Run build and start                 |
 
 ### Alexa Skill
 
