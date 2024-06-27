@@ -59,10 +59,10 @@ export interface ServerToClientEvents {
    */
   gameStart: (args: { playerConfig: PlayerConfig }) => void;
   /**
-   * ends the game when a winner is determined
+   * ends the game; a winner might have been determined
    * @param winner
    */
-  gameOver: (args: { winner: PlayerNo }) => void;
+  gameOver: (args: { winner?: PlayerNo }) => void;
   /**
    * informs all players when an attack was successfully placed
    * @param AttackResult w/ hit and sunkenShip information (if available)

@@ -15,6 +15,7 @@ Implement voice control for your game by using the Alexa Skills Kit (ASK), which
 Enhance the Alexa skill with advanced features such as speech emphasis.
 
 ### Fifth and sixth exercise task
+
 Expand the game application by adding mouse-based/touch-based gesture control. Implement gesture recognition using Dynamic Time Warping (DTW) to compare recorded inputs with predefined templates. Integrate a multimodal fusion component to interpret combinations of point/click, voice, and gesture inputs as game commands. Implement a slot-based system to combine inputs from different modalities and ensure synchronization.
 
 ## Development
@@ -39,6 +40,7 @@ Expand the game application by adding mouse-based/touch-based gesture control. I
 | `npm install`   | Install project dependencies        |
 | `npm run build` | Create a build in the `dist` folder |
 | `npm start`     | Launch the build                    |
+| `npm run dev`   | Run build and start                 |
 
 ### Alexa Skill
 

@@ -26,7 +26,9 @@ interface SocketData {
 }
 
 const httpServer = createServer();
-const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer);
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
+  connectionStateRecovery: {},
+});
 const roomList: RoomList = new RoomList();
 const PORT = process.env.PORT || 3000;
 
@@ -73,6 +75,15 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {
     console.info('Client disconnected', socket.id);
+    // close room and end game for all players
+    const room = roomList.getRoomBySocketId(socket.id);
+    const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
+    if (room && player && playerNo !== undefined) {
+      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} left the game, the room is closed`);
+      io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} left the game` });
+      io.to(room.roomConfig.roomId).emit('gameOver', {});
+      roomList.deleteRoom(room.roomConfig.roomId);
+    }
   });
 
   /** sets shipConfig of player; if both players are ready start the game */
