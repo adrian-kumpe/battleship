@@ -1,12 +1,22 @@
 # Multimodal User Interfaces (MBO)
 
-## First exercise task
+## Summary of exercise tasks
+
+### First exercise task
 
 Design and implement a simple point-and-click game (Battleship in this case), with the aim of making the application multimodal, specifically enabling voice control.
 
-## Second and third exercise tasks
+### Second and third exercise tasks
 
 Implement voice control for your game by using the Alexa Skills Kit (ASK), which involves creating an Alexa skill with intent handler functions and setting up a REST interface for the game to receive commands from Alexa.
+
+### Fourth exercise task
+
+Enhance the Alexa skill with advanced features such as speech emphasis.
+
+### Fifth and sixth exercise task
+
+Expand the game application by adding mouse-based/touch-based gesture control. Implement gesture recognition using Dynamic Time Warping (DTW) to compare recorded inputs with predefined templates. Integrate a multimodal fusion component to interpret combinations of point/click, voice, and gesture inputs as game commands. Implement a slot-based system to combine inputs from different modalities and ensure synchronization.
 
 ## Development
 
