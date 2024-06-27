@@ -30,7 +30,7 @@ export class Game extends Scene {
     });
 
     socket.on('gameOver', (args) => {
-      this.scene.start('GameOver', { winner: args.winner.toString() });
+      this.scene.start('GameOver', { winner: args.winner?.toString() ?? '' });
     });
   }
 
