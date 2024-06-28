@@ -144,7 +144,7 @@ io.on('connection', (socket: Socket) => {
     if (error || !room || !player) {
       // todo sinnvolle errors
       console.log(error ?? 'Internal error');
-      return cb(); // Alexa can't receive error messages // todo test
+      return cb(error); // Alexa can't receive error messages // todo test
     }
     console.info(`[${args.roomId}] Alexa connected`);
     performAttack(room, player, args.playerNo, args.coord);
