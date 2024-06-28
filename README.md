@@ -28,11 +28,11 @@ To ensure `client/src/shared/models.ts` and `server/src/shared/models.ts` are sy
 
 ### First Exercise Task
 
-Design and implement a simple point-and-click game (Battleship in this case), with the aim of making the application multimodal, specifically enabling voice control.
+Design and implement a simple point-and-click game (battleship in this case), with the aim of making the application multimodal, specifically enabling voice control.
 
 ### Second to Fourth Exercise Tasks
 
-Implement voice control for your game by using the Alexa Skills Kit (ASK), which involves creating an Alexa skill with intent handler functions and setting up a REST interface for the game to receive commands from Alexa. Enhance the Alexa skill with advanced features such as speaking styles or speech emphasis.
+Implement voice control for your game by using the Alexa Skills Kit (ASK), which involves creating an Alexa skill with intent handler functions and setting up a REST interface for the game (we just use a short socket.io connection) to receive commands from Alexa. Enhance the Alexa skill with advanced features such as speaking styles or speech emphasis.
 
 ### Fifth and Sixth Exercise Task
 
