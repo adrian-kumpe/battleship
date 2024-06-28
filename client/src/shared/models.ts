@@ -107,5 +107,5 @@ export interface ClientToServerEvents {
    * attack placed by Alexa (voice control)
    * @param coord to attack
    */
-  alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: () => void) => void;
+  alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: (error?: string) => void) => void;
 }
