@@ -1,4 +1,4 @@
-import { PlayerNo, RoomConfig } from './shared/models';
+import { Coord, PlayerNo, RoomConfig } from './shared/models';
 import { BattleshipGameBoard } from './game';
 
 export class RoomList {
@@ -77,5 +77,14 @@ export class Room {
 
   public checkPlayersTurn(playerNo?: PlayerNo): string | undefined {
     return this.currentPlayer !== playerNo ? "It's not the player's turn" : undefined;
+  }
+
+  public checkCoordValid(coord: Coord): string | undefined {
+    return coord.x < 0 ||
+      coord.y < 0 ||
+      coord.x >= this.roomConfig.gameBoardSize ||
+      coord.y >= this.roomConfig.gameBoardSize
+      ? 'Coord is not valid'
+      : undefined;
   }
 }

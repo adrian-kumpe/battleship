@@ -49,6 +49,7 @@ io.on('connection', (socket: Socket) => {
     const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
     const error = roomList.checkClientAlreadyInRoom(socket.id);
     if (error) {
+      console.warn(error);
       return cb(error);
     }
     console.info(`[${newRoomId}] was created by ${args.playerName} ${socket.id}`);
@@ -64,6 +65,7 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoom(args.roomId);
     const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
     if (error || !room) {
+      console.warn(error ?? 'Internal error');
       return cb(error ?? 'Internal error');
     }
     console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
@@ -92,6 +94,7 @@ io.on('connection', (socket: Socket) => {
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error = undefined; // todo shipConfig müsste validiert werden
     if (error || !room || !player) {
+      console.warn(error ?? 'Internal error');
       return cb(error ?? 'Internal error');
     }
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
@@ -128,8 +131,12 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error =
-      room?.checkGameStarted() ?? room?.checkPlayersTurn(playerNo) ?? player?.checkCoordAvailable(args.coord);
+      room?.checkGameStarted() ??
+      room?.checkPlayersTurn(playerNo) ??
+      room?.checkCoordValid(args.coord) ??
+      player?.checkCoordAvailable(args.coord);
     if (error || !room || !player || playerNo === undefined) {
+      console.warn(error ?? 'Internal error');
       return cb(error ?? 'Internal error');
     }
     performAttack(room, player, playerNo, args.coord);
@@ -140,11 +147,13 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoom(args.roomId);
     const player = room?.getPlayerByPlayerNo(args.playerNo);
     const error =
-      room?.checkGameStarted() ?? room?.checkPlayersTurn(args.playerNo) ?? player?.checkCoordAvailable(args.coord);
+      room?.checkGameStarted() ??
+      room?.checkPlayersTurn(args.playerNo) ??
+      room?.checkCoordValid(args.coord) ??
+      player?.checkCoordAvailable(args.coord);
     if (error || !room || !player) {
-      // todo sinnvolle errors
-      console.log(error ?? 'Internal error');
-      return cb(error); // Alexa can't receive error messages // todo test
+      console.warn(error ?? 'Internal error');
+      return cb(error ?? 'Internal error');
     }
     console.info(`[${args.roomId}] Alexa connected`);
     performAttack(room, player, args.playerNo, args.coord);
