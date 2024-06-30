@@ -17,7 +17,7 @@ export class GameOver extends Scene {
     this.background.setAlpha(0.5);
 
     this.gameOverText = this.add
-      .text(512, 384, data.winner + ' has won', {
+      .text(470, 384, 'Player ' + (Number(data.winner) + 1).toString() + ' has won', {
         fontFamily: 'Arial Black',
         fontSize: 64,
         color: '#ffffff',
