@@ -31,6 +31,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 });
 const roomList: RoomList = new RoomList();
 const PORT = process.env.PORT || 3000;
+let lock = false;
 
 io.engine.on('connection_error', (err) => {
   console.warn(err.req); // the request object
@@ -112,6 +113,10 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  socket.on('lock', (args: { locked: boolean }, cb) => {
+    lock = args.locked;
+  });
+
   const performAttack = (room: Room, player: BattleshipGameBoard, playerNo: PlayerNo, coord: Coord) => {
     const attackResult = player.placeAttack(coord);
     room.playerChange();
@@ -134,7 +139,8 @@ io.on('connection', (socket: Socket) => {
       room?.checkGameStarted() ??
       room?.checkPlayersTurn(playerNo) ??
       room?.checkCoordValid(args.coord) ??
-      player?.checkCoordAvailable(args.coord);
+      player?.checkCoordAvailable(args.coord) ??
+      checkLocked();
     if (error || !room || !player || playerNo === undefined) {
       console.warn(error ?? 'Internal error');
       return cb(error ?? 'Internal error');
@@ -150,7 +156,8 @@ io.on('connection', (socket: Socket) => {
       room?.checkGameStarted() ??
       room?.checkPlayersTurn(args.playerNo) ??
       room?.checkCoordValid(args.coord) ??
-      player?.checkCoordAvailable(args.coord);
+      player?.checkCoordAvailable(args.coord) ??
+      checkLocked();
     if (error || !room || !player) {
       console.warn(error ?? 'Internal error');
       return cb(error ?? 'Internal error');
@@ -162,3 +169,7 @@ io.on('connection', (socket: Socket) => {
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
+
+function checkLocked(): string | undefined {
+  return lock ? 'The gesture Input is currently being used' : undefined;
+}

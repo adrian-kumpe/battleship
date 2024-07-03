@@ -108,4 +108,5 @@ export interface ClientToServerEvents {
    * @param coord to attack
    */
   alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: (error?: string) => void) => void;
+  lock: (args: { locked: boolean }, cb: (error?: string) => void) => void;
 }
