@@ -3,6 +3,7 @@ import { Scene } from 'phaser';
 export class GameOver extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
+  titleText: Phaser.GameObjects.Text;
   gameOverText: Phaser.GameObjects.Text;
 
   constructor() {
@@ -17,9 +18,21 @@ export class GameOver extends Scene {
     this.background.setAlpha(0.5);
 
     this.gameOverText = this.add
-      .text(470, 384, 'Player ' + (Number(data.winner) + 1).toString() + ' has won', {
+      .text(500, 284, 'Game End', {
         fontFamily: 'Arial Black',
         fontSize: 64,
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 8,
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(100);
+
+    this.gameOverText = this.add
+      .text(510, 420, 'Player ' + (Number(data.winner) + 1).toString() + ' has won', {
+        fontFamily: 'Arial Black',
+        fontSize: 50,
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 8,
