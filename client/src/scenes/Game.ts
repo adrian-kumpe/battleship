@@ -11,7 +11,7 @@ export class Game extends Scene {
   attackGrid: BattleshipGrid;
   defenseGrid: BattleshipGrid;
   private ownPlayerNo: PlayerNo;
-  // private roomConfig: RoomConfig;
+  private ownroomConfig: RoomConfig;
 
   constructor() {
     super('Game');
@@ -39,6 +39,7 @@ export class Game extends Scene {
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
     this.camera = this.cameras.main;
     this.ownPlayerNo = args.ownPlayerNo;
+    this.ownroomConfig = args.roomConfig;
     this.drawGrid();
     this.camera.setBackgroundColor(0x00ff00);
 
@@ -123,7 +124,7 @@ export class Game extends Scene {
       }
     }
 
-    this.add.text(420, 50, 'Player Nr. ' + (this.ownPlayerNo + 1).toString(), {
+    this.add.text(160, 50, 'Player Nr. ' + (this.ownPlayerNo + 1).toString(), {
       fontFamily: 'Arial Black',
       fontSize: 28,
       color: '#000000',
@@ -154,6 +155,17 @@ export class Game extends Scene {
 
     offsetX = 550;
 
+    this.add.text(
+      670,
+      50,
+      'Player Nr. ' + ((this.ownPlayerNo === PlayerNo.PLAYER1 ? PlayerNo.PLAYER2 : PlayerNo.PLAYER1) + 1).toString(),
+      {
+        fontFamily: 'Arial Black',
+        fontSize: 28,
+        color: '#000000',
+      },
+    );
+
     for (let row = 0; row < gridSize; row++) {
       for (let col = 0; col < gridSize; col++) {
         const x = offsetX + col * cellSize;
@@ -179,6 +191,17 @@ export class Game extends Scene {
       fontSize: 24,
       color: '#000000',
     });
+
+    this.add.text(
+      735,
+      offsetY + 545,
+      'Alexa-Code: ' + this.ownroomConfig.roomId.toString() + this.ownPlayerNo.toString(),
+      {
+        fontFamily: 'Arial Black',
+        fontSize: 24,
+        color: '#000000',
+      },
+    );
   }
 
   private drawMove(xPx: number, yPx: number, char: string) {
