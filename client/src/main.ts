@@ -12,8 +12,8 @@ import { ClientToServerEvents, ServerToClientEvents } from './shared/models';
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
 const config: Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 1024,
-  height: 768,
+  width: 1920,
+  height: 1080,
   parent: 'game-container',
   backgroundColor: '#028af8',
   scale: {
@@ -21,13 +21,14 @@ const config: Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   scene: [Boot, Preloader, MainGameSetup, MainMenu, MainGame, GameOver],
+  disableContextMenu: true,
 };
 
 export default new Game(config);
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  // 'http://localhost:3000',
-  'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  'http://localhost:3000',
+  // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
   {
     transports: ['websocket'],
   },

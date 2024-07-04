@@ -5,11 +5,25 @@ interface GridDrawData {
 }
 
 export class BattleshipGrid {
-  //private gridSize: number = 8;
+  private shipCount: number[] = [];
+  public shipCountReference: Phaser.GameObjects.Text[] = [];
+
   constructor(private gridDrawData: GridDrawData) {}
 
+  public getShipCount() {
+    return this.shipCount;
+  }
+  public updateShipCount(newShipCount: number[]) {
+    this.shipCount = newShipCount;
+    newShipCount.forEach((c, i) => {
+      if (this.shipCountReference[i]) {
+        this.shipCountReference[i].text = c + (c > 0 ? 'x' : '');
+      }
+    });
+  }
+
   /**
-   * convert coordinates to x and y pixel coordinates
+   * convert grid coordinates to x and y pixel coordinates
    * @param x coordinate
    * @param y coordinate
    * @returns xPx and yPx (pixel coordinates)
@@ -18,6 +32,19 @@ export class BattleshipGrid {
     return {
       xPx: this.gridDrawData.gridOffsetX + this.gridDrawData.cellSize * x,
       yPx: this.gridDrawData.gridOffsetY + this.gridDrawData.cellSize * y,
+    };
+  }
+
+  /**
+   * convert x and y pixel coordinates to grid coordinates
+   * @param xPx pixel coordinate
+   * @param yPx pixel coordinate
+   * @returns x and y coordinates
+   */
+  public getCoordinateToGridCell(xPx: number, yPx: number): { x: number; y: number } {
+    return {
+      x: Math.floor((xPx - this.gridDrawData.gridOffsetX) / this.gridDrawData.cellSize),
+      y: Math.floor((yPx - this.gridDrawData.gridOffsetY) / this.gridDrawData.cellSize),
     };
   }
 }
