@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { PlayerConfig, PlayerNo } from '../shared/models';
 
 export class GameOver extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -10,7 +11,7 @@ export class GameOver extends Scene {
     super('GameOver');
   }
 
-  create(data: { winner: string }) {
+  create(data: { winner: PlayerNo; playerConfig: PlayerConfig }) {
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xff0000);
 

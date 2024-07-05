@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { PlayerNo, RoomConfig } from '../shared/models';
+import { PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
 import { socket } from '../main';
 
 export class Game extends Scene {
@@ -13,6 +13,7 @@ export class Game extends Scene {
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
+  private playerConfig: PlayerConfig;
 
   private gridSize = 8;
   private cellSize = 70;
@@ -22,7 +23,6 @@ export class Game extends Scene {
 
   private defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
     fontFamily: 'Arial Rounded MT',
-    fontSize: 24,
     color: '#000000',
   };
 
@@ -57,7 +57,7 @@ export class Game extends Scene {
     });
 
     socket.on('gameOver', (args) => {
-      this.scene.start('GameOver', { winner: args.winner?.toString() ?? '' });
+      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
     });
   }
 
@@ -67,12 +67,13 @@ export class Game extends Scene {
     this.load.svg('dot', 'assets/dot.svg', { width: 60, height: 60 });
   }
 
-  create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
+  create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
     this.camera = this.cameras.main;
+    this.camera.setBackgroundColor(0xffffff);
+
     this.ownPlayerNo = args.ownPlayerNo;
     this.roomConfig = args.roomConfig;
-    this.drawGridTODO();
-    this.camera.setBackgroundColor(0xffffff);
+    this.playerConfig = args.playerConfig;
 
     // this.background = this.add.image(512, 384, 'background');
     // this.background.setAlpha(0.5);
@@ -82,6 +83,7 @@ export class Game extends Scene {
     this.drawPlayerNames();
     this.drawShipCount();
     this.addInputCanvas();
+    this.drawInstructions();
   }
 
   private drawGrid = (offsetX: number, legendPosition: 'r' | 'l') => {
@@ -90,13 +92,17 @@ export class Game extends Scene {
         offsetX + 25 + this.cellSize * row,
         this.offsetY - 35,
         String.fromCharCode(65 + row),
-        this.defaultFont,
+        Object.assign({}, this.defaultFont, {
+          fontSize: 24,
+        }),
       );
       this.add.text(
         legendPosition === 'r' ? offsetX + 15 + this.cellSize * this.gridSize : offsetX - 30,
         this.offsetY + 20 + this.cellSize * row,
         (row + 1).toString(),
-        this.defaultFont,
+        Object.assign({}, this.defaultFont, {
+          fontSize: 24,
+        }),
       );
       for (let col = 0; col < this.gridSize; col++) {
         const x = offsetX + col * this.cellSize;
@@ -107,28 +113,50 @@ export class Game extends Scene {
   };
 
   private drawPlayerNames() {
-    // this.add.text(
-    //   this.offsetX,
-    //   50,
-    //   'You: Player Nr. ' +
-    //     ((this.ownPlayerNo === PlayerNo.PLAYER1 ? PlayerNo.PLAYER2 : PlayerNo.PLAYER1) + 1).toString(),
-    //   {
-    //     fontFamily: 'Arial Rounded MT',
-    //     fontSize: 36,
-    //     color: '#000000',
-    //   },
-    // );
-    // this.add.text(160, 50, 'Player Nr. ' + (this.ownPlayerNo + 1).toString(), this.defaultFont);
+    this.add
+      .text(
+        this.offsetX + this.additionalOffsetX,
+        this.offsetY - 100,
+        `You: ${this.playerConfig[this.ownPlayerNo]}`,
+        Object.assign(this.defaultFont, {
+          fontSize: 36,
+        }),
+      )
+      .setOrigin(0, 1);
+    this.add
+      .text(
+        this.offsetX,
+        this.offsetY - 100,
+        `Your opponent: ${this.playerConfig[((this.ownPlayerNo + 1) % 2) as PlayerNo]}`,
+        Object.assign({}, this.defaultFont, {
+          fontSize: 36,
+        }),
+      )
+      .setOrigin(0, 1);
   }
 
   private drawShipCount = () => {
     this.add.image(980 + 50, this.offsetY + 290, 'ships');
     for (let i = 0; i < 4; i++) {
       this.attackGrid.shipCountReference.push(
-        this.add.text(845 + 50, this.offsetY + 20 + i * 140, '1x', this.defaultFont),
+        this.add.text(
+          845 + 50,
+          this.offsetY + 20 + i * 140,
+          '',
+          Object.assign({}, this.defaultFont, {
+            fontSize: 24,
+          }),
+        ),
       );
       this.defenseGrid.shipCountReference.push(
-        this.add.text(1075 + 50, this.offsetY + 20 + i * 140, '1x', this.defaultFont),
+        this.add.text(
+          1075 + 50,
+          this.offsetY + 20 + i * 140,
+          '',
+          Object.assign({}, this.defaultFont, {
+            fontSize: 24,
+          }),
+        ),
       );
     }
     this.attackGrid.updateShipCount(this.roomConfig.availableShips);
@@ -192,22 +220,21 @@ export class Game extends Scene {
       }
     });
     canvas.on('pointerout', () => {
-      // todo ist das sinnvoll?
       stopDrawing();
     });
   }
 
-  drawGridTODO() {
-    // this.add.text(
-    //   735,
-    //   offsetY + 545,
-    //   'Alexa-Code: ' + this.ownroomConfig.roomId.toString() + this.ownPlayerNo.toString(),
-    //   {
-    //     fontFamily: 'Arial Black',
-    //     fontSize: 24,
-    //     color: '#000000',
-    //   },
-    // );
+  drawInstructions() {
+    this.add
+      .text(
+        this.offsetX,
+        this.offsetY + this.cellSize * this.gridSize + 100,
+        `Try to guess the position of your opponent's ships! Use point-and-click or gesture input by right-clicking and drawing in the designated area.\nTo connect Alexa, use the code: ${this.roomConfig.roomId.toString()}${this.ownPlayerNo.toString()}`,
+        Object.assign({}, this.defaultFont, {
+          fontSize: 24,
+        }),
+      )
+      .setOrigin(0);
   }
 
   private drawMove(xPx: number, yPx: number, hit: boolean) {
