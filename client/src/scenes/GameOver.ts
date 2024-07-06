@@ -13,15 +13,12 @@ export class GameOver extends Scene {
 
   create(data: { winner: PlayerNo; playerConfig: PlayerConfig }) {
     this.camera = this.cameras.main;
-    this.camera.setBackgroundColor(0xff0000);
-
-    this.background = this.add.image(512, 384, 'background');
-    this.background.setAlpha(0.5);
+    let winner_text = '';
 
     this.gameOverText = this.add
-      .text(500, 284, 'Game End', {
+      .text(940, 404, 'Game End', {
         fontFamily: 'Arial Black',
-        fontSize: 64,
+        fontSize: 80,
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 8,
@@ -30,10 +27,16 @@ export class GameOver extends Scene {
       .setOrigin(0.5)
       .setDepth(100);
 
+    if (data.winner === undefined) {
+      winner_text = 'The opponent left the game';
+    } else {
+      winner_text = 'Player ' + (Number(data.winner) + 1).toString() + ' wins the game';
+    }
+
     this.gameOverText = this.add
-      .text(510, 420, 'Player ' + (Number(data.winner) + 1).toString() + ' has won', {
+      .text(940, 620, winner_text, {
         fontFamily: 'Arial Black',
-        fontSize: 50,
+        fontSize: 70,
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 8,
