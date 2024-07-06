@@ -37,3 +37,9 @@ Implement voice control for your game by using the Alexa Skills Kit (ASK), which
 ### Fifth and Sixth Exercise Task
 
 Expand the game application by adding mouse-based/touch-based gesture control. Implement gesture recognition using Dynamic Time Warping (DTW) to compare recorded inputs with predefined templates. Integrate a multimodal fusion component to interpret combinations of point/click, voice, and gesture inputs as game commands. Implement a slot-based system to combine inputs from different modalities and ensure synchronization.
+
+## Credits
+
+- "Battleship" ([#4933109](https://thenounproject.com/icon/battleship-4933109/), [#4932475](https://thenounproject.com/icon/battleship-4932475/), [#4932489](https://thenounproject.com/icon/battleship-4932489/), [#4932484](https://thenounproject.com/icon/battleship-4932484/)) by [Hey Rabbit](https://thenounproject.com/creator/heyrabbit/) are licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+- "[Pencil](https://thenounproject.com/icon/pencil-6467333/)" by [HideMaru](https://thenounproject.com/creator/hiddemaru/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+- "[explosion](https://thenounproject.com/icon/explosion-6665475/)" by [laili hidayati](https://thenounproject.com/creator/lailikepanjen/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
