@@ -86,7 +86,7 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'createRoom',
-          { roomConfig: { gameBoardSize: 8, availableShips: [1, 1, 1, 1, 1] }, playerName: 'Spieler1' },
+          { roomConfig: { gameBoardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);
@@ -106,7 +106,7 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'joinRoom',
-          { roomId: roomnr.toString(), playerName: 'Spieler2' },
+          { roomId: roomnr.toString(), playerName: 'Player2' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               console.log(args);

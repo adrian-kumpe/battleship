@@ -64,7 +64,7 @@ export class Game extends Scene {
   preload() {
     this.load.svg('ships', 'assets/ships.svg', { width: 200, height: 800 });
     this.load.svg('explosion', 'assets/explosion.svg', { width: 60, height: 60 });
-    this.load.svg('dot', 'assets/dot.svg', { width: 60, height: 60 });
+    this.load.svg('dot', 'assets/dot.svg', { width: 12, height: 12 });
     this.load.svg('pencil', 'assets/pencil.svg', { width: 40, height: 40 });
   }
 
@@ -249,7 +249,7 @@ export class Game extends Scene {
   }
 
   private drawMove(xPx: number, yPx: number, hit: boolean) {
-    this.add.image(xPx + 5, yPx + 5, hit ? 'explosion' : 'dot').setOrigin(0);
+    this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot');
   }
 
   private drawFrame(x: number, y: number) {

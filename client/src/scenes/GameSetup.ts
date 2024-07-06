@@ -49,9 +49,13 @@ export class GameSetup extends Scene {
 
   private placeShipsOnGridRandomly(): (ShipMetaInformation & Coord)[] {
     return [
-      { ship: shipDefinitions[0], shipId: this.getShipId(), orientation: '↕️', x: 0, y: 0 },
-      { ship: shipDefinitions[2], shipId: this.getShipId(), orientation: '↔️', x: 2, y: 0 },
-      { ship: shipDefinitions[3], shipId: this.getShipId(), orientation: '↕️', x: 3, y: 3 },
+      { ship: shipDefinitions[0], shipId: this.getShipId(), x: 0, y: 7 },
+      { ship: shipDefinitions[0], shipId: this.getShipId(), x: 2, y: 7 },
+      { ship: shipDefinitions[1], shipId: this.getShipId(), orientation: '↔️', x: 6, y: 7 },
+      { ship: shipDefinitions[1], shipId: this.getShipId(), orientation: '↕️', x: 5, y: 4 },
+      { ship: shipDefinitions[2], shipId: this.getShipId(), orientation: '↔️', x: 3, y: 0 },
+      { ship: shipDefinitions[2], shipId: this.getShipId(), orientation: '↕️', x: 7, y: 3 },
+      { ship: shipDefinitions[3], shipId: this.getShipId(), orientation: '↕️', x: 0, y: 0 },
     ];
   }
 }

@@ -14,10 +14,10 @@ export class BattleshipGrid {
     return this.shipCount;
   }
   public updateShipCount(newShipCount: number[]) {
-    this.shipCount = newShipCount;
     newShipCount.forEach((c, i) => {
       if (this.shipCountReference[i]) {
-        this.shipCountReference[i].text = c + (c > 0 ? 'x' : '');
+        this.shipCount[i] = newShipCount[i];
+        this.shipCountReference[i].text = c > 0 ? c + 'x' : '0';
       }
     });
   }
