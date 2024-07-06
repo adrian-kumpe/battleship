@@ -23,17 +23,17 @@ export interface Ship {
 
 /** @constant */
 export const shipDefinitions: Ship[] = [
-  { size: 5, name: 'aircraft-carrier' },
-  { size: 4, name: 'battleship' },
-  { size: 3, name: 'cruiser' },
-  { size: 2, name: 'destroyer' },
   { size: 1, name: 'escort' },
+  { size: 2, name: 'destroyer' },
+  { size: 3, name: 'cruiser' },
+  { size: 4, name: 'battleship' },
+  // { size: 5, name: 'aircraft-carrier' },
 ];
 
 export interface ShipMetaInformation {
   ship: Ship;
   shipId: number;
-  orientation: '↔️' | '↕️';
+  orientation?: '↔️' | '↕️';
 }
 
 export interface Coord {

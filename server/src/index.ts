@@ -51,7 +51,7 @@ io.on('connection', (socket: Socket) => {
     const error = roomList.checkClientAlreadyInRoom(socket.id);
     if (error) {
       console.warn(error);
-      return cb(error);
+      return cb(undefined, error);
     }
     console.info(`[${newRoomId}] was created by ${args.playerName} ${socket.id}`);
     roomList.addRoom(room);
@@ -67,7 +67,7 @@ io.on('connection', (socket: Socket) => {
     const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
     if (error || !room) {
       console.warn(error ?? 'Internal error');
-      return cb(error ?? 'Internal error');
+      return cb(undefined, error ?? 'Internal error');
     }
     console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
     room.player2 = new BattleshipGameBoard(client);
