@@ -65,6 +65,7 @@ export class Game extends Scene {
     this.load.svg('ships', 'assets/ships.svg', { width: 200, height: 800 });
     this.load.svg('explosion', 'assets/explosion.svg', { width: 60, height: 60 });
     this.load.svg('dot', 'assets/dot.svg', { width: 60, height: 60 });
+    this.load.svg('pencil', 'assets/pencil.svg', { width: 40, height: 40 });
   }
 
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
@@ -86,7 +87,7 @@ export class Game extends Scene {
     this.drawInstructions();
   }
 
-  private drawGrid = (offsetX: number, legendPosition: 'r' | 'l') => {
+  private drawGrid(offsetX: number, legendPosition: 'r' | 'l') {
     for (let row = 0; row < this.gridSize; row++) {
       this.add.text(
         offsetX + 25 + this.cellSize * row,
@@ -110,7 +111,7 @@ export class Game extends Scene {
         this.add.rectangle(x, y, this.cellSize, this.cellSize).setStrokeStyle(4, 0x000000).setOrigin(0);
       }
     }
-  };
+  }
 
   private drawPlayerNames() {
     this.add
@@ -135,7 +136,7 @@ export class Game extends Scene {
       .setOrigin(0, 1);
   }
 
-  private drawShipCount = () => {
+  private drawShipCount() {
     this.add.image(980 + 50, this.offsetY + 290, 'ships');
     for (let i = 0; i < 4; i++) {
       this.attackGrid.shipCountReference.push(
@@ -161,7 +162,7 @@ export class Game extends Scene {
     }
     this.attackGrid.updateShipCount(this.roomConfig.availableShips);
     this.defenseGrid.updateShipCount(this.roomConfig.availableShips);
-  };
+  }
 
   private addInputCanvas() {
     const canvas = this.add
@@ -172,7 +173,15 @@ export class Game extends Scene {
         (this.gridSize + 2) * this.cellSize,
       )
       .setOrigin(0)
-      .setStrokeStyle(4, 0xdadada);
+      .setStrokeStyle(4, 0xff0000, 0.2);
+    const pencil = this.add
+      .image(
+        this.offsetX + this.gridSize * this.cellSize + 40,
+        this.offsetY + this.gridSize * this.cellSize + 40,
+        'pencil',
+      )
+      .setAlpha(0.2);
+    let gesturePositions: Phaser.Math.Vector2[];
     let graphics: Phaser.GameObjects.Graphics | undefined;
     let lastPosition: Phaser.Math.Vector2 | undefined;
     let drawing = false;
@@ -188,43 +197,45 @@ export class Game extends Scene {
         });
       }
       if (pointer.rightButtonDown()) {
-        console.log('rightButtonDown');
         drawing = true;
+        gesturePositions = [];
+        canvas.setStrokeStyle(4, 0xff0000, 1);
+        pencil.setAlpha(1);
         lastPosition = pointer.position.clone();
         graphics = this.add.graphics();
       }
     });
     canvas.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (drawing && graphics && lastPosition) {
-        console.log(pointer.position.clone());
-        graphics.lineStyle(7, 0xff0000, 1);
-        graphics.beginPath();
-        graphics.moveTo(lastPosition.x, lastPosition.y);
-        graphics.lineTo(pointer.position.x, pointer.position.y);
-        graphics.strokePath();
-        graphics.closePath();
+        graphics
+          .lineStyle(7, 0xff0000, 1)
+          .beginPath()
+          .moveTo(lastPosition.x, lastPosition.y)
+          .lineTo(pointer.position.x, pointer.position.y)
+          .strokePath()
+          .closePath();
         lastPosition = pointer.position.clone();
+        gesturePositions.push(lastPosition);
       }
     });
     const stopDrawing = () => {
       if (drawing && graphics) {
         drawing = false;
+        console.log(gesturePositions);
+        canvas.setStrokeStyle(4, 0xff0000, 0.2);
+        pencil.setAlpha(0.2);
         graphics.destroy();
-        return true;
       }
     };
-    canvas.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      if (stopDrawing()) {
-        console.log('pointerup');
-        console.log(pointer);
-      }
+    canvas.on('pointerup', () => {
+      stopDrawing();
     });
     canvas.on('pointerout', () => {
       stopDrawing();
     });
   }
 
-  drawInstructions() {
+  private drawInstructions() {
     this.add
       .text(
         this.offsetX,
