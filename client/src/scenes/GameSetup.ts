@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { socket } from '../main';
+import { gameChat, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipMetaInformation, shipDefinitions } from '../shared/models';
 
 export class GameSetup extends Scene {
@@ -37,9 +37,12 @@ export class GameSetup extends Scene {
 
     socket.emit('gameReady', { shipConfig: this.placeShipsOnGridRandomly() }, (error?: string) => {
       if (error) {
-        console.log(error);
+        console.warn(error);
+        gameChat.sendMessage('Error: ' + error);
       }
     });
+
+    // todo gameChat.updateOutputElements(firstLine, secondLine);
   }
 
   private getShipId(): number {

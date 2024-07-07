@@ -1,8 +1,7 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
 import { PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
-import { socket } from '../main';
-import { GameChat } from '../elements/GameChat';
+import { socket, gameChat } from '../main';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -11,7 +10,6 @@ export class Game extends Scene {
 
   private attackGrid: BattleshipGrid;
   private defenseGrid: BattleshipGrid;
-  private chat: GameChat;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
@@ -55,8 +53,8 @@ export class Game extends Scene {
           shipCount[args.sunkenShip.ship.size - 1]--;
           grid.updateShipCount(shipCount);
           const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
-          this.chat.sendMessage(
-            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship with size ${args.sunkenShip.ship.size} was sunk`,
+          gameChat.sendMessage(
+            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
           );
         }
       })(args.playerNo === this.ownPlayerNo ? this.attackGrid : this.defenseGrid);
@@ -94,8 +92,8 @@ export class Game extends Scene {
     // this.drawInstructions();
 
     const { firstLine, secondLine } = this.drawRadio();
-    this.chat = new GameChat(firstLine, secondLine);
-    this.chat.sendMessage(`Player ${args.playerConfig.firstTurn + 1} starts the game`);
+    gameChat.updateOutputElements(firstLine, secondLine);
+    gameChat.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} starts`);
   }
 
   private drawGrid(offsetX: number, legendPosition: 'r' | 'l') {
@@ -203,7 +201,8 @@ export class Game extends Scene {
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
         socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
           if (error) {
-            console.log(error);
+            console.warn(error);
+            gameChat.sendMessage('Error: ' + error);
           }
         });
       }

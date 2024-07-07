@@ -1,19 +1,29 @@
 export class GameChat {
+  private chat: string[] = [];
+
   constructor(
-    private firstLine: Phaser.GameObjects.Text,
-    private secondLine: Phaser.GameObjects.Text,
+    private firstLineElement?: Phaser.GameObjects.Text,
+    private secondLineElement?: Phaser.GameObjects.Text,
   ) {}
 
-  public updateOutputElements(newFirstLine: Phaser.GameObjects.Text, newSecondLine: Phaser.GameObjects.Text) {
-    const [old1Line, old2Line] = [this.firstLine.text, this.secondLine.text];
-    this.firstLine = newFirstLine;
-    this.secondLine = newSecondLine;
-    this.firstLine.text = old1Line;
-    this.secondLine.text = old2Line;
+  public updateOutputElements(
+    newFirstLineElement: Phaser.GameObjects.Text,
+    newSecondLineElement: Phaser.GameObjects.Text,
+  ) {
+    this.firstLineElement = newFirstLineElement;
+    this.secondLineElement = newSecondLineElement;
+    this.updateElements();
   }
 
   public sendMessage(text: string) {
-    this.secondLine.text = this.firstLine.text;
-    this.firstLine.text = text;
+    this.chat.push(text);
+    this.updateElements();
+  }
+
+  private updateElements() {
+    if (this.firstLineElement && this.secondLineElement) {
+      this.firstLineElement.text = this.chat[this.chat.length - 1];
+      this.secondLineElement.text = this.chat[this.chat.length - 2];
+    }
   }
 }

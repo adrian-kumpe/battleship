@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { socket } from '../main';
+import { gameChat, socket } from '../main';
 import { PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
@@ -93,7 +93,8 @@ export class MainMenu extends Scene {
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER1 });
             }
             if (error) {
-              console.log(error);
+              console.warn(error);
+              gameChat.sendMessage('Error: ' + error);
             }
           },
         );
@@ -113,10 +114,13 @@ export class MainMenu extends Scene {
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER2 });
             }
             if (error) {
-              console.log(error);
+              console.warn(error);
+              gameChat.sendMessage('Error: ' + error);
             }
           },
         );
       });
+
+    // todo gameChat.updateOutputElements(firstLine, secondLine);
   }
 }
