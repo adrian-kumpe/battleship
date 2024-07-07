@@ -202,7 +202,7 @@ export class Game extends Scene {
         socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
           if (error) {
             console.warn(error);
-            gameChat.sendMessage('Error: ' + error);
+            // gameChat.sendMessage('Error: ' + error);
           }
         });
       }
