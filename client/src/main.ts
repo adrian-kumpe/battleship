@@ -7,6 +7,7 @@ import { Preloader } from './scenes/Preloader';
 import { Game, Types } from 'phaser';
 import { io, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from './shared/models';
+import { GameChat } from './elements/GameChat';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -33,3 +34,9 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
     transports: ['websocket'],
   },
 );
+
+export const gameChat: GameChat = new GameChat();
+
+socket.on('notification', (args) => {
+  gameChat.sendMessage(args.text);
+});

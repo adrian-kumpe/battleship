@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
 import { PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
-import { socket } from '../main';
+import { socket, gameChat } from '../main';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -17,7 +17,7 @@ export class Game extends Scene {
 
   private gridSize = 8;
   private cellSize = 70;
-  private offsetY = 270;
+  private offsetY = 230;
   private offsetX = 200;
   private additionalOffsetX = 960 + 50;
 
@@ -40,25 +40,6 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-
-    socket.on('attack', (args) => {
-      const x = args.coord.x;
-      const y = args.coord.y;
-      ((grid: BattleshipGrid) => {
-        const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.hit);
-        this.drawFrame(xPx, yPx);
-        if (args.sunkenShip) {
-          const shipCount = grid.getShipCount();
-          shipCount[args.sunkenShip.ship.size - 1]--;
-          grid.updateShipCount(shipCount);
-        }
-      })(args.playerNo === this.ownPlayerNo ? this.attackGrid : this.defenseGrid);
-    });
-
-    socket.on('gameOver', (args) => {
-      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
-    });
   }
 
   preload() {
@@ -66,6 +47,7 @@ export class Game extends Scene {
     this.load.svg('explosion', 'assets/explosion.svg', { width: 60, height: 60 });
     this.load.svg('dot', 'assets/dot.svg', { width: 12, height: 12 });
     this.load.svg('pencil', 'assets/pencil.svg', { width: 40, height: 40 });
+    this.load.svg('radio', 'assets/radio.svg', { width: 60, height: 60 });
   }
 
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
@@ -84,7 +66,34 @@ export class Game extends Scene {
     this.drawPlayerNames();
     this.drawShipCount();
     this.addInputCanvas();
-    this.drawInstructions();
+    // this.drawInstructions();
+
+    const { firstLine, secondLine } = this.drawRadio();
+    gameChat.updateOutputElements(firstLine, secondLine);
+    gameChat.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} starts`);
+
+    socket.on('attack', (args) => {
+      const x = args.coord.x;
+      const y = args.coord.y;
+      ((grid: BattleshipGrid) => {
+        const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
+        this.drawMove(xPx, yPx, args.hit);
+        this.drawFrame(xPx, yPx);
+        if (args.sunkenShip) {
+          const shipCount = grid.getShipCount();
+          shipCount[args.sunkenShip.ship.size - 1]--;
+          grid.updateShipCount(shipCount);
+          const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
+          gameChat.sendMessage(
+            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
+          );
+        }
+      })(args.playerNo === this.ownPlayerNo ? this.attackGrid : this.defenseGrid);
+    });
+
+    socket.on('gameOver', (args) => {
+      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
+    });
   }
 
   private drawGrid(offsetX: number, legendPosition: 'r' | 'l') {
@@ -192,7 +201,8 @@ export class Game extends Scene {
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
         socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
           if (error) {
-            console.log(error);
+            console.warn(error);
+            // gameChat.sendMessage('Error: ' + error);
           }
         });
       }
@@ -235,17 +245,43 @@ export class Game extends Scene {
     });
   }
 
-  private drawInstructions() {
-    this.add
+  // private drawInstructions() {
+  //   this.add
+  //     .text(
+  //       this.offsetX,
+  //       this.offsetY + this.cellSize * this.gridSize + 100,
+  //       `Try to guess the position of your opponent's ships! Use point-and-click or gesture input by right-clicking and drawing in the designated area.\nTo connect Alexa, use the code: ${this.roomConfig.roomId.toString()}${this.ownPlayerNo.toString()}`,
+  //       Object.assign({}, this.defaultFont, {
+  //         fontSize: 24,
+  //       }),
+  //     )
+  //     .setOrigin(0);
+  // }
+
+  private drawRadio(): { firstLine: Phaser.GameObjects.Text; secondLine: Phaser.GameObjects.Text } {
+    this.add.image(this.offsetX - 60, this.offsetY + this.gridSize * this.cellSize + 95, 'radio').setOrigin(0);
+    const secondLine = this.add
       .text(
         this.offsetX,
         this.offsetY + this.cellSize * this.gridSize + 100,
-        `Try to guess the position of your opponent's ships! Use point-and-click or gesture input by right-clicking and drawing in the designated area.\nTo connect Alexa, use the code: ${this.roomConfig.roomId.toString()}${this.ownPlayerNo.toString()}`,
+        '',
+        Object.assign({}, this.defaultFont, {
+          fontSize: 24,
+        }),
+      )
+      .setAlpha(0.2)
+      .setOrigin(0);
+    const firstLine = this.add
+      .text(
+        this.offsetX,
+        this.offsetY + this.cellSize * this.gridSize + 132,
+        '',
         Object.assign({}, this.defaultFont, {
           fontSize: 24,
         }),
       )
       .setOrigin(0);
+    return { firstLine: firstLine, secondLine: secondLine };
   }
 
   private drawMove(xPx: number, yPx: number, hit: boolean) {

@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { socket } from '../main';
+import { gameChat, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipMetaInformation, shipDefinitions } from '../shared/models';
 
 export class GameSetup extends Scene {
@@ -14,15 +14,6 @@ export class GameSetup extends Scene {
 
   constructor() {
     super('GameSetup');
-
-    socket.on('gameStart', (args) => {
-      alert('Player Nr. ' + (args.playerConfig.firstTurn + 1) + ' starts');
-      this.scene.start('Game', {
-        roomConfig: this.roomConfig,
-        playerConfig: args.playerConfig,
-        ownPlayerNo: this.ownPlayerNo,
-      });
-    });
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
@@ -38,8 +29,19 @@ export class GameSetup extends Scene {
 
     socket.emit('gameReady', { shipConfig: this.placeShipsOnGridRandomly() }, (error?: string) => {
       if (error) {
-        console.log(error);
+        console.warn(error);
+        gameChat.sendMessage('Error: ' + error);
       }
+    });
+
+    // todo gameChat.updateOutputElements(firstLine, secondLine);
+
+    socket.on('gameStart', (args) => {
+      this.scene.start('Game', {
+        roomConfig: this.roomConfig,
+        playerConfig: args.playerConfig,
+        ownPlayerNo: this.ownPlayerNo,
+      });
     });
   }
 
