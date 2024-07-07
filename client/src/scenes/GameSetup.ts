@@ -14,14 +14,6 @@ export class GameSetup extends Scene {
 
   constructor() {
     super('GameSetup');
-
-    socket.on('gameStart', (args) => {
-      this.scene.start('Game', {
-        roomConfig: this.roomConfig,
-        playerConfig: args.playerConfig,
-        ownPlayerNo: this.ownPlayerNo,
-      });
-    });
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
@@ -43,6 +35,14 @@ export class GameSetup extends Scene {
     });
 
     // todo gameChat.updateOutputElements(firstLine, secondLine);
+
+    socket.on('gameStart', (args) => {
+      this.scene.start('Game', {
+        roomConfig: this.roomConfig,
+        playerConfig: args.playerConfig,
+        ownPlayerNo: this.ownPlayerNo,
+      });
+    });
   }
 
   private getShipId(): number {

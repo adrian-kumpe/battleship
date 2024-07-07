@@ -40,29 +40,6 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-
-    socket.on('attack', (args) => {
-      const x = args.coord.x;
-      const y = args.coord.y;
-      ((grid: BattleshipGrid) => {
-        const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.hit);
-        this.drawFrame(xPx, yPx);
-        if (args.sunkenShip) {
-          const shipCount = grid.getShipCount();
-          shipCount[args.sunkenShip.ship.size - 1]--;
-          grid.updateShipCount(shipCount);
-          const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
-          gameChat.sendMessage(
-            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
-          );
-        }
-      })(args.playerNo === this.ownPlayerNo ? this.attackGrid : this.defenseGrid);
-    });
-
-    socket.on('gameOver', (args) => {
-      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
-    });
   }
 
   preload() {
@@ -94,6 +71,29 @@ export class Game extends Scene {
     const { firstLine, secondLine } = this.drawRadio();
     gameChat.updateOutputElements(firstLine, secondLine);
     gameChat.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} starts`);
+
+    socket.on('attack', (args) => {
+      const x = args.coord.x;
+      const y = args.coord.y;
+      ((grid: BattleshipGrid) => {
+        const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
+        this.drawMove(xPx, yPx, args.hit);
+        this.drawFrame(xPx, yPx);
+        if (args.sunkenShip) {
+          const shipCount = grid.getShipCount();
+          shipCount[args.sunkenShip.ship.size - 1]--;
+          grid.updateShipCount(shipCount);
+          const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
+          gameChat.sendMessage(
+            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
+          );
+        }
+      })(args.playerNo === this.ownPlayerNo ? this.attackGrid : this.defenseGrid);
+    });
+
+    socket.on('gameOver', (args) => {
+      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
+    });
   }
 
   private drawGrid(offsetX: number, legendPosition: 'r' | 'l') {
