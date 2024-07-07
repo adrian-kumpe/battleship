@@ -16,7 +16,6 @@ export class GameSetup extends Scene {
     super('GameSetup');
 
     socket.on('gameStart', (args) => {
-      alert('Player Nr. ' + (args.playerConfig.firstTurn + 1) + ' starts');
       this.scene.start('Game', {
         roomConfig: this.roomConfig,
         playerConfig: args.playerConfig,
