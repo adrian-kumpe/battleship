@@ -1,7 +1,8 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
+import { Coord, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
 import { socket, gameChat } from '../main';
+import { GestureRecognition, Gestures } from '../elements/GestureRecognition';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -10,6 +11,7 @@ export class Game extends Scene {
 
   private attackGrid: BattleshipGrid;
   private defenseGrid: BattleshipGrid;
+  private gestureRecognition: GestureRecognition;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
@@ -34,12 +36,12 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-
     this.defenseGrid = new BattleshipGrid({
       gridOffsetX: this.offsetX + this.additionalOffsetX,
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
+    this.gestureRecognition = new GestureRecognition();
   }
 
   preload() {
@@ -190,7 +192,7 @@ export class Game extends Scene {
         'pencil',
       )
       .setAlpha(0.2);
-    let gesturePositions: Phaser.Math.Vector2[];
+    let gestureCoords: Coord[];
     let graphics: Phaser.GameObjects.Graphics | undefined;
     let lastPosition: Phaser.Math.Vector2 | undefined;
     let drawing = false;
@@ -208,7 +210,7 @@ export class Game extends Scene {
       }
       if (pointer.rightButtonDown()) {
         drawing = true;
-        gesturePositions = [];
+        gestureCoords = [];
         canvas.setStrokeStyle(4, 0xff0000, 1);
         pencil.setAlpha(1);
         lastPosition = pointer.position.clone();
@@ -225,16 +227,18 @@ export class Game extends Scene {
           .strokePath()
           .closePath();
         lastPosition = pointer.position.clone();
-        gesturePositions.push(lastPosition);
+        gestureCoords.push({ x: Math.round(lastPosition.x), y: Math.round(lastPosition.y) });
       }
     });
     const stopDrawing = () => {
       if (drawing && graphics) {
         drawing = false;
-        console.log(gesturePositions);
         canvas.setStrokeStyle(4, 0xff0000, 0.2);
         pencil.setAlpha(0.2);
         graphics.destroy();
+        // gesturePositions auswerten
+        const { gesture, p } = this.gestureRecognition.getGesture(gestureCoords);
+        this.performGesture(gesture, p);
       }
     };
     canvas.on('pointerup', () => {
@@ -243,6 +247,11 @@ export class Game extends Scene {
     canvas.on('pointerout', () => {
       stopDrawing();
     });
+  }
+
+  private performGesture(gesture: Gestures, p: number) {
+    console.info(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized with a distance of ${p}`);
+    gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
   }
 
   // private drawInstructions() {
