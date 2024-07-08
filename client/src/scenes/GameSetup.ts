@@ -20,10 +20,6 @@ export class GameSetup extends Scene {
     this.roomConfig = args.roomConfig;
     this.ownPlayerNo = args.ownPlayerNo;
     this.camera = this.cameras.main;
-    this.camera.setBackgroundColor(0xff4500);
-
-    this.background = this.add.image(512, 384, 'background');
-    this.background.setAlpha(0.5);
 
     this.gridSize = 8;
 
