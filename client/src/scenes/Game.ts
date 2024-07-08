@@ -26,6 +26,9 @@ export class Game extends Scene {
     color: '#000000',
   };
 
+  private frame: Phaser.GameObjects.Rectangle;
+  private framePosition = { x: 0, y: 0 };
+
   constructor() {
     super('Game');
 
@@ -58,15 +61,12 @@ export class Game extends Scene {
     this.roomConfig = args.roomConfig;
     this.playerConfig = args.playerConfig;
 
-    // this.background = this.add.image(512, 384, 'background');
-    // this.background.setAlpha(0.5);
-
     this.drawGrid(this.offsetX, 'l');
     this.drawGrid(this.offsetX + this.additionalOffsetX, 'r');
     this.drawPlayerNames();
     this.drawShipCount();
     this.addInputCanvas();
-    // this.drawInstructions();
+    this.addInputListeners();
 
     const { firstLine, secondLine } = this.drawRadio();
     gameChat.updateOutputElements(firstLine, secondLine);
@@ -78,7 +78,6 @@ export class Game extends Scene {
       ((grid: BattleshipGrid) => {
         const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
         this.drawMove(xPx, yPx, args.hit);
-        this.drawFrame(xPx, yPx);
         if (args.sunkenShip) {
           const shipCount = grid.getShipCount();
           shipCount[args.sunkenShip.ship.size - 1]--;
@@ -288,9 +287,43 @@ export class Game extends Scene {
     this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot');
   }
 
-  private drawFrame(x: number, y: number) {
-    const frame = this.add.rectangle(x, y, 50, 50, 0xffffff);
-    frame.setAlpha(0);
-    frame.setStrokeStyle(6, 0xc10307).setOrigin(0).strokeColor;
+  private addInputListeners() {
+    if (this.input.keyboard) {
+      this.input.keyboard.on('keydown-UP', () => {
+        this.drawFrame(0, -1);
+      });
+      this.input.keyboard.on('keydown-DOWN', () => {
+        this.drawFrame(0, 1);
+      });
+      this.input.keyboard.on('keydown-LEFT', () => {
+        this.drawFrame(-1, 0);
+      });
+      this.input.keyboard.on('keydown-RIGHT', () => {
+        this.drawFrame(1, 0);
+      });
+      this.input.keyboard.on('keydown-ENTER', () => {
+        if (this.frame) {
+          //const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
+          socket.emit('attack', { coord: { x: this.framePosition.x, y: this.framePosition.y } }, (error?: string) => {
+            if (error) {
+              console.warn(error);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  private drawFrame(byX: number, byY: number) {
+    this.framePosition.x = Phaser.Math.Clamp(this.framePosition.x + byX, 0, this.gridSize - 1);
+    this.framePosition.y = Phaser.Math.Clamp(this.framePosition.y + byY, 0, this.gridSize - 1);
+    const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
+
+    if (!this.frame) {
+      this.frame = this.add.rectangle(xPx, yPx, this.cellSize, this.cellSize);
+      this.frame.setStrokeStyle(6, 0xc10307).setOrigin(0);
+    } else {
+      this.frame.setPosition(xPx, yPx);
+    }
   }
 }
