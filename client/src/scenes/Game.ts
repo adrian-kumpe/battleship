@@ -237,8 +237,8 @@ export class Game extends Scene {
         pencil.setAlpha(0.2);
         graphics.destroy();
         // gesturePositions auswerten
-        const { gesture, p } = this.gestureRecognition.getGesture(gestureCoords);
-        this.performGesture(gesture, p);
+        const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
+        this.performGesture(gesture, d);
       }
     };
     canvas.on('pointerup', () => {
