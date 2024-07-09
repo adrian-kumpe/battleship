@@ -239,7 +239,7 @@ export class Game extends Scene {
         // gesturePositions auswerten
         const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
         this.performGesture(gesture, d);
-        console.log(gestureCoords);
+        // console.log(gestureCoords);
       }
     };
     canvas.on('pointerup', () => {
@@ -250,9 +250,12 @@ export class Game extends Scene {
     });
   }
 
-  private performGesture(gesture: Gestures, p: number) {
-    p;
-    gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
+  private performGesture(gesture: Gestures, d: number) {
+    if (d > 1000) {
+      gameChat.sendMessage('Gesture could not be recognized with sufficient certainty');
+    } else {
+      gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
+    }
   }
 
   // private drawInstructions() {
