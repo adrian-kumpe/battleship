@@ -239,6 +239,7 @@ export class Game extends Scene {
         // gesturePositions auswerten
         const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
         this.performGesture(gesture, d);
+        console.log(gestureCoords);
       }
     };
     canvas.on('pointerup', () => {
@@ -250,7 +251,7 @@ export class Game extends Scene {
   }
 
   private performGesture(gesture: Gestures, p: number) {
-    console.info(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized with a distance of ${p}`);
+    p;
     gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
   }
 
