@@ -34,6 +34,7 @@ export class GameSetup extends Scene {
     gameRadio.drawRadio(this);
 
     socket.on('gameStart', (args) => {
+      gameRadio.sendMessage('All players ready, the game starts now');
       this.scene.start('Game', {
         roomConfig: this.roomConfig,
         playerConfig: args.playerConfig,

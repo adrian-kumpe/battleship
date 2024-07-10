@@ -71,7 +71,7 @@ export class Game extends Scene {
     this.addInputListeners();
 
     gameRadio.drawRadio(this);
-    gameRadio.sendMessage(`The game starts now. ${this.playerConfig[args.playerConfig.firstTurn]} begins`);
+    gameRadio.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} begins`);
 
     socket.on('attack', (args) => {
       const x = args.coord.x;

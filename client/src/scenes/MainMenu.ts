@@ -88,9 +88,8 @@ export class MainMenu extends Scene {
           { roomConfig: { gameBoardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
-              console.log(args);
+              gameRadio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER1 });
-              gameRadio.sendMessage(`Created room [${args.roomConfig.roomId}]`);
             }
             if (error) {
               console.warn(error);
@@ -110,9 +109,7 @@ export class MainMenu extends Scene {
           { roomId: roomnr.toString(), playerName: 'Player2' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
-              console.log(args);
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER2 });
-              gameRadio.sendMessage(`Joined room [${args.roomConfig.roomId}]`);
             }
             if (error) {
               console.warn(error);
@@ -123,6 +120,6 @@ export class MainMenu extends Scene {
       });
 
     gameRadio.drawRadio(this);
-    gameRadio.sendMessage('Welcome to Battleship');
+    gameRadio.sendMessage('Welcome to Battleship!');
   }
 }
