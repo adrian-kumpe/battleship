@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { Coord, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
+import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
 import { socket, gameChat } from '../main';
 import { GestureRecognition, Gestures } from '../elements/GestureRecognition';
 
@@ -49,8 +49,8 @@ export class Game extends Scene {
 
   preload() {
     this.load.svg('ships', 'assets/ships.svg', { width: 200, height: 800 });
-    this.load.svg('explosion', 'assets/explosion.svg', { width: 60, height: 60 });
-    this.load.svg('dot', 'assets/dot.svg', { width: 12, height: 12 });
+    this.load.image('explosion', 'assets/explosion.png'); // 60x60
+    this.load.image('dot', 'assets/dot.png'); // 12x12
     this.load.svg('pencil', 'assets/pencil.svg', { width: 40, height: 40 });
     this.load.svg('radio', 'assets/radio.svg', { width: 60, height: 60 });
   }
@@ -80,7 +80,13 @@ export class Game extends Scene {
       const y = args.coord.y;
       ((grid: BattleshipGrid) => {
         const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
-        this.drawMove(xPx, yPx, args.hit);
+        const tint = {
+          [Modality.POINT_AND_ClICK]: 0x000000,
+          [Modality.VOICE]: 0x0047ab,
+          [Modality.GESTURE]: 0xd2042d,
+          [Modality.KEYBOARD]: 0x1c7b1c,
+        }[args.modality];
+        this.drawMove(xPx, yPx, args.hit, tint);
         if (args.sunkenShip) {
           const shipCount = grid.getShipCount();
           shipCount[args.sunkenShip.ship.size - 1]--;
@@ -192,7 +198,7 @@ export class Game extends Scene {
         (this.gridSize + 2) * this.cellSize,
       )
       .setOrigin(0)
-      .setStrokeStyle(4, 0xff0000, 0.2);
+      .setStrokeStyle(4, 0xd2042d, 0.2);
     const pencil = this.add
       .image(
         this.offsetX + this.gridSize * this.cellSize + 40,
@@ -214,12 +220,12 @@ export class Game extends Scene {
 
       if (pointer.leftButtonDown()) {
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
-        socket.emit('attack', { coord: { x: x, y: y } }, this.attackErrorHandler);
+        socket.emit('attack', { coord: { x: x, y: y }, modality: Modality.POINT_AND_ClICK }, this.attackErrorHandler);
       }
       if (pointer.rightButtonDown()) {
         drawing = true;
         gestureCoords = [];
-        canvas.setStrokeStyle(4, 0xff0000, 1);
+        canvas.setStrokeStyle(4, 0xd2042d, 1);
         pencil.setAlpha(1);
         lastPosition = pointer.position.clone();
         graphics = this.add.graphics();
@@ -228,7 +234,7 @@ export class Game extends Scene {
     canvas.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (drawing && graphics && lastPosition) {
         graphics
-          .lineStyle(7, 0xff0000, 1)
+          .lineStyle(6, 0xd2042d, 1)
           .beginPath()
           .moveTo(lastPosition.x, lastPosition.y)
           .lineTo(pointer.position.x, pointer.position.y)
@@ -241,7 +247,7 @@ export class Game extends Scene {
     const stopDrawing = () => {
       if (drawing && graphics) {
         drawing = false;
-        canvas.setStrokeStyle(4, 0xff0000, 0.2);
+        canvas.setStrokeStyle(4, 0xd2042d, 0.2);
         pencil.setAlpha(0.2);
         graphics.destroy();
         const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
@@ -250,7 +256,11 @@ export class Game extends Scene {
         } else {
           gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
           if (gesture === Gestures.CIRCLE) {
-            socket.emit('attack', { coord: { x: 0, y: 0 }, randomCoord: true }, this.attackErrorHandler);
+            socket.emit(
+              'attack',
+              { coord: { x: 0, y: 0 }, randomCoord: true, modality: Modality.GESTURE },
+              this.attackErrorHandler,
+            );
             // todo die Koordinate wird noch übermittelt; evtl. kann das der Startpunkt für weitere Funktionalitäten sein
           } else {
             const snakeMovement = {
@@ -259,7 +269,11 @@ export class Game extends Scene {
               [Gestures.ARROW_RIGHT]: { up: 0, right: 1 },
               [Gestures.ARROW_LEFT]: { up: 0, right: -1 },
             }[gesture];
-            socket.emit('attack', { coord: { x: 0, y: 0 }, snakeMovement: snakeMovement }, this.attackErrorHandler);
+            socket.emit(
+              'attack',
+              { coord: { x: 0, y: 0 }, snakeMovement: snakeMovement, modality: Modality.GESTURE },
+              this.attackErrorHandler,
+            );
           }
         }
       }
@@ -307,8 +321,8 @@ export class Game extends Scene {
     return { firstLine: firstLine, secondLine: secondLine };
   }
 
-  private drawMove(xPx: number, yPx: number, hit: boolean) {
-    this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot');
+  private drawMove(xPx: number, yPx: number, hit: boolean, tint: number) {
+    this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot').setTint(tint);
   }
 
   private addInputListeners() {
@@ -328,11 +342,11 @@ export class Game extends Scene {
       this.input.keyboard.on('keydown-ENTER', () => {
         if (this.frame) {
           //const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
-          socket.emit('attack', { coord: { x: this.framePosition.x, y: this.framePosition.y } }, (error?: string) => {
-            if (error) {
-              console.warn(error);
-            }
-          });
+          socket.emit(
+            'attack',
+            { coord: { x: this.framePosition.x, y: this.framePosition.y }, modality: Modality.KEYBOARD },
+            this.attackErrorHandler,
+          );
         }
       });
     }
@@ -348,6 +362,6 @@ export class Game extends Scene {
     }
 
     this.frame = this.add.rectangle(xPx, yPx, this.cellSize, this.cellSize);
-    this.frame.setStrokeStyle(6, 0xc10307).setOrigin(0);
+    this.frame.setStrokeStyle(6, 0x1c7b1c).setOrigin(0);
   }
 }
