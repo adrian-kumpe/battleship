@@ -3,6 +3,13 @@ export enum PlayerNo {
   'PLAYER2',
 }
 
+export enum Modality {
+  'POINT_AND_ClICK',
+  'GESTURE',
+  'VOICE',
+  'KEYBOARD',
+}
+
 export interface RoomConfig {
   roomId: string;
   gameBoardSize: number;
@@ -69,7 +76,7 @@ export interface ServerToClientEvents {
    * @param coord that was attacked
    * @param playerNo who placed the attack
    */
-  attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo }) => void;
+  attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo; modality: Modality }) => void;
 }
 
 /** client to server events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -105,7 +112,7 @@ export interface ClientToServerEvents {
    * @param snakeMovement flag defines the next coord relative to the last
    */
   attack: (
-    args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } },
+    args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number }; modality: Modality },
     cb: (error?: string) => void,
   ) => void;
   /**
