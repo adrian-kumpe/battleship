@@ -75,14 +75,14 @@ export class GestureRecognition {
       case Gestures.CIRCLE:
         return 'circle';
       case Gestures.ARROW_UP:
-        return 'arrow-up';
+        return 'arrow up';
       case Gestures.ARROW_DOWN:
-        return 'arrow-down';
+        return 'arrow down';
       case Gestures.ARROW_LEFT:
-        return 'arrow-left';
+        return 'arrow left';
       default:
       case Gestures.ARROW_RIGHT:
-        return 'arrow-right';
+        return 'arrow right';
     }
   }
 

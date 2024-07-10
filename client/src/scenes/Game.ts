@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
 import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
-import { socket, gameChat } from '../main';
+import { socket, gameRadio } from '../main';
 import { GestureRecognition, Gestures } from '../elements/GestureRecognition';
 
 export class Game extends Scene {
@@ -52,7 +52,6 @@ export class Game extends Scene {
     this.load.image('explosion', 'assets/explosion.png'); // 60x60
     this.load.image('dot', 'assets/dot.png'); // 12x12
     this.load.svg('pencil', 'assets/pencil.svg', { width: 40, height: 40 });
-    this.load.svg('radio', 'assets/radio.svg', { width: 60, height: 60 });
   }
 
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
@@ -71,9 +70,8 @@ export class Game extends Scene {
     this.addInputCanvas();
     this.addInputListeners();
 
-    const { firstLine, secondLine } = this.drawRadio();
-    gameChat.updateOutputElements(firstLine, secondLine);
-    gameChat.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} starts`);
+    gameRadio.drawRadio(this);
+    gameRadio.sendMessage(`The game starts now. ${this.playerConfig[args.playerConfig.firstTurn]} begins`);
 
     socket.on('attack', (args) => {
       const x = args.coord.x;
@@ -92,7 +90,7 @@ export class Game extends Scene {
           shipCount[args.sunkenShip.ship.size - 1]--;
           grid.updateShipCount(shipCount);
           const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
-          gameChat.sendMessage(
+          gameRadio.sendMessage(
             `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
           );
         }
@@ -184,7 +182,7 @@ export class Game extends Scene {
   private attackErrorHandler = (error?: string) => {
     if (error) {
       console.warn(error);
-      gameChat.sendMessage('Error: ' + error);
+      gameRadio.sendMessage('Error: ' + error);
       // todo error code mitsenden und manche meldungen unterdrücken
     }
   };
@@ -252,9 +250,9 @@ export class Game extends Scene {
         graphics.destroy();
         const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
         if (d > 1000) {
-          gameChat.sendMessage("Gesture couldn't be recognized with sufficient certainty");
+          gameRadio.sendMessage("Gesture couldn't be recognized with sufficient certainty");
         } else {
-          gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
+          gameRadio.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
           if (gesture === Gestures.CIRCLE) {
             socket.emit(
               'attack',
@@ -294,32 +292,6 @@ export class Game extends Scene {
   //     )
   //     .setOrigin(0);
   // }
-
-  private drawRadio(): { firstLine: Phaser.GameObjects.Text; secondLine: Phaser.GameObjects.Text } {
-    this.add.image(this.offsetX - 60, this.offsetY + this.gridSize * this.cellSize + 95, 'radio').setOrigin(0);
-    const secondLine = this.add
-      .text(
-        this.offsetX,
-        this.offsetY + this.cellSize * this.gridSize + 100,
-        '',
-        Object.assign({}, this.defaultFont, {
-          fontSize: 24,
-        }),
-      )
-      .setAlpha(0.2)
-      .setOrigin(0);
-    const firstLine = this.add
-      .text(
-        this.offsetX,
-        this.offsetY + this.cellSize * this.gridSize + 132,
-        '',
-        Object.assign({}, this.defaultFont, {
-          fontSize: 24,
-        }),
-      )
-      .setOrigin(0);
-    return { firstLine: firstLine, secondLine: secondLine };
-  }
 
   private drawMove(xPx: number, yPx: number, hit: boolean, tint: number) {
     this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot').setTint(tint);

@@ -27,6 +27,7 @@ export class Preloader extends Scene {
     this.load.setPath('assets');
 
     this.load.image('logo', 'logo.png');
+    this.load.svg('radio', 'radio.svg', { width: 60, height: 60 });
   }
 
   create() {

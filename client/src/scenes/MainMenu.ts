@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { gameChat, socket } from '../main';
+import { gameRadio, socket } from '../main';
 import { PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
@@ -90,10 +90,11 @@ export class MainMenu extends Scene {
             if (args) {
               console.log(args);
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER1 });
+              gameRadio.sendMessage(`Created room [${args.roomConfig.roomId}]`);
             }
             if (error) {
               console.warn(error);
-              gameChat.sendMessage('Error: ' + error);
+              gameRadio.sendMessage('Error: ' + error);
             }
           },
         );
@@ -111,15 +112,17 @@ export class MainMenu extends Scene {
             if (args) {
               console.log(args);
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER2 });
+              gameRadio.sendMessage(`Joined room [${args.roomConfig.roomId}]`);
             }
             if (error) {
               console.warn(error);
-              gameChat.sendMessage('Error: ' + error);
+              gameRadio.sendMessage('Error: ' + error);
             }
           },
         );
       });
 
-    // todo gameChat.updateOutputElements(firstLine, secondLine);
+    gameRadio.drawRadio(this);
+    gameRadio.sendMessage('Welcome to Battleship');
   }
 }
