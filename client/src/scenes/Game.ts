@@ -196,6 +196,11 @@ export class Game extends Scene {
 
     canvas.setInteractive();
     canvas.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.frame) {
+        this.framePosition = { x: 0, y: 0 };
+        this.frame.destroy();
+      }
+
       if (pointer.leftButtonDown()) {
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
         socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
@@ -319,11 +324,11 @@ export class Game extends Scene {
     this.framePosition.y = Phaser.Math.Clamp(this.framePosition.y + byY, 0, this.gridSize - 1);
     const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
 
-    if (!this.frame) {
-      this.frame = this.add.rectangle(xPx, yPx, this.cellSize, this.cellSize);
-      this.frame.setStrokeStyle(6, 0xc10307).setOrigin(0);
-    } else {
-      this.frame.setPosition(xPx, yPx);
+    if (this.frame) {
+      this.frame.destroy();
     }
+
+    this.frame = this.add.rectangle(xPx, yPx, this.cellSize, this.cellSize);
+    this.frame.setStrokeStyle(6, 0xc10307).setOrigin(0);
   }
 }
