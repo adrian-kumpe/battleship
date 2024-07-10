@@ -19,14 +19,12 @@ export class MainMenu extends Scene {
   create() {
     let roomnr = 1000;
 
-    this.background = this.add.image(512, 384, 'background');
-
-    this.logo = this.add.image(512, 300, 'logo');
+    this.logo = this.add.image(980, 300, 'logo');
 
     this.title = this.add
-      .text(512, 460, 'Main Menu', {
+      .text(980, 500, 'Battleships\nMain Menu', {
         fontFamily: 'Arial Black',
-        fontSize: 38,
+        fontSize: 65,
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 8,
@@ -34,9 +32,9 @@ export class MainMenu extends Scene {
       })
       .setOrigin(0.5);
 
-    this.room = this.add.text(380, 520, 'Raum Nr. ' + roomnr.toString(), {
+    this.room = this.add.text(825, 650, 'Room Nr. ' + roomnr.toString(), {
       fontFamily: 'Arial Black',
-      fontSize: 28,
+      fontSize: 35,
       color: '#000000',
     });
 
@@ -52,26 +50,26 @@ export class MainMenu extends Scene {
     };
 
     this.upButton = this.add
-      .text(625, 522, '▲', updownconfig)
+      .text(1130, 652, '▲', updownconfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
         roomnr += 1;
-        this.room.setText('Raum Nr. ' + roomnr.toString());
+        this.room.setText('Room Nr. ' + roomnr.toString());
       });
 
     this.downButton = this.add
-      .text(625, 543, '▼', updownconfig)
+      .text(1130, 677, '▼', updownconfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
         roomnr -= 1;
-        this.room.setText('Raum Nr. ' + roomnr.toString());
+        this.room.setText('Room Nr. ' + roomnr.toString());
       });
 
     const buttonConfig = {
       fontFamily: 'Arial Black',
-      fontSize: 20,
+      fontSize: 24,
       color: '#000000',
       backgroundColor: '#ffffff',
       padding: { x: 20, y: 10 },
@@ -80,7 +78,7 @@ export class MainMenu extends Scene {
     };
 
     this.newGameButton = this.add
-      .text(362, 630, 'Neues Spiel starten', buttonConfig)
+      .text(830, 810, 'Start new Game', buttonConfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
@@ -101,7 +99,7 @@ export class MainMenu extends Scene {
       });
 
     this.joinGameButton = this.add
-      .text(662, 630, 'Spiel beitreten', buttonConfig)
+      .text(1130, 810, 'Join Game', buttonConfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
