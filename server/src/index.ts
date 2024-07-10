@@ -1,6 +1,7 @@
 import {
   ClientToServerEvents,
   Coord,
+  Modality,
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
@@ -117,13 +118,22 @@ io.on('connection', (socket: Socket) => {
     lock = args.locked;
   });
 
-  const performAttack = (room: Room, player: BattleshipGameBoard, playerNo: PlayerNo, coord: Coord) => {
+  const performAttack = (
+    room: Room,
+    player: BattleshipGameBoard,
+    playerNo: PlayerNo,
+    coord: Coord,
+    modality: Modality,
+  ) => {
     const attackResult = player.placeAttack(coord);
     room.playerChange();
     console.info(
       `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
     );
-    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
+    io.to(room.roomConfig.roomId).emit(
+      'attack',
+      Object.assign(attackResult, { coord: coord, playerNo: playerNo, modality: modality }),
+    );
     if (player.getGameOver()) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo }); // todo ist das richtig herum?
@@ -134,7 +144,10 @@ io.on('connection', (socket: Socket) => {
   /** player attacks */
   socket.on(
     'attack',
-    (args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } }, cb) => {
+    (
+      args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number }; modality: Modality },
+      cb,
+    ) => {
       const room = roomList.getRoomBySocketId(socket.id);
       const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
       const coord =
@@ -153,7 +166,7 @@ io.on('connection', (socket: Socket) => {
         console.warn(error ?? 'Internal error');
         return cb(error ?? 'Internal error');
       }
-      performAttack(room, player, playerNo, coord);
+      performAttack(room, player, playerNo, coord, args.modality);
     },
   );
 
@@ -172,7 +185,7 @@ io.on('connection', (socket: Socket) => {
       return cb(error ?? 'Internal error');
     }
     console.info(`[${args.roomId}] Alexa connected`);
-    performAttack(room, player, args.playerNo, args.coord);
+    performAttack(room, player, args.playerNo, args.coord, Modality.VOICE);
     cb();
   });
 });
