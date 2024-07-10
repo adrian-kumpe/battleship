@@ -52,8 +52,8 @@ export class BattleshipGameBoard {
   public getNextCoord(snakeMovement: { up: number; right: number }): Coord {
     const currentCoord = this.dirtyCoords.slice(-1)[0];
     return {
-      x: (currentCoord.x + snakeMovement.right) % this.gameBoardSize,
-      y: (currentCoord.y - snakeMovement.up) % this.gameBoardSize,
+      x: (currentCoord.x + this.gameBoardSize + snakeMovement.right) % this.gameBoardSize,
+      y: (currentCoord.y + this.gameBoardSize - snakeMovement.up) % this.gameBoardSize,
     };
   }
 
