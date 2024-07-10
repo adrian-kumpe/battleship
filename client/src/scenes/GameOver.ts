@@ -12,6 +12,7 @@ export class GameOver extends Scene {
   }
 
   create(data: { winner: PlayerNo; playerConfig: PlayerConfig }) {
+    this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
     this.camera = this.cameras.main;
     let winner_text = '';
 

@@ -17,6 +17,7 @@ export class GameSetup extends Scene {
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
+    this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
     this.roomConfig = args.roomConfig;
     this.ownPlayerNo = args.ownPlayerNo;
     this.camera = this.cameras.main;

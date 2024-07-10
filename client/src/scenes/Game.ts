@@ -58,6 +58,7 @@ export class Game extends Scene {
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
+    this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.15, 0.22, 0, 0);
 
     this.ownPlayerNo = args.ownPlayerNo;
     this.roomConfig = args.roomConfig;

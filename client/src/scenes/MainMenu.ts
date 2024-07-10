@@ -19,6 +19,7 @@ export class MainMenu extends Scene {
   create() {
     let roomnr = 1000;
 
+    this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
     this.logo = this.add.image(980, 300, 'logo');
 
     this.title = this.add
