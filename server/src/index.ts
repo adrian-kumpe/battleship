@@ -47,7 +47,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('createRoom', (args: { roomConfig: Omit<RoomConfig, 'roomId'>; playerName: string }, cb) => {
     const client: Client = { socketId: socket.id, playerName: args.playerName };
     const newRoomId = roomList.getNewRoomId();
-    const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client));
+    const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client, args.roomConfig.gameBoardSize));
     const error = roomList.checkClientAlreadyInRoom(socket.id);
     if (error) {
       console.warn(error);
@@ -70,7 +70,7 @@ io.on('connection', (socket: Socket) => {
       return cb(undefined, error ?? 'Internal error');
     }
     console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
-    room.player2 = new BattleshipGameBoard(client);
+    room.player2 = new BattleshipGameBoard(client, room.roomConfig.gameBoardSize);
     socket.join(args.roomId);
     io.to(args.roomId).emit('notification', { text: `${args.playerName} joined the game` });
     cb({ roomConfig: room.roomConfig });
@@ -132,21 +132,29 @@ io.on('connection', (socket: Socket) => {
   };
 
   /** player attacks */
-  socket.on('attack', (args: { coord: Coord }, cb) => {
-    const room = roomList.getRoomBySocketId(socket.id);
-    const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
-    const error =
-      room?.checkGameStarted() ??
-      room?.checkPlayersTurn(playerNo) ??
-      room?.checkCoordValid(args.coord) ??
-      player?.checkCoordAvailable(args.coord) ??
-      checkLocked();
-    if (error || !room || !player || playerNo === undefined) {
-      console.warn(error ?? 'Internal error');
-      return cb(error ?? 'Internal error');
-    }
-    performAttack(room, player, playerNo, args.coord);
-  });
+  socket.on(
+    'attack',
+    (args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } }, cb) => {
+      const room = roomList.getRoomBySocketId(socket.id);
+      const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
+      const error =
+        room?.checkGameStarted() ??
+        room?.checkPlayersTurn(playerNo) ??
+        room?.checkCoordValid(args.coord) ??
+        player?.checkCoordAvailable(args.coord) ??
+        checkLocked();
+      if (error || !room || !player || playerNo === undefined) {
+        console.warn(error ?? 'Internal error');
+        return cb(error ?? 'Internal error');
+      }
+      const coord = args.randomCoord
+        ? player.getRandomCoord()
+        : args.snakeMovement
+          ? player.getNextCoord(args.snakeMovement)
+          : args.coord;
+      performAttack(room, player, playerNo, coord);
+    },
+  );
 
   /** player attacks using voice input */
   socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
