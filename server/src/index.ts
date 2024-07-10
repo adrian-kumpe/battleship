@@ -137,21 +137,22 @@ io.on('connection', (socket: Socket) => {
     (args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } }, cb) => {
       const room = roomList.getRoomBySocketId(socket.id);
       const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
+      const coord =
+        (args.randomCoord
+          ? player?.getRandomCoord()
+          : args.snakeMovement
+            ? player?.getNextCoord(args.snakeMovement)
+            : undefined) ?? args.coord;
       const error =
         room?.checkGameStarted() ??
         room?.checkPlayersTurn(playerNo) ??
-        room?.checkCoordValid(args.coord) ??
-        player?.checkCoordAvailable(args.coord) ??
+        room?.checkCoordValid(coord) ??
+        player?.checkCoordAvailable(coord) ??
         checkLocked();
       if (error || !room || !player || playerNo === undefined) {
         console.warn(error ?? 'Internal error');
         return cb(error ?? 'Internal error');
       }
-      const coord = args.randomCoord
-        ? player.getRandomCoord()
-        : args.snakeMovement
-          ? player.getNextCoord(args.snakeMovement)
-          : args.coord;
       performAttack(room, player, playerNo, coord);
     },
   );
