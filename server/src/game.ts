@@ -1,9 +1,11 @@
-import { AttackResult, Coord, ShipMetaInformation } from './shared/models';
+import { AttackResult, Coord, RoomConfig, ShipMetaInformation } from './shared/models';
 import { Client } from '.';
 
 export class BattleshipGameBoard {
   /** array containing all previously attacked coordinates */
-  private dirtyCoords: Coord[] = [];
+  private dirtyCoords: Coord[] = [
+    { x: -1, y: -1 }, // so you can use arrow gestures right from the beginning of the game
+  ];
   /** array w/ the player's ships; contains meta information about the ships, their main coord and a continuously updated array with coordinates they occupy */
   private _shipConfig?: (ShipMetaInformation & Coord & { occupiedCoords: Coord[] })[];
   public set shipConfig(shipConfig: (ShipMetaInformation & Coord)[]) {
@@ -23,7 +25,10 @@ export class BattleshipGameBoard {
     });
   }
 
-  constructor(public client: Client) {}
+  constructor(
+    public client: Client,
+    private gameBoardSize: number,
+  ) {}
 
   public getPlayerReady(): boolean {
     return !!this._shipConfig;
@@ -34,6 +39,22 @@ export class BattleshipGameBoard {
       this._shipConfig !== undefined &&
       this._shipConfig.flatMap(({ occupiedCoords: occupiedCoords }) => occupiedCoords).length === 0
     );
+  }
+
+  public getRandomCoord(): Coord {
+    let coord: Coord;
+    do {
+      coord = { x: Math.floor(Math.random() * this.gameBoardSize), y: Math.floor(Math.random() * this.gameBoardSize) };
+    } while (this.checkCoordAvailable(coord));
+    return coord;
+  }
+
+  public getNextCoord(snakeMovement: { up: number; right: number }): Coord {
+    const currentCoord = this.dirtyCoords.slice(-1)[0];
+    return {
+      x: (currentCoord.x + snakeMovement.right) % this.gameBoardSize,
+      y: (currentCoord.y - snakeMovement.up) % this.gameBoardSize,
+    };
   }
 
   public placeAttack(coord: Coord): AttackResult {

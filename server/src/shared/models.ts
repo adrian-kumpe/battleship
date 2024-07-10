@@ -101,8 +101,13 @@ export interface ClientToServerEvents {
   /**
    * places an attack
    * @param coord to attack
+   * @param randomCoord flag defines whether a random coord should be used
+   * @param snakeMovement flag defines the next coord relative to the last
    */
-  attack: (args: { coord: Coord }, cb: (error?: string) => void) => void;
+  attack: (
+    args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } },
+    cb: (error?: string) => void,
+  ) => void;
   /**
    * attack placed by Alexa (voice control)
    * @param coord to attack

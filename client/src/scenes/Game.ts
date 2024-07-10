@@ -1,7 +1,8 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
+import { Coord, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
 import { socket, gameChat } from '../main';
+import { GestureRecognition, Gestures } from '../elements/GestureRecognition';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -10,6 +11,7 @@ export class Game extends Scene {
 
   private attackGrid: BattleshipGrid;
   private defenseGrid: BattleshipGrid;
+  private gestureRecognition: GestureRecognition;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
@@ -34,12 +36,12 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-
     this.defenseGrid = new BattleshipGrid({
       gridOffsetX: this.offsetX + this.additionalOffsetX,
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
+    this.gestureRecognition = new GestureRecognition();
   }
 
   preload() {
@@ -173,6 +175,14 @@ export class Game extends Scene {
     this.defenseGrid.updateShipCount(this.roomConfig.availableShips);
   }
 
+  private attackErrorHandler = (error?: string) => {
+    if (error) {
+      console.warn(error);
+      gameChat.sendMessage('Error: ' + error);
+      // todo error code mitsenden und manche meldungen unterdrücken
+    }
+  };
+
   private addInputCanvas() {
     const canvas = this.add
       .rectangle(
@@ -190,7 +200,7 @@ export class Game extends Scene {
         'pencil',
       )
       .setAlpha(0.2);
-    let gesturePositions: Phaser.Math.Vector2[];
+    let gestureCoords: Coord[];
     let graphics: Phaser.GameObjects.Graphics | undefined;
     let lastPosition: Phaser.Math.Vector2 | undefined;
     let drawing = false;
@@ -199,16 +209,11 @@ export class Game extends Scene {
     canvas.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.leftButtonDown()) {
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
-        socket.emit('attack', { coord: { x: x, y: y } }, (error?: string) => {
-          if (error) {
-            console.warn(error);
-            // gameChat.sendMessage('Error: ' + error);
-          }
-        });
+        socket.emit('attack', { coord: { x: x, y: y } }, this.attackErrorHandler);
       }
       if (pointer.rightButtonDown()) {
         drawing = true;
-        gesturePositions = [];
+        gestureCoords = [];
         canvas.setStrokeStyle(4, 0xff0000, 1);
         pencil.setAlpha(1);
         lastPosition = pointer.position.clone();
@@ -225,24 +230,37 @@ export class Game extends Scene {
           .strokePath()
           .closePath();
         lastPosition = pointer.position.clone();
-        gesturePositions.push(lastPosition);
+        gestureCoords.push({ x: Math.round(lastPosition.x), y: Math.round(lastPosition.y) });
       }
     });
     const stopDrawing = () => {
       if (drawing && graphics) {
         drawing = false;
-        console.log(gesturePositions);
         canvas.setStrokeStyle(4, 0xff0000, 0.2);
         pencil.setAlpha(0.2);
         graphics.destroy();
+        const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
+        if (d > 1000) {
+          gameChat.sendMessage("Gesture couldn't be recognized with sufficient certainty");
+        } else {
+          gameChat.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
+          if (gesture === Gestures.CIRCLE) {
+            socket.emit('attack', { coord: { x: 0, y: 0 }, randomCoord: true }, this.attackErrorHandler);
+            // todo die Koordinate wird noch übermittelt; evtl. kann das der Startpunkt für weitere Funktionalitäten sein
+          } else {
+            const snakeMovement = {
+              [Gestures.ARROW_UP]: { up: 1, right: 0 },
+              [Gestures.ARROW_DOWN]: { up: -1, right: 0 },
+              [Gestures.ARROW_RIGHT]: { up: 0, right: 1 },
+              [Gestures.ARROW_LEFT]: { up: 0, right: -1 },
+            }[gesture];
+            socket.emit('attack', { coord: { x: 0, y: 0 }, snakeMovement: snakeMovement }, this.attackErrorHandler);
+          }
+        }
       }
     };
-    canvas.on('pointerup', () => {
-      stopDrawing();
-    });
-    canvas.on('pointerout', () => {
-      stopDrawing();
-    });
+    canvas.on('pointerup', stopDrawing);
+    canvas.on('pointerout', stopDrawing);
   }
 
   // private drawInstructions() {
