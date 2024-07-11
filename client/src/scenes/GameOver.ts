@@ -31,7 +31,7 @@ export class GameOver extends Scene {
     if (data.winner === undefined) {
       winner_text = 'The opponent left the game';
     } else {
-      winner_text = 'Player ' + (Number(data.winner) + 1).toString() + ' wins the game';
+      winner_text = data.playerConfig[data.winner] + ' wins the game';
     }
 
     this.gameOverText = this.add

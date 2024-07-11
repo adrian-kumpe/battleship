@@ -31,6 +31,8 @@ export class Game extends Scene {
   private frame: Phaser.GameObjects.Rectangle;
   private framePosition = { x: 0, y: 0 };
 
+  private lock = false;
+
   constructor() {
     super('Game');
 
@@ -219,10 +221,16 @@ export class Game extends Scene {
       }
 
       if (pointer.leftButtonDown()) {
+        if (this.lock) {
+          console.warn('The gesture Input is currently being used');
+          gameChat.sendMessage('The gesture Input is currently being used');
+          return;
+        }
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
-        socket.emit('attack', { coord: { x: x, y: y }, modality: Modality.POINT_AND_ClICK }, this.attackErrorHandler);
-      }
-      if (pointer.rightButtonDown()) {
+        socket.emit('attack', { coord: { x, y }, modality: Modality.POINT_AND_ClICK }, this.attackErrorHandler);
+      } else if (pointer.rightButtonDown()) {
+        this.lock = true;
+        socket.emit('lock', { locked: this.lock }, this.attackErrorHandler);
         drawing = true;
         gestureCoords = [];
         canvas.setStrokeStyle(4, 0xd2042d, 1);
@@ -246,6 +254,8 @@ export class Game extends Scene {
     });
     const stopDrawing = () => {
       if (drawing && graphics) {
+        this.lock = false;
+        socket.emit('lock', { locked: this.lock }, this.attackErrorHandler);
         drawing = false;
         canvas.setStrokeStyle(4, 0xd2042d, 0.2);
         pencil.setAlpha(0.2);
@@ -340,8 +350,12 @@ export class Game extends Scene {
         this.drawFrame(1, 0);
       });
       this.input.keyboard.on('keydown-ENTER', () => {
+        if (this.lock) {
+          console.warn('The gesture Input is currently being used');
+          gameChat.sendMessage('The gesture Input is currently being used');
+          return;
+        }
         if (this.frame) {
-          //const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
           socket.emit(
             'attack',
             { coord: { x: this.framePosition.x, y: this.framePosition.y }, modality: Modality.KEYBOARD },
@@ -353,6 +367,12 @@ export class Game extends Scene {
   }
 
   private drawFrame(byX: number, byY: number) {
+    if (this.lock) {
+      console.warn('The gesture Input is currently being used');
+      gameChat.sendMessage('The gesture Input is currently being used');
+      return;
+    }
+
     this.framePosition.x = Phaser.Math.Clamp(this.framePosition.x + byX, 0, this.gridSize - 1);
     this.framePosition.y = Phaser.Math.Clamp(this.framePosition.y + byY, 0, this.gridSize - 1);
     const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
