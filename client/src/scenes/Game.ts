@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
 import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
-import { socket, gameRadio } from '../main';
+import { socket, gameRadio, defaultFont } from '../main';
 import { GestureRecognition, Gestures } from '../elements/GestureRecognition';
 
 export class Game extends Scene {
@@ -22,11 +22,6 @@ export class Game extends Scene {
   private offsetY = 230;
   private offsetX = 200;
   private additionalOffsetX = 960 + 50;
-
-  private defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
-    fontFamily: 'Arial Rounded MT',
-    color: '#000000',
-  };
 
   private frame: Phaser.GameObjects.Rectangle;
   private framePosition = { x: 0, y: 0 };
@@ -106,21 +101,12 @@ export class Game extends Scene {
 
   private drawGrid(offsetX: number, legendPosition: 'r' | 'l') {
     for (let row = 0; row < this.gridSize; row++) {
-      this.add.text(
-        offsetX + 25 + this.cellSize * row,
-        this.offsetY - 35,
-        String.fromCharCode(65 + row),
-        Object.assign({}, this.defaultFont, {
-          fontSize: 24,
-        }),
-      );
+      this.add.text(offsetX + 25 + this.cellSize * row, this.offsetY - 35, String.fromCharCode(65 + row), defaultFont);
       this.add.text(
         legendPosition === 'r' ? offsetX + 15 + this.cellSize * this.gridSize : offsetX - 30,
         this.offsetY + 20 + this.cellSize * row,
         (row + 1).toString(),
-        Object.assign({}, this.defaultFont, {
-          fontSize: 24,
-        }),
+        defaultFont,
       );
       for (let col = 0; col < this.gridSize; col++) {
         const x = offsetX + col * this.cellSize;
@@ -132,23 +118,17 @@ export class Game extends Scene {
 
   private drawPlayerNames() {
     this.add
-      .text(
-        this.offsetX + this.additionalOffsetX,
-        this.offsetY - 100,
-        `You: ${this.playerConfig[this.ownPlayerNo]}`,
-        Object.assign(this.defaultFont, {
-          fontSize: 36,
-        }),
-      )
+      .text(this.offsetX + this.additionalOffsetX, this.offsetY - 100, `You: ${this.playerConfig[this.ownPlayerNo]}`, {
+        ...defaultFont,
+        fontSize: 36,
+      })
       .setOrigin(0, 1);
     this.add
       .text(
         this.offsetX,
         this.offsetY - 100,
         `Your opponent: ${this.playerConfig[((this.ownPlayerNo + 1) % 2) as PlayerNo]}`,
-        Object.assign({}, this.defaultFont, {
-          fontSize: 36,
-        }),
+        { ...defaultFont, fontSize: 36 },
       )
       .setOrigin(0, 1);
   }
@@ -156,26 +136,8 @@ export class Game extends Scene {
   private drawShipCount() {
     this.add.image(980 + 50, this.offsetY + 290, 'ships');
     for (let i = 0; i < 4; i++) {
-      this.attackGrid.shipCountReference.push(
-        this.add.text(
-          845 + 50,
-          this.offsetY + 20 + i * 140,
-          '',
-          Object.assign({}, this.defaultFont, {
-            fontSize: 24,
-          }),
-        ),
-      );
-      this.defenseGrid.shipCountReference.push(
-        this.add.text(
-          1075 + 50,
-          this.offsetY + 20 + i * 140,
-          '',
-          Object.assign({}, this.defaultFont, {
-            fontSize: 24,
-          }),
-        ),
-      );
+      this.attackGrid.shipCountReference.push(this.add.text(845 + 50, this.offsetY + 20 + i * 140, '', defaultFont));
+      this.defenseGrid.shipCountReference.push(this.add.text(1075 + 50, this.offsetY + 20 + i * 140, '', defaultFont));
     }
     this.attackGrid.updateShipCount(this.roomConfig.availableShips);
     this.defenseGrid.updateShipCount(this.roomConfig.availableShips);

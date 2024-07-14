@@ -100,6 +100,7 @@ io.on('connection', (socket: Socket) => {
       return cb(error ?? 'Internal error');
     }
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
+    io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} is ready to start` });
     player.shipConfig = args.shipConfig;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);

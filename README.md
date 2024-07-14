@@ -41,4 +41,5 @@ Expand the game application by adding mouse-based/touch-based gesture control. I
 - "[Pencil](https://thenounproject.com/icon/pencil-6467333/)" by [HideMaru](https://thenounproject.com/creator/hiddemaru/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 - "[explosion](https://thenounproject.com/icon/explosion-6665475/)" by [laili hidayati](https://thenounproject.com/creator/lailikepanjen/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 - "[Walkie Talkie](https://thenounproject.com/icon/walkie-talkie-897082/)" by [Andrejs Kirma](https://thenounproject.com/creator/andrejs/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+- [captain](https://thenounproject.com/icon/captain-6129970/) by [Nattapol Seengern](https://thenounproject.com/creator/bankseengern/) is licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 - "backgorund image ocean" by macrovector on Freepik (https://www.freepik.com/free-vector/empty-underwater-blue-shine-abstract-background-light-bright-clean-ocean-sea_10601804.htm)

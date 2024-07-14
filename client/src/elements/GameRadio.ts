@@ -2,7 +2,7 @@ import { Scene } from 'phaser';
 import { defaultFont } from '../main';
 
 export class GameRadio {
-  private chat: string[] = [];
+  private chat: string[] = ['Radio initialized'];
 
   constructor(
     private firstLineElement?: Phaser.GameObjects.Text,
@@ -17,26 +17,10 @@ export class GameRadio {
   public drawRadio(scene: Scene) {
     scene.add.image(140, 885, 'radio').setOrigin(0);
     this.secondLineElement = scene.add
-      .text(
-        200,
-        890,
-        '',
-        Object.assign({}, defaultFont, {
-          fontSize: 24,
-        }),
-      )
+      .text(200, 890, '', defaultFont)
       // .setAlpha(0.2)
       .setOrigin(0);
-    this.firstLineElement = scene.add
-      .text(
-        200,
-        922,
-        '',
-        Object.assign({}, defaultFont, {
-          fontSize: 24,
-        }),
-      )
-      .setOrigin(0);
+    this.firstLineElement = scene.add.text(200, 922, '', defaultFont).setOrigin(0);
     this.updateElements();
   }
 

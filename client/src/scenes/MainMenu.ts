@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { gameRadio, socket } from '../main';
+import { defaultFont, gameRadio, socket } from '../main';
 import { PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
@@ -16,42 +16,43 @@ export class MainMenu extends Scene {
     super('MainMenu');
   }
 
+  preload() {
+    this.load.svg('captain', 'assets/captain.svg', { width: 100, height: 100 });
+  }
+
   create() {
     let roomnr = 1000;
 
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
-    this.logo = this.add.image(980, 300, 'logo');
+    this.logo = this.add.image(980, 320, 'logo').setScale(0.67);
+
+    this.add.image(770, 440, 'captain');
 
     this.title = this.add
-      .text(980, 500, 'Battleships\nMain Menu', {
-        fontFamily: 'Arial Black',
-        fontSize: 65,
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 8,
+      .text(1025, 445, 'Battleship', {
+        ...defaultFont,
+        fontSize: 74,
         align: 'center',
       })
       .setOrigin(0.5);
 
-    this.room = this.add.text(825, 650, 'Room Nr. ' + roomnr.toString(), {
-      fontFamily: 'Arial Black',
-      fontSize: 35,
-      color: '#000000',
+    this.room = this.add.text(1040, 600, 'Room Nr. ' + roomnr.toString(), {
+      ...defaultFont,
+      fontSize: 36,
     });
 
     const updownconfig = {
-      fontFamily: 'Arial Black',
+      ...defaultFont,
       fontSize: 20,
-      color: '#000000',
       backgroundColor: '#ffffff',
-      padding: { x: 0, y: 0 },
+      padding: { x: 2, y: 2 },
       align: 'center',
-      fixedHeight: 20,
-      fixedWidth: 20,
+      fixedHeight: 24,
+      fixedWidth: 24,
     };
 
     this.upButton = this.add
-      .text(1130, 652, '▲', updownconfig)
+      .text(1320, 605, '▲', updownconfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
@@ -60,7 +61,7 @@ export class MainMenu extends Scene {
       });
 
     this.downButton = this.add
-      .text(1130, 677, '▼', updownconfig)
+      .text(1320, 630, '▼', updownconfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
@@ -69,17 +70,16 @@ export class MainMenu extends Scene {
       });
 
     const buttonConfig = {
-      fontFamily: 'Arial Black',
-      fontSize: 24,
-      color: '#000000',
+      ...defaultFont,
+      fontSize: 36,
       backgroundColor: '#ffffff',
       padding: { x: 20, y: 10 },
       align: 'center',
-      fixedWidth: 260,
+      fixedWidth: 360,
     };
 
     this.newGameButton = this.add
-      .text(830, 810, 'Start new Game', buttonConfig)
+      .text(775, 700, 'New Game', buttonConfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
@@ -100,7 +100,7 @@ export class MainMenu extends Scene {
       });
 
     this.joinGameButton = this.add
-      .text(1130, 810, 'Join Game', buttonConfig)
+      .text(1185, 700, 'Join Game', buttonConfig)
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
