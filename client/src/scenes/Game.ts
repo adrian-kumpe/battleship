@@ -221,7 +221,7 @@ export class Game extends Scene {
       if (pointer.leftButtonDown()) {
         if (this.lock) {
           console.warn('The gesture Input is currently being used');
-          gameChat.sendMessage('The gesture Input is currently being used');
+          gameRadio.sendMessage('The gesture Input is currently being used');
           return;
         }
         const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
@@ -324,7 +324,7 @@ export class Game extends Scene {
       this.input.keyboard.on('keydown-ENTER', () => {
         if (this.lock) {
           console.warn('The gesture Input is currently being used');
-          gameChat.sendMessage('The gesture Input is currently being used');
+          gameRadio.sendMessage('The gesture Input is currently being used');
           return;
         }
         if (this.frame) {
@@ -341,7 +341,7 @@ export class Game extends Scene {
   private drawFrame(byX: number, byY: number) {
     if (this.lock) {
       console.warn('The gesture Input is currently being used');
-      gameChat.sendMessage('The gesture Input is currently being used');
+      gameRadio.sendMessage('The gesture Input is currently being used');
       return;
     }
 
