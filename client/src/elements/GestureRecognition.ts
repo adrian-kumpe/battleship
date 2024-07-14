@@ -66,7 +66,10 @@ export class GestureRecognition {
     result.sort((a: { gesture: Gestures; d: number }, b: { gesture: Gestures; d: number }) => {
       return a.d - b.d;
     });
-    console.info(`Gesture ${result[0].gesture} "${this.getGestureName(result[0].gesture)}" was recognized`, result);
+    console.info(
+      `Gesture ${result[0].gesture} (distance ${result[0].d}) "${this.getGestureName(result[0].gesture)}" was recognized`,
+      result,
+    );
     return result[0];
   }
 
