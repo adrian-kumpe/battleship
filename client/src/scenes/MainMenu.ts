@@ -16,10 +16,6 @@ export class MainMenu extends Scene {
     super('MainMenu');
   }
 
-  preload() {
-    this.load.svg('captain', 'assets/captain.svg', { width: 100, height: 100 });
-  }
-
   create() {
     let roomnr = 1000;
 

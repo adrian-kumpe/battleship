@@ -44,13 +44,6 @@ export class Game extends Scene {
     this.gestureRecognition = new GestureRecognition();
   }
 
-  preload() {
-    this.load.svg('ships', 'assets/ships.svg', { width: 200, height: 800 });
-    this.load.image('explosion', 'assets/explosion.png'); // 60x60
-    this.load.image('dot', 'assets/dot.png'); // 12x12
-    this.load.svg('pencil', 'assets/pencil.svg', { width: 40, height: 40 });
-  }
-
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
