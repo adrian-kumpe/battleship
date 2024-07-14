@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { gameChat, socket } from '../main';
+import { gameRadio, socket } from '../main';
 import { PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
@@ -88,12 +88,12 @@ export class MainMenu extends Scene {
           { roomConfig: { gameBoardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
-              console.log(args);
+              gameRadio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER1 });
             }
             if (error) {
               console.warn(error);
-              gameChat.sendMessage('Error: ' + error);
+              gameRadio.sendMessage('Error: ' + error);
             }
           },
         );
@@ -109,17 +109,17 @@ export class MainMenu extends Scene {
           { roomId: roomnr.toString(), playerName: 'Player2' },
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
-              console.log(args);
               this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER2 });
             }
             if (error) {
               console.warn(error);
-              gameChat.sendMessage('Error: ' + error);
+              gameRadio.sendMessage('Error: ' + error);
             }
           },
         );
       });
 
-    // todo gameChat.updateOutputElements(firstLine, secondLine);
+    gameRadio.drawRadio(this);
+    gameRadio.sendMessage('Welcome to Battleship!');
   }
 }

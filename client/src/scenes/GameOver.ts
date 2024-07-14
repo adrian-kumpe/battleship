@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { PlayerConfig, PlayerNo } from '../shared/models';
+import { gameRadio } from '../main';
 
 export class GameOver extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -15,6 +16,11 @@ export class GameOver extends Scene {
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
     this.camera = this.cameras.main;
     let winner_text = '';
+
+    gameRadio.drawRadio(this);
+    if (data.winner) {
+      gameRadio.sendMessage(`${data.playerConfig[data.winner]} won the game`);
+    }
 
     this.gameOverText = this.add
       .text(940, 404, 'Game End', {

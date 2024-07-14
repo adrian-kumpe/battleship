@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { gameChat, socket } from '../main';
+import { gameRadio, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipMetaInformation, shipDefinitions } from '../shared/models';
 
 export class GameSetup extends Scene {
@@ -27,13 +27,14 @@ export class GameSetup extends Scene {
     socket.emit('gameReady', { shipConfig: this.placeShipsOnGridRandomly() }, (error?: string) => {
       if (error) {
         console.warn(error);
-        gameChat.sendMessage('Error: ' + error);
+        gameRadio.sendMessage('Error: ' + error);
       }
     });
 
-    // todo gameChat.updateOutputElements(firstLine, secondLine);
+    gameRadio.drawRadio(this);
 
     socket.on('gameStart', (args) => {
+      gameRadio.sendMessage('All players ready, the game starts now');
       this.scene.start('Game', {
         roomConfig: this.roomConfig,
         playerConfig: args.playerConfig,

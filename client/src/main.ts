@@ -7,7 +7,7 @@ import { Preloader } from './scenes/Preloader';
 import { Game, Types } from 'phaser';
 import { io, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from './shared/models';
-import { GameChat } from './elements/GameChat';
+import { GameRadio } from './elements/GameRadio';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -28,15 +28,20 @@ const config: Types.Core.GameConfig = {
 export default new Game(config);
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  'http://localhost:3000',
-  //'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  // 'http://localhost:3000',
+  'https://battleship-server-4725bfddd6bf.herokuapp.com',
   {
     transports: ['websocket'],
   },
 );
 
-export const gameChat: GameChat = new GameChat();
+export const gameRadio: GameRadio = new GameRadio();
 
 socket.on('notification', (args) => {
-  gameChat.sendMessage(args.text);
+  gameRadio.sendMessage(args.text);
 });
+
+export const defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
+  fontFamily: 'Arial Rounded MT',
+  color: '#000000',
+};
