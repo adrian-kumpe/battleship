@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { PlayerConfig, PlayerNo } from '../shared/models';
-import { gameRadio } from '../main';
+import { defaultFont, gameRadio } from '../main';
 
 export class GameOver extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -17,22 +17,12 @@ export class GameOver extends Scene {
     this.camera = this.cameras.main;
     let winner_text = '';
 
-    gameRadio.drawRadio(this);
-    if (data.winner) {
-      gameRadio.sendMessage(`${data.playerConfig[data.winner]} won the game`);
-    }
-
     this.gameOverText = this.add
-      .text(940, 404, 'Game End', {
-        fontFamily: 'Arial Black',
-        fontSize: 80,
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 8,
-        align: 'center',
+      .text(940, 445, 'Game End', {
+        ...defaultFont,
+        fontSize: 74,
       })
-      .setOrigin(0.5)
-      .setDepth(100);
+      .setOrigin(0.5);
 
     if (data.winner === undefined) {
       winner_text = 'The opponent left the game';
@@ -40,17 +30,15 @@ export class GameOver extends Scene {
       winner_text = data.playerConfig[data.winner] + ' wins the game';
     }
 
+    gameRadio.drawRadio(this);
+    gameRadio.sendMessage(winner_text);
+
     this.gameOverText = this.add
-      .text(940, 620, winner_text, {
-        fontFamily: 'Arial Black',
-        fontSize: 70,
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 8,
-        align: 'center',
+      .text(940, 570, winner_text, {
+        ...defaultFont,
+        fontSize: 36,
       })
-      .setOrigin(0.5)
-      .setDepth(100);
+      .setOrigin(0.5);
 
     this.input.once('pointerdown', () => {
       this.changeScene();

@@ -26,8 +26,18 @@ export class Preloader extends Scene {
     //  Load the assets for the game - Replace with your own assets
     this.load.setPath('assets');
 
-    this.load.image('logo', 'logo.png');
+    // global
     this.load.svg('radio', 'radio.svg', { width: 60, height: 60 });
+
+    // for MainMenu
+    this.load.image('logo', 'logo.png');
+    this.load.svg('captain', 'captain.svg', { width: 100, height: 100 });
+
+    // for Game scene
+    this.load.svg('ships', 'ships.svg', { width: 200, height: 800 });
+    this.load.image('explosion', 'explosion.png'); // 60x60
+    this.load.image('dot', 'dot.png'); // 12x12
+    this.load.svg('pencil', 'pencil.svg', { width: 40, height: 40 });
   }
 
   create() {

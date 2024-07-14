@@ -44,4 +44,5 @@ socket.on('notification', (args) => {
 export const defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: 'Arial Rounded MT',
   color: '#000000',
+  fontSize: 24,
 };
