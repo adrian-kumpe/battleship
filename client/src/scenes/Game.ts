@@ -112,7 +112,7 @@ export class Game extends Scene {
 
   private drawPlayerNames() {
     this.add
-      .text(this.offsetX + this.additionalOffsetX, this.offsetY - 130, `You: ${this.playerConfig[this.ownPlayerNo]}`, {
+      .text(this.offsetX + this.additionalOffsetX, this.offsetY - 100, `You: ${this.playerConfig[this.ownPlayerNo]}`, {
         ...defaultFont,
         fontSize: 36,
       })
@@ -250,16 +250,8 @@ export class Game extends Scene {
     this.add
       .text(
         this.offsetX + this.additionalOffsetX,
-        this.offsetY - 87,
-        "Try to guess the postition of your opponent's ships!",
-        defaultFont,
-      )
-      .setOrigin(0, 1);
-    this.add
-      .text(
-        this.offsetX + this.additionalOffsetX,
         this.offsetY - 55,
-        `To connect Alexa, use the code: ${this.roomConfig.roomId}${this.ownPlayerNo + 1}`,
+        `To connect Alexa, use the code: ${this.roomConfig.roomId}${this.ownPlayerNo}`,
         defaultFont,
       )
       .setOrigin(0, 1);
@@ -273,22 +265,22 @@ export class Game extends Scene {
       .text(
         this.offsetX + this.additionalOffsetX + this.cellSize + 10,
         880,
-        'attack randomly by drawing a circle',
+        'Attack randomly by drawing a circle',
         defaultFont,
       )
       .setOrigin(0, 1);
     this.add
       .text(
         this.offsetX + this.additionalOffsetX + this.cellSize + 10,
-        940,
-        'use snake control by drawing arrows',
+        936,
+        'Use snake control by drawing arrows',
         defaultFont,
       )
       .setOrigin(0, 1);
     this.add
       .text(
         this.offsetX + this.additionalOffsetX + this.cellSize + 10,
-        972,
+        968,
         '(draw by right-clicking in the red box)',
         defaultFont,
       )
