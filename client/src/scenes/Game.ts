@@ -89,7 +89,11 @@ export class Game extends Scene {
     });
 
     socket.on('gameOver', (args) => {
-      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
+      this.scene.start('GameOver', {
+        winner: args.winner,
+        playerConfig: this.playerConfig,
+        ownPlayerNo: this.ownPlayerNo,
+      });
     });
   }
 
