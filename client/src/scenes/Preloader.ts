@@ -38,6 +38,8 @@ export class Preloader extends Scene {
     this.load.image('explosion', 'explosion.png'); // 60x60
     this.load.image('dot', 'dot.png'); // 12x12
     this.load.svg('pencil', 'pencil.svg', { width: 40, height: 40 });
+    this.load.svg('arrow-gestures-instruction', 'arrow-gestures-instruction.svg', { width: 226.8, height: 60 });
+    this.load.svg('circle-gesture-instruction', 'circle-gesture-instruction.svg', { width: 60, height: 60 });
   }
 
   create() {

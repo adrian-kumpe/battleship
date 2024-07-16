@@ -19,7 +19,7 @@ export class Game extends Scene {
 
   private gridSize = 8;
   private cellSize = 70;
-  private offsetY = 230;
+  private offsetY = 250;
   private offsetX = 200;
   private additionalOffsetX = 960 + 50;
 
@@ -59,6 +59,7 @@ export class Game extends Scene {
     this.drawShipCount();
     this.addInputCanvas();
     this.addInputListeners();
+    this.drawInstructions();
 
     gameRadio.drawRadio(this);
     gameRadio.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} begins`);
@@ -88,7 +89,11 @@ export class Game extends Scene {
     });
 
     socket.on('gameOver', (args) => {
-      this.scene.start('GameOver', { winner: args.winner, playerConfig: this.playerConfig });
+      this.scene.start('GameOver', {
+        winner: args.winner,
+        playerConfig: this.playerConfig,
+        ownPlayerNo: this.ownPlayerNo,
+      });
     });
   }
 
@@ -245,18 +250,46 @@ export class Game extends Scene {
     canvas.on('pointerout', stopDrawing);
   }
 
-  // private drawInstructions() {
-  //   this.add
-  //     .text(
-  //       this.offsetX,
-  //       this.offsetY + this.cellSize * this.gridSize + 100,
-  //       `Try to guess the position of your opponent's ships! Use point-and-click or gesture input by right-clicking and drawing in the designated area.\nTo connect Alexa, use the code: ${this.roomConfig.roomId.toString()}${this.ownPlayerNo.toString()}`,
-  //       Object.assign({}, this.defaultFont, {
-  //         fontSize: 24,
-  //       }),
-  //     )
-  //     .setOrigin(0);
-  // }
+  private drawInstructions() {
+    this.add
+      .text(
+        this.offsetX + this.additionalOffsetX,
+        this.offsetY - 55,
+        `To connect Alexa, use the code: ${this.roomConfig.roomId}${this.ownPlayerNo}`,
+        defaultFont,
+      )
+      .setOrigin(0, 1);
+    this.add
+      .image(this.offsetX + this.additionalOffsetX + this.cellSize - 10, 900, 'circle-gesture-instruction')
+      .setOrigin(1);
+    this.add
+      .image(this.offsetX + this.additionalOffsetX + this.cellSize - 20, 975, 'arrow-gestures-instruction')
+      .setOrigin(1);
+    this.add
+      .text(
+        this.offsetX + this.additionalOffsetX + this.cellSize + 10,
+        880,
+        'Attack randomly by drawing a circle',
+        defaultFont,
+      )
+      .setOrigin(0, 1);
+    this.add
+      .text(
+        this.offsetX + this.additionalOffsetX + this.cellSize + 10,
+        936,
+        'Use snake control by drawing arrows',
+        defaultFont,
+      )
+      .setOrigin(0, 1);
+    this.add
+      .text(
+        this.offsetX + this.additionalOffsetX + this.cellSize + 10,
+        968,
+        '(draw by right-clicking in the red box)',
+        defaultFont,
+      )
+      .setOrigin(0, 1);
+  }
 
   private drawMove(xPx: number, yPx: number, hit: boolean, tint: number) {
     this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot').setTint(tint);
