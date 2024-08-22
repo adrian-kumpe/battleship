@@ -74,6 +74,7 @@ export class MainMenu extends Scene {
       fixedWidth: 360,
     };
 
+    //todo gameboardsize entfernen
     this.newGameButton = this.add
       .text(775, 700, 'New Game', buttonConfig)
       .setOrigin(0.5)
@@ -115,7 +116,7 @@ export class MainMenu extends Scene {
         );
       });
 
-    gameRadio.drawRadio(this);
+    gameRadio.drawRadio(this.add);
     gameRadio.sendMessage('Welcome to Battleship!');
   }
 }

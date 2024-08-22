@@ -1,37 +1,45 @@
 import { Scene } from 'phaser';
-import { gameRadio, socket } from '../main';
+import { defaultFont, gameRadio, gridSize, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipMetaInformation, shipDefinitions } from '../shared/models';
+import { BattleshipGrid } from '../elements/BattleshipGrid';
+import { DraggableShip } from '../elements/DraggableShip';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
-  gameOverText: Phaser.GameObjects.Text;
 
-  gridSize: number;
-  private baseShipId = 1000;
+  private baseShipId = 1;
+  private shipConfig?: (ShipMetaInformation & Coord)[];
+  private draggableShips: DraggableShip[] = []; //todo brauche ich das?
+
   private roomConfig: RoomConfig;
   private ownPlayerNo: PlayerNo;
 
+  private placingGrid: BattleshipGrid;
+
   constructor() {
     super('GameSetup');
+
+    this.placingGrid = new BattleshipGrid({
+      gridOffsetX: 680,
+      gridOffsetY: 250,
+      cellSize: 70,
+    });
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
-    this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
+    this.camera = this.cameras.main;
+    this.camera.setBackgroundColor(0xffffff);
+    this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
+
     this.roomConfig = args.roomConfig;
     this.ownPlayerNo = args.ownPlayerNo;
-    this.camera = this.cameras.main;
 
-    this.gridSize = 8;
+    this.placingGrid.drawGrid(this.add, '→');
+    this.drawButton();
+    this.drawShips();
 
-    socket.emit('gameReady', { shipConfig: this.placeShipsOnGridRandomly() }, (error?: string) => {
-      if (error) {
-        console.warn(error);
-        gameRadio.sendMessage('Error: ' + error);
-      }
-    });
-
-    gameRadio.drawRadio(this);
+    gameRadio.drawRadio(this.add);
 
     socket.on('gameStart', (args) => {
       gameRadio.sendMessage('All players ready, the game starts now');
@@ -39,6 +47,7 @@ export class GameSetup extends Scene {
         roomConfig: this.roomConfig,
         playerConfig: args.playerConfig,
         ownPlayerNo: this.ownPlayerNo,
+        shipConfig: this.shipConfig!, // cant be undefined
       });
     });
   }
@@ -47,15 +56,91 @@ export class GameSetup extends Scene {
     return this.baseShipId++;
   }
 
-  private placeShipsOnGridRandomly(): (ShipMetaInformation & Coord)[] {
-    return [
-      { ship: shipDefinitions[0], shipId: this.getShipId(), x: 0, y: 7 },
-      { ship: shipDefinitions[0], shipId: this.getShipId(), x: 2, y: 7 },
-      { ship: shipDefinitions[1], shipId: this.getShipId(), orientation: '↔️', x: 6, y: 7 },
-      { ship: shipDefinitions[1], shipId: this.getShipId(), orientation: '↕️', x: 5, y: 4 },
-      { ship: shipDefinitions[2], shipId: this.getShipId(), orientation: '↔️', x: 3, y: 0 },
-      { ship: shipDefinitions[2], shipId: this.getShipId(), orientation: '↕️', x: 7, y: 3 },
-      { ship: shipDefinitions[3], shipId: this.getShipId(), orientation: '↕️', x: 0, y: 0 },
-    ];
+  private drawButton() {
+    const buttonConfig = {
+      ...defaultFont,
+      fontSize: 36,
+      backgroundColor: '#ffffff',
+      padding: { x: 20, y: 10 },
+      align: 'center',
+      fixedWidth: 360,
+    };
+    this.add
+      .text(1485, 900, 'Ready', buttonConfig)
+      .setOrigin(0.5)
+      .setInteractive()
+      .on('pointerdown', () => {
+        this.shipConfig = this.getShipConfig();
+        if (this.getShipConfigValid()) {
+          console.log('this.shipConfig', this.shipConfig);
+          socket.emit('gameReady', { shipConfig: this.shipConfig }, (error?: string) => {
+            if (error) {
+              console.warn(error);
+              gameRadio.sendMessage('Error: ' + error);
+            }
+          });
+          // todo hier muss ersichtlich sein, dass die shipconfig abgeschickt wurde
+        } else {
+          const error = 'The arrangement of the ships is invalid';
+          console.warn(error);
+          gameRadio.sendMessage('Error: ' + error);
+        }
+      });
+  }
+
+  private drawShips() {
+    this.roomConfig.availableShips
+      .map((v: number, i: number) => {
+        return Array.from(Array(v)).map((_) => i + 1);
+      })
+      .flat()
+      .forEach((size: number, i: number) => {
+        const draggableShip = new DraggableShip(
+          {
+            ship: shipDefinitions[size - 1],
+            shipId: this.getShipId(),
+            orientation: '↔️',
+          },
+          this.placingGrid.getCoordToGridCell.bind(this.placingGrid),
+          this.placingGrid.getGridCellToCoord.bind(this.placingGrid),
+          { x: i > 3 ? 0 : 5, y: (0 + 2 * i) % 8 },
+        );
+        draggableShip.drawShip(this);
+        this.draggableShips.push(draggableShip);
+      });
+  }
+
+  private getShipConfig(): (ShipMetaInformation & Coord)[] {
+    return this.draggableShips.map((v) => {
+      return {
+        ...v.getShipMetaInformation(),
+        ...v.getCoord(),
+      };
+    });
+  }
+
+  private getShipConfigValid(): boolean {
+    if (!this.shipConfig) {
+      //todo das ist nicht optimal
+      return false;
+    }
+    const allCoords: (Coord & { guarded: boolean })[] = [];
+    this.shipConfig.forEach((v) => {
+      // push all coords where the ship is on or guards into allCoords
+      for (let i = -1; i < 2; i++) {
+        allCoords.push({ x: v.x - 1, y: v.y + i, guarded: true });
+        for (let j = 0; j < v.ship.size; j++) {
+          allCoords.push({ x: v.x + j, y: v.y + i, guarded: i !== 0 });
+        }
+        allCoords.push({ x: v.x + v.ship.size, y: v.y + i, guarded: true });
+      }
+    });
+    // todo es fehlen noch vertikale schiffe
+    const allShipsWithinGrid = allCoords.every((c) => {
+      return c.guarded || (c.x >= 0 && c.x < gridSize && c.y >= 0 && c.y < gridSize);
+    });
+    const shipCoords = allCoords.filter((c) => c.guarded === false);
+    const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);
+    return allShipsWithinGrid && noIllegalOverlaps;
   }
 }

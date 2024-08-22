@@ -1,4 +1,3 @@
-import { Scene } from 'phaser';
 import { defaultFont } from '../main';
 
 export class GameRadio {
@@ -14,13 +13,13 @@ export class GameRadio {
     this.updateElements();
   }
 
-  public drawRadio(scene: Scene) {
-    scene.add.image(140, 905, 'radio').setOrigin(0);
-    this.secondLineElement = scene.add
+  public drawRadio(add: Phaser.GameObjects.GameObjectFactory) {
+    add.image(140, 905, 'radio').setOrigin(0);
+    this.secondLineElement = add
       .text(200, 910, '', defaultFont)
       // .setAlpha(0.2)
       .setOrigin(0);
-    this.firstLineElement = scene.add.text(200, 942, '', defaultFont).setOrigin(0);
+    this.firstLineElement = add.text(200, 942, '', defaultFont).setOrigin(0);
     this.updateElements();
   }
 

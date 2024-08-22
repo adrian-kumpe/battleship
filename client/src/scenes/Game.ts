@@ -1,27 +1,29 @@
 import { Scene } from 'phaser';
 import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig } from '../shared/models';
-import { socket, gameRadio, defaultFont } from '../main';
-import { GestureRecognition, Gestures } from '../elements/GestureRecognition';
+import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig, ShipMetaInformation } from '../shared/models';
+import { socket, gameRadio, defaultFont, gridSize } from '../main';
+import { GestureRecognitionService, Gestures } from '../elements/GestureRecognitionService';
+import { DraggableShip } from '../elements/DraggableShip';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
   gameText: Phaser.GameObjects.Text;
 
-  private attackGrid: BattleshipGrid;
-  private defenseGrid: BattleshipGrid;
-  private gestureRecognition: GestureRecognition;
+  private ownGrid: BattleshipGrid;
+  private opposingGrid: BattleshipGrid;
+
+  private gestureRecognition: GestureRecognitionService;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
   private playerConfig: PlayerConfig;
+  private shipConfig: (ShipMetaInformation & Coord)[];
 
-  private gridSize = 8;
   private cellSize = 70;
   private offsetY = 250;
   private offsetX = 200;
-  private additionalOffsetX = 960 + 50;
+  private additionalOffsetX = 1010;
 
   private frame: Phaser.GameObjects.Rectangle;
   private framePosition = { x: 0, y: 0 };
@@ -31,20 +33,25 @@ export class Game extends Scene {
   constructor() {
     super('Game');
 
-    this.attackGrid = new BattleshipGrid({
+    this.opposingGrid = new BattleshipGrid({
       gridOffsetX: this.offsetX,
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-    this.defenseGrid = new BattleshipGrid({
+    this.ownGrid = new BattleshipGrid({
       gridOffsetX: this.offsetX + this.additionalOffsetX,
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-    this.gestureRecognition = new GestureRecognition();
+    this.gestureRecognition = new GestureRecognitionService();
   }
 
-  create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
+  create(args: {
+    roomConfig: RoomConfig;
+    playerConfig: PlayerConfig;
+    ownPlayerNo: PlayerNo;
+    shipConfig: (ShipMetaInformation & Coord)[];
+  }) {
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
@@ -52,23 +59,25 @@ export class Game extends Scene {
     this.ownPlayerNo = args.ownPlayerNo;
     this.roomConfig = args.roomConfig;
     this.playerConfig = args.playerConfig;
+    this.shipConfig = args.shipConfig;
 
-    this.drawGrid(this.offsetX, 'l');
-    this.drawGrid(this.offsetX + this.additionalOffsetX, 'r');
+    this.ownGrid.drawGrid(this.add, '→');
+    this.opposingGrid.drawGrid(this.add, '←');
     this.drawPlayerNames();
     this.drawShipCount();
     this.addInputCanvas();
     this.addInputListeners();
     this.drawInstructions();
+    this.drawOwnShips();
 
-    gameRadio.drawRadio(this);
+    gameRadio.drawRadio(this.add);
     gameRadio.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} begins`);
 
     socket.on('attack', (args) => {
       const x = args.coord.x;
       const y = args.coord.y;
       ((grid: BattleshipGrid) => {
-        const { xPx, yPx } = grid.getGridCellToCoordinate(x, y);
+        const { xPx, yPx } = grid.getGridCellToCoord(x, y);
         const tint = {
           [Modality.POINT_AND_ClICK]: 0x000000,
           [Modality.VOICE]: 0x0047ab,
@@ -77,15 +86,15 @@ export class Game extends Scene {
         }[args.modality];
         this.drawMove(xPx, yPx, args.hit, tint);
         if (args.sunkenShip) {
-          const shipCount = grid.getShipCount();
+          const shipCount = grid.shipCount.getShipCount();
           shipCount[args.sunkenShip.ship.size - 1]--;
-          grid.updateShipCount(shipCount);
+          grid.shipCount.updateShipCount(shipCount);
           const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
           gameRadio.sendMessage(
             `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
           );
         }
-      })(args.playerNo === this.ownPlayerNo ? this.attackGrid : this.defenseGrid);
+      })(args.playerNo === this.ownPlayerNo ? this.opposingGrid : this.ownGrid);
     });
 
     socket.on('gameOver', (args) => {
@@ -95,23 +104,6 @@ export class Game extends Scene {
         ownPlayerNo: this.ownPlayerNo,
       });
     });
-  }
-
-  private drawGrid(offsetX: number, legendPosition: 'r' | 'l') {
-    for (let row = 0; row < this.gridSize; row++) {
-      this.add.text(offsetX + 25 + this.cellSize * row, this.offsetY - 35, String.fromCharCode(65 + row), defaultFont);
-      this.add.text(
-        legendPosition === 'r' ? offsetX + 15 + this.cellSize * this.gridSize : offsetX - 30,
-        this.offsetY + 20 + this.cellSize * row,
-        (row + 1).toString(),
-        defaultFont,
-      );
-      for (let col = 0; col < this.gridSize; col++) {
-        const x = offsetX + col * this.cellSize;
-        const y = this.offsetY + row * this.cellSize;
-        this.add.rectangle(x, y, this.cellSize, this.cellSize).setStrokeStyle(4, 0x000000).setOrigin(0);
-      }
-    }
   }
 
   private drawPlayerNames() {
@@ -134,11 +126,15 @@ export class Game extends Scene {
   private drawShipCount() {
     this.add.image(980 + 50, this.offsetY + 290, 'ships');
     for (let i = 0; i < 4; i++) {
-      this.attackGrid.shipCountReference.push(this.add.text(845 + 50, this.offsetY + 20 + i * 140, '', defaultFont));
-      this.defenseGrid.shipCountReference.push(this.add.text(1075 + 50, this.offsetY + 20 + i * 140, '', defaultFont));
+      this.opposingGrid.shipCount.shipCountReference.push(
+        this.add.text(845 + 50, this.offsetY + 20 + i * 140, '', defaultFont),
+      );
+      this.ownGrid.shipCount.shipCountReference.push(
+        this.add.text(1075 + 50, this.offsetY + 20 + i * 140, '', defaultFont),
+      );
     }
-    this.attackGrid.updateShipCount(this.roomConfig.availableShips);
-    this.defenseGrid.updateShipCount(this.roomConfig.availableShips);
+    this.opposingGrid.shipCount.updateShipCount(this.roomConfig.availableShips);
+    this.ownGrid.shipCount.updateShipCount(this.roomConfig.availableShips);
   }
 
   private attackErrorHandler = (error?: string) => {
@@ -154,17 +150,13 @@ export class Game extends Scene {
       .rectangle(
         this.offsetX - this.cellSize,
         this.offsetY - this.cellSize,
-        (this.gridSize + 2) * this.cellSize,
-        (this.gridSize + 2) * this.cellSize,
+        (gridSize + 2) * this.cellSize,
+        (gridSize + 2) * this.cellSize,
       )
       .setOrigin(0)
       .setStrokeStyle(4, 0xd2042d, 0.2);
     const pencil = this.add
-      .image(
-        this.offsetX + this.gridSize * this.cellSize + 40,
-        this.offsetY + this.gridSize * this.cellSize + 40,
-        'pencil',
-      )
+      .image(this.offsetX + gridSize * this.cellSize + 40, this.offsetY + gridSize * this.cellSize + 40, 'pencil')
       .setAlpha(0.2);
     let gestureCoords: Coord[];
     let graphics: Phaser.GameObjects.Graphics | undefined;
@@ -184,7 +176,7 @@ export class Game extends Scene {
           gameRadio.sendMessage('The gesture Input is currently being used');
           return;
         }
-        const { x, y } = this.attackGrid.getCoordinateToGridCell(pointer.x, pointer.y);
+        const { x, y } = this.opposingGrid.getCoordToGridCell(pointer.x, pointer.y);
         socket.emit('attack', { coord: { x, y }, modality: Modality.POINT_AND_ClICK }, this.attackErrorHandler);
       } else if (pointer.rightButtonDown()) {
         this.lock = true;
@@ -333,9 +325,9 @@ export class Game extends Scene {
       return;
     }
 
-    this.framePosition.x = Phaser.Math.Clamp(this.framePosition.x + byX, 0, this.gridSize - 1);
-    this.framePosition.y = Phaser.Math.Clamp(this.framePosition.y + byY, 0, this.gridSize - 1);
-    const { xPx, yPx } = this.attackGrid.getGridCellToCoordinate(this.framePosition.x, this.framePosition.y);
+    this.framePosition.x = Phaser.Math.Clamp(this.framePosition.x + byX, 0, gridSize - 1);
+    this.framePosition.y = Phaser.Math.Clamp(this.framePosition.y + byY, 0, gridSize - 1);
+    const { xPx, yPx } = this.opposingGrid.getGridCellToCoord(this.framePosition.x, this.framePosition.y);
 
     if (this.frame) {
       this.frame.destroy();
@@ -343,5 +335,21 @@ export class Game extends Scene {
 
     this.frame = this.add.rectangle(xPx, yPx, this.cellSize, this.cellSize);
     this.frame.setStrokeStyle(6, 0x1c7b1c).setOrigin(0);
+  }
+
+  private drawOwnShips() {
+    this.shipConfig.forEach((s) => {
+      const ship = new DraggableShip(
+        {
+          ship: s.ship,
+          shipId: s.shipId,
+          orientation: s.orientation,
+        },
+        this.ownGrid.getCoordToGridCell.bind(this.ownGrid),
+        this.ownGrid.getGridCellToCoord.bind(this.ownGrid),
+        { x: s.x, y: s.y },
+      );
+      ship.drawShip(this, true);
+    });
   }
 }

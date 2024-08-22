@@ -8,7 +8,7 @@ export enum Gestures {
   'ARROW_RIGHT',
 }
 
-export class GestureRecognition {
+export class GestureRecognitionService {
   private distFunc = (a: Coord, b: Coord) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 
   /** @constant */

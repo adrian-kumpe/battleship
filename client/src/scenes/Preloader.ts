@@ -33,6 +33,12 @@ export class Preloader extends Scene {
     this.load.image('logo', 'logo.png');
     this.load.svg('captain', 'captain.svg', { width: 100, height: 100 });
 
+    // for GameSetup
+    this.load.svg('ship1', 'ship1.svg', { width: 70, height: 70 }); //todo eig die cell Size
+    this.load.svg('ship2', 'ship2.svg', { width: 140, height: 70 });
+    this.load.svg('ship3', 'ship3.svg', { width: 210, height: 70 });
+    this.load.svg('ship4', 'ship4.svg', { width: 280, height: 70 });
+
     // for Game scene
     this.load.svg('ships', 'ships.svg', { width: 200, height: 800 });
     this.load.image('explosion', 'explosion.png'); // 60x60

@@ -39,8 +39,8 @@ export const shipDefinitions: Ship[] = [
 
 export interface ShipMetaInformation {
   ship: Ship;
-  shipId: number;
-  orientation?: '↔️' | '↕️';
+  readonly shipId: number;
+  orientation: '↔️' | '↕️';
 }
 
 export interface Coord {
