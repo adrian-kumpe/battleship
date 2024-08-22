@@ -28,8 +28,8 @@ const config: Types.Core.GameConfig = {
 export default new Game(config);
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  // 'http://localhost:3000',
-  'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  'http://localhost:3000',
+  // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
   {
     transports: ['websocket'],
   },
@@ -46,3 +46,6 @@ export const defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
   color: '#000000',
   fontSize: 24,
 };
+
+export const gridSize = 8;
+// todo wie schaut es mit der cellSize aus?

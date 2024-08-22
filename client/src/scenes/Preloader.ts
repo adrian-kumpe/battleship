@@ -34,10 +34,9 @@ export class Preloader extends Scene {
     this.load.svg('captain', 'captain.svg', { width: 100, height: 100 });
 
     // for GameSetup
-    this.load.svg('ship1', 'ship1.svg', { width: 70, height: 70 }); //todo eig die cell Size
-    this.load.svg('ship2', 'ship2.svg', { width: 140, height: 70 });
-    this.load.svg('ship3', 'ship3.svg', { width: 210, height: 70 });
-    this.load.svg('ship4', 'ship4.svg', { width: 280, height: 70 });
+    for (let i = 1; i < 5; i++) {
+      this.load.svg(`ship${i}`, `ship-size-${i}.svg`, { width: 70 * i, height: 70 }); //todo cellSize verwenden?
+    }
 
     // for Game scene
     this.load.svg('ships', 'ships.svg', { width: 200, height: 800 });

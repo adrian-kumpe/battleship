@@ -9,7 +9,6 @@ export class GameSetup extends Scene {
   background: Phaser.GameObjects.Image;
 
   private baseShipId = 1;
-  private shipConfig?: ShipConfig;
   private draggableShips: Ship[] = [];
 
   private roomConfig: RoomConfig;
@@ -47,7 +46,7 @@ export class GameSetup extends Scene {
         roomConfig: this.roomConfig,
         playerConfig: args.playerConfig,
         ownPlayerNo: this.ownPlayerNo,
-        shipConfig: this.shipConfig!, // cant be undefined
+        shipConfig: this.getShipConfig(),
       });
     });
   }
@@ -70,19 +69,19 @@ export class GameSetup extends Scene {
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
-        this.shipConfig = this.getShipConfig();
-        if (this.getShipConfigValid()) {
-          socket.emit('gameReady', { shipConfig: this.shipConfig }, (error?: string) => {
+        const shipConfig = this.getShipConfig();
+        const error = this.checkShipConfigValid(shipConfig);
+        if (error) {
+          console.warn(error);
+          gameRadio.sendMessage('Error: ' + error);
+        } else {
+          socket.emit('gameReady', { shipConfig: shipConfig }, (error?: string) => {
             if (error) {
               console.warn(error);
               gameRadio.sendMessage('Error: ' + error);
             }
           });
           // todo hier muss ersichtlich sein, dass die shipconfig abgeschickt wurde
-        } else {
-          const error = 'The arrangement of the ships is invalid';
-          console.warn(error);
-          gameRadio.sendMessage('Error: ' + error);
         }
       });
   }
@@ -118,13 +117,9 @@ export class GameSetup extends Scene {
     });
   }
 
-  private getShipConfigValid(): boolean {
-    if (!this.shipConfig) {
-      //todo das ist nicht optimal
-      return false;
-    }
+  private checkShipConfigValid(shipConfig: ShipConfig): string | undefined {
     const allCoords: (Coord & { guarded: boolean })[] = [];
-    this.shipConfig.forEach((v) => {
+    shipConfig.forEach((v) => {
       // push all coords where the ship is on or guards into allCoords
       for (let i = -1; i < 2; i++) {
         allCoords.push({ x: v.x - 1, y: v.y + i, guarded: true });
@@ -140,6 +135,10 @@ export class GameSetup extends Scene {
     });
     const shipCoords = allCoords.filter((c) => c.guarded === false);
     const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);
-    return allShipsWithinGrid && noIllegalOverlaps;
+    return !allShipsWithinGrid
+      ? 'Not all ships are inside the grid'
+      : !noIllegalOverlaps
+        ? 'There are illegal overlaps of some ships'
+        : undefined;
   }
 }
