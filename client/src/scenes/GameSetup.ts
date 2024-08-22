@@ -1,26 +1,26 @@
 import { Scene } from 'phaser';
 import { defaultFont, gameRadio, gridSize, socket } from '../main';
-import { Coord, PlayerNo, RoomConfig, ShipMetaInformation, shipDefinitions } from '../shared/models';
-import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { DraggableShip } from '../elements/DraggableShip';
+import { Coord, PlayerNo, RoomConfig, ShipConfig, shipDefinitions } from '../shared/models';
+import { Grid } from '../elements/Grid';
+import { Ship } from '../elements/Ship';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
 
   private baseShipId = 1;
-  private shipConfig?: (ShipMetaInformation & Coord)[];
-  private draggableShips: DraggableShip[] = []; //todo brauche ich das?
+  private shipConfig?: ShipConfig;
+  private draggableShips: Ship[] = [];
 
   private roomConfig: RoomConfig;
   private ownPlayerNo: PlayerNo;
 
-  private placingGrid: BattleshipGrid;
+  private placingGrid: Grid;
 
   constructor() {
     super('GameSetup');
 
-    this.placingGrid = new BattleshipGrid({
+    this.placingGrid = new Grid({
       gridOffsetX: 680,
       gridOffsetY: 250,
       cellSize: 70,
@@ -72,7 +72,6 @@ export class GameSetup extends Scene {
       .on('pointerdown', () => {
         this.shipConfig = this.getShipConfig();
         if (this.getShipConfigValid()) {
-          console.log('this.shipConfig', this.shipConfig);
           socket.emit('gameReady', { shipConfig: this.shipConfig }, (error?: string) => {
             if (error) {
               console.warn(error);
@@ -95,9 +94,9 @@ export class GameSetup extends Scene {
       })
       .flat()
       .forEach((size: number, i: number) => {
-        const draggableShip = new DraggableShip(
+        const draggableShip = new Ship(
           {
-            ship: shipDefinitions[size - 1],
+            ...shipDefinitions[size - 1],
             shipId: this.getShipId(),
             orientation: '↔️',
           },
@@ -110,7 +109,7 @@ export class GameSetup extends Scene {
       });
   }
 
-  private getShipConfig(): (ShipMetaInformation & Coord)[] {
+  private getShipConfig(): ShipConfig {
     return this.draggableShips.map((v) => {
       return {
         ...v.getShipMetaInformation(),
@@ -129,10 +128,10 @@ export class GameSetup extends Scene {
       // push all coords where the ship is on or guards into allCoords
       for (let i = -1; i < 2; i++) {
         allCoords.push({ x: v.x - 1, y: v.y + i, guarded: true });
-        for (let j = 0; j < v.ship.size; j++) {
+        for (let j = 0; j < v.size; j++) {
           allCoords.push({ x: v.x + j, y: v.y + i, guarded: i !== 0 });
         }
-        allCoords.push({ x: v.x + v.ship.size, y: v.y + i, guarded: true });
+        allCoords.push({ x: v.x + v.size, y: v.y + i, guarded: true });
       }
     });
     // todo es fehlen noch vertikale schiffe

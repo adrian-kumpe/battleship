@@ -1,12 +1,12 @@
 import { defaultFont, gridSize } from '../main';
-import { Coord, ShipMetaInformation } from '../shared/models';
+import { Coord, ShipDefinition, ShipInstance } from '../shared/models';
 
-export class DraggableShip {
+export class Ship {
   private shipContainerRef?: Phaser.GameObjects.Container;
   private active = false;
 
   constructor(
-    private shipMetaInformation: ShipMetaInformation,
+    private shipMetaInformation: ShipDefinition & ShipInstance,
     private getCoordToGridCell: (xPx: number, yPx: number) => { x: number; y: number },
     private getGridCellToCoord: (x: number, y: number) => { xPx: number; yPx: number },
     private coord: Coord,
@@ -63,10 +63,10 @@ export class DraggableShip {
    * @param readonly flag
    */
   public drawShip(scene: Phaser.Scene, readonly = false) {
-    const shift = this.shipMetaInformation.ship.size * 35 - 35;
-    const ship = scene.add.image(0, 0, `ship${this.shipMetaInformation.ship.size}`);
+    const shift = this.shipMetaInformation.size * 35 - 35;
+    const ship = scene.add.image(0, 0, `ship${this.shipMetaInformation.size}`);
     ship.name = 'ship';
-    const rectangle = scene.add.rectangle(0, 0, 70 * this.shipMetaInformation.ship.size, 70);
+    const rectangle = scene.add.rectangle(0, 0, 70 * this.shipMetaInformation.size, 70);
     rectangle.name = 'rectangle';
     const id = scene.add.text(-shift, 0, `#${this.shipMetaInformation.shipId}`, defaultFont).setOrigin(0.5, 0.5);
     id.name = 'id';
@@ -94,12 +94,12 @@ export class DraggableShip {
         };
         const { x, y } = this.getCoordToGridCell(container.x - getShift('↔️'), container.y - getShift('↕️'));
         const getSize = (orientation: '↔️' | '↕️') => {
-          return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.ship.size : 0;
+          return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.size : 0;
         };
         this.setCoord({ x, y }, x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize);
         this.setActive(false);
       });
-      // set active, bring to top
+      // set active + bring to the top
       container.on('dragstart', () => {
         if (this.shipContainerRef) {
           scene.children.bringToTop(this.shipContainerRef);

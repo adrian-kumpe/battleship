@@ -1,4 +1,4 @@
-import { AttackResult, Coord, RoomConfig, ShipMetaInformation } from './shared/models';
+import { AttackResult, Coord, RoomConfig, ShipConfig, ShipDefinition, ShipInstance } from './shared/models';
 import { Client } from '.';
 
 export class BattleshipGameBoard {
@@ -7,15 +7,16 @@ export class BattleshipGameBoard {
     { x: -1, y: -1 }, // so you can use arrow gestures right from the beginning of the game
   ];
   /** array w/ the player's ships; contains meta information about the ships, their main coord and a continuously updated array with coordinates they occupy */
-  private _shipConfig?: (ShipMetaInformation & Coord & { occupiedCoords: Coord[] })[];
-  public set shipConfig(shipConfig: (ShipMetaInformation & Coord)[]) {
+  private _shipConfig?: (ShipDefinition & ShipInstance & Coord & { occupiedCoords: Coord[] })[];
+  public set shipConfig(shipConfig: ShipConfig) {
     this._shipConfig = shipConfig.map((s) => {
       const occupiedCoords: Coord[] = [];
-      for (let i = 0; i < s.ship.size; i++) {
+      for (let i = 0; i < s.size; i++) {
         occupiedCoords.push(s.orientation === '↔️' ? { x: s.x + i, y: s.y } : { x: s.x, y: s.y + i });
       }
       return {
-        ship: s.ship,
+        name: s.name,
+        size: s.size,
         shipId: s.shipId,
         orientation: s.orientation,
         occupiedCoords: occupiedCoords,

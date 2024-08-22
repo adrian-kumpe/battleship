@@ -6,7 +6,7 @@ interface GridDrawData {
   cellSize: number;
 }
 
-export class BattleshipGrid {
+export class Grid {
   public shipCount: ShipCountService;
 
   constructor(private gridDrawData: GridDrawData) {

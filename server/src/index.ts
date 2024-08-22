@@ -5,7 +5,8 @@ import {
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
-  ShipMetaInformation,
+  ShipConfig,
+  ShipInstance,
 } from './shared/models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
@@ -91,7 +92,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   /** sets shipConfig of player; if both players are ready start the game */
-  socket.on('gameReady', (args: { shipConfig: (ShipMetaInformation & Coord)[] }, cb) => {
+  socket.on('gameReady', (args: { shipConfig: ShipConfig }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error = undefined; // todo shipConfig müsste validiert werden

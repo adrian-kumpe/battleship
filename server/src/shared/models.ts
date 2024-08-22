@@ -23,22 +23,20 @@ export interface PlayerConfig {
   firstTurn: PlayerNo;
 }
 
-export interface Ship {
-  name: string;
-  size: number;
+export interface ShipDefinition {
+  readonly name: string;
+  readonly size: number;
 }
 
 /** @constant */
-export const shipDefinitions: Ship[] = [
-  { size: 1, name: 'escort' },
-  { size: 2, name: 'destroyer' },
-  { size: 3, name: 'cruiser' },
-  { size: 4, name: 'battleship' },
-  // { size: 5, name: 'aircraft-carrier' },
+export const shipDefinitions: ShipDefinition[] = [
+  { size: 1, name: 'destroyer' },
+  { size: 2, name: 'cruiser' },
+  { size: 3, name: 'battleship' },
+  { size: 4, name: 'aircraft carrier' },
 ];
 
-export interface ShipMetaInformation {
-  ship: Ship;
+export interface ShipInstance {
   readonly shipId: number;
   orientation: '↔️' | '↕️';
 }
@@ -48,9 +46,11 @@ export interface Coord {
   y: number;
 }
 
+export type ShipConfig = (ShipDefinition & ShipInstance & Coord)[];
+
 export interface AttackResult {
   hit: boolean;
-  sunkenShip?: ShipMetaInformation & Coord;
+  sunkenShip?: ShipDefinition & ShipInstance & Coord;
 }
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -104,7 +104,7 @@ export interface ClientToServerEvents {
    * commits shipConfig; if both players are ready, the server can emit gameStart
    * @param shipConfig placement of the player's ships
    */
-  gameReady: (args: { shipConfig: (ShipMetaInformation & Coord)[] }, cb: (error?: string) => void) => void;
+  gameReady: (args: { shipConfig: ShipConfig }, cb: (error?: string) => void) => void;
   /**
    * places an attack
    * @param coord to attack

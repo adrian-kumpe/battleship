@@ -1,24 +1,24 @@
 import { Scene } from 'phaser';
-import { BattleshipGrid } from '../elements/BattleshipGrid';
-import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig, ShipMetaInformation } from '../shared/models';
+import { Grid } from '../elements/Grid';
+import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig, ShipConfig } from '../shared/models';
 import { socket, gameRadio, defaultFont, gridSize } from '../main';
 import { GestureRecognitionService, Gestures } from '../elements/GestureRecognitionService';
-import { DraggableShip } from '../elements/DraggableShip';
+import { Ship } from '../elements/Ship';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
   gameText: Phaser.GameObjects.Text;
 
-  private ownGrid: BattleshipGrid;
-  private opposingGrid: BattleshipGrid;
+  private ownGrid: Grid;
+  private opposingGrid: Grid;
 
   private gestureRecognition: GestureRecognitionService;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
   private playerConfig: PlayerConfig;
-  private shipConfig: (ShipMetaInformation & Coord)[];
+  private shipConfig: ShipConfig;
 
   private cellSize = 70;
   private offsetY = 250;
@@ -33,12 +33,12 @@ export class Game extends Scene {
   constructor() {
     super('Game');
 
-    this.opposingGrid = new BattleshipGrid({
+    this.opposingGrid = new Grid({
       gridOffsetX: this.offsetX,
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
     });
-    this.ownGrid = new BattleshipGrid({
+    this.ownGrid = new Grid({
       gridOffsetX: this.offsetX + this.additionalOffsetX,
       gridOffsetY: this.offsetY,
       cellSize: this.cellSize,
@@ -46,12 +46,7 @@ export class Game extends Scene {
     this.gestureRecognition = new GestureRecognitionService();
   }
 
-  create(args: {
-    roomConfig: RoomConfig;
-    playerConfig: PlayerConfig;
-    ownPlayerNo: PlayerNo;
-    shipConfig: (ShipMetaInformation & Coord)[];
-  }) {
+  create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo; shipConfig: ShipConfig }) {
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
@@ -76,7 +71,7 @@ export class Game extends Scene {
     socket.on('attack', (args) => {
       const x = args.coord.x;
       const y = args.coord.y;
-      ((grid: BattleshipGrid) => {
+      ((grid: Grid) => {
         const { xPx, yPx } = grid.getGridCellToCoord(x, y);
         const tint = {
           [Modality.POINT_AND_ClICK]: 0x000000,
@@ -87,11 +82,11 @@ export class Game extends Scene {
         this.drawMove(xPx, yPx, args.hit, tint);
         if (args.sunkenShip) {
           const shipCount = grid.shipCount.getShipCount();
-          shipCount[args.sunkenShip.ship.size - 1]--;
+          shipCount[args.sunkenShip.size - 1]--;
           grid.shipCount.updateShipCount(shipCount);
           const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
           gameRadio.sendMessage(
-            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ship (size ${args.sunkenShip.ship.size}) was sunk`,
+            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ${args.sunkenShip.name} (size ${args.sunkenShip.size}) was sunk`,
           );
         }
       })(args.playerNo === this.ownPlayerNo ? this.opposingGrid : this.ownGrid);
@@ -339,9 +334,10 @@ export class Game extends Scene {
 
   private drawOwnShips() {
     this.shipConfig.forEach((s) => {
-      const ship = new DraggableShip(
+      const ship = new Ship(
         {
-          ship: s.ship,
+          name: s.name,
+          size: s.size,
           shipId: s.shipId,
           orientation: s.orientation,
         },
