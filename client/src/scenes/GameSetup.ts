@@ -3,8 +3,7 @@ import { cellSize, defaultFont, gameRadio, gridSize, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipConfig, shipDefinitions } from '../shared/models';
 import { Grid } from '../elements/Grid';
 import { Ship } from '../elements/Ship';
-import { GestureCanvas } from '../elements/GestureCanvas';
-import { GestureRecognitionService, Gestures } from '../elements/GestureRecognitionService';
+import { GestureCanvas, GestureRecognition, Gestures } from '../elements/Gestures';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -21,7 +20,7 @@ export class GameSetup extends Scene {
 
   private placingGrid: Grid;
   private gestureCanvas: GestureCanvas;
-  private gestureRecognition: GestureRecognitionService;
+  private gestureRecognition: GestureRecognition;
 
   constructor() {
     super('GameSetup');
@@ -35,7 +34,7 @@ export class GameSetup extends Scene {
     const gestureActions = new Map<Gestures, () => void>([
       [Gestures.CIRCLE, () => console.log('Circle gesture recognized #2')],
     ]);
-    this.gestureRecognition = new GestureRecognitionService([...gestureActions.keys()]);
+    this.gestureRecognition = new GestureRecognition([...gestureActions.keys()]);
     this.gestureCanvas = new GestureCanvas(this.gestureRecognition, gestureActions);
   }
 

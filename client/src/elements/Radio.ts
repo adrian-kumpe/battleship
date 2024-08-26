@@ -1,6 +1,6 @@
 import { defaultFont } from '../main';
 
-export class GameRadio {
+export class Radio {
   private chat: string[] = ['Radio initialized'];
 
   constructor(

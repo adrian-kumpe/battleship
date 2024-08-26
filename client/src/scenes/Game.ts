@@ -2,8 +2,8 @@ import { Scene } from 'phaser';
 import { Grid } from '../elements/Grid';
 import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig, ShipConfig } from '../shared/models';
 import { socket, gameRadio, defaultFont, gridSize, cellSize } from '../main';
-import { GestureRecognitionService, Gestures } from '../elements/GestureRecognitionService';
 import { Ship } from '../elements/Ship';
+import { GestureRecognition, Gestures } from '../elements/Gestures';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -12,7 +12,7 @@ export class Game extends Scene {
 
   private ownGrid: Grid;
   private opposingGrid: Grid;
-  private gestureRecognition: GestureRecognitionService;
+  private gestureRecognition: GestureRecognition;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
@@ -41,7 +41,7 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: cellSize,
     });
-    this.gestureRecognition = new GestureRecognitionService([
+    this.gestureRecognition = new GestureRecognition([
       Gestures.CIRCLE,
       Gestures.ARROW_DOWN,
       Gestures.ARROW_LEFT,

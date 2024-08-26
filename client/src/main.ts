@@ -7,7 +7,7 @@ import { Preloader } from './scenes/Preloader';
 import { Game, Types } from 'phaser';
 import { io, Socket } from 'socket.io-client';
 import { ClientToServerEvents, ServerToClientEvents } from './shared/models';
-import { GameRadio } from './elements/GameRadio';
+import { Radio } from './elements/Radio';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -35,7 +35,7 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   },
 );
 
-export const gameRadio: GameRadio = new GameRadio();
+export const gameRadio: Radio = new Radio();
 
 socket.on('notification', (args) => {
   gameRadio.sendMessage(args.text);
