@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { cellSize } from '../main';
 
 export class Preloader extends Scene {
   constructor() {
@@ -35,7 +36,7 @@ export class Preloader extends Scene {
 
     // for GameSetup
     for (let i = 1; i < 5; i++) {
-      this.load.svg(`ship${i}`, `ship-size-${i}.svg`, { width: 70 * i, height: 70 }); //todo cellSize verwenden?
+      this.load.svg(`ship${i}`, `ship-size-${i}.svg`, { width: cellSize * i, height: cellSize });
     }
 
     // for Game scene

@@ -17,12 +17,12 @@ export class Ship {
     return this.shipMetaInformation;
   }
 
-  public setOrientation(orientation: '↔️' | '↕️') {
-    this.shipMetaInformation.orientation = orientation;
+  public changeOrientation(orientation?: '↔️' | '↕️') {
+    this.shipMetaInformation.orientation = orientation ?? (this.shipMetaInformation.orientation === '↔️' ? '↕️' : '↔️');
     if (this.shipContainerRef) {
-      this.shipContainerRef.setRotation(Phaser.Math.DegToRad(orientation === '↔️' ? 0 : 90));
+      this.shipContainerRef.setRotation(Phaser.Math.DegToRad(this.shipMetaInformation.orientation === '↔️' ? 0 : 90));
       (this.shipContainerRef.getByName('id') as Phaser.GameObjects.Text).setRotation(
-        Phaser.Math.DegToRad(orientation === '↔️' ? 0 : -90),
+        Phaser.Math.DegToRad(this.shipMetaInformation.orientation === '↔️' ? 0 : -90),
       );
     }
   }
@@ -68,7 +68,7 @@ export class Ship {
     ship.name = 'ship';
     const rectangle = scene.add.rectangle(0, 0, 70 * this.shipMetaInformation.size, 70);
     rectangle.name = 'rectangle';
-    const id = scene.add.text(-shift, 0, `#${this.shipMetaInformation.shipId}`, defaultFont).setOrigin(0.5, 0.5);
+    const id = scene.add.text(-shift - 3, 0, `#${this.shipMetaInformation.shipId}`, defaultFont).setOrigin(0.5, 0.5); // todo schaut das auch gut aus wenn es rotiert ist?
     id.name = 'id';
     const container = scene.add
       .container(-100, -100, [ship, rectangle, id])
@@ -96,7 +96,9 @@ export class Ship {
         const getSize = (orientation: '↔️' | '↕️') => {
           return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.size : 0;
         };
-        this.setCoord({ x, y }, x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize);
+        const checkWithinGrid = x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize;
+        const checkWithinParking = x > -6 && x + getSize('↔️') < 0 && y >= 0 && y + getSize('↕️') < 7;
+        this.setCoord({ x, y }, checkWithinGrid || checkWithinParking);
         this.setActive(false);
       });
       // set active + bring to the top
@@ -106,13 +108,20 @@ export class Ship {
         }
         this.setActive(true);
       });
+      if (scene.input.keyboard) {
+        scene.input.keyboard.on('keydown-R', () => {
+          if (this.active) {
+            this.changeOrientation();
+          }
+        });
+      }
     }
     this.shipContainerRef = container;
     this.refreshAttributes();
   }
 
   public refreshAttributes() {
-    this.setOrientation(this.shipMetaInformation.orientation);
+    this.changeOrientation(this.shipMetaInformation.orientation);
     this.setActive(this.active);
     this.setCoord(this.coord);
   }

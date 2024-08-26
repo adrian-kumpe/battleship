@@ -1,13 +1,18 @@
 import { Scene } from 'phaser';
-import { defaultFont, gameRadio, gridSize, socket } from '../main';
+import { cellSize, defaultFont, gameRadio, gridSize, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipConfig, shipDefinitions } from '../shared/models';
 import { Grid } from '../elements/Grid';
 import { Ship } from '../elements/Ship';
+import { GestureCanvas } from '../elements/GestureCanvas';
+import { GestureRecognitionService, Gestures } from '../elements/GestureRecognitionService';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
 
+  private offsetX = 200;
+  private additionalOffsetX = 420;
+  private offsetY = 250;
   private baseShipId = 1;
   private draggableShips: Ship[] = [];
 
@@ -15,15 +20,23 @@ export class GameSetup extends Scene {
   private ownPlayerNo: PlayerNo;
 
   private placingGrid: Grid;
+  private gestureCanvas: GestureCanvas;
+  private gestureRecognition: GestureRecognitionService;
 
   constructor() {
     super('GameSetup');
 
     this.placingGrid = new Grid({
-      gridOffsetX: 680,
-      gridOffsetY: 250,
-      cellSize: 70,
+      gridOffsetX: this.offsetX + this.additionalOffsetX,
+      gridOffsetY: this.offsetY,
+      cellSize: cellSize,
     });
+
+    const gestureActions = new Map<Gestures, () => void>([
+      [Gestures.CIRCLE, () => console.log('Circle gesture recognized #2')],
+    ]);
+    this.gestureRecognition = new GestureRecognitionService([...gestureActions.keys()]);
+    this.gestureCanvas = new GestureCanvas(this.gestureRecognition, gestureActions);
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
@@ -35,6 +48,13 @@ export class GameSetup extends Scene {
     this.ownPlayerNo = args.ownPlayerNo;
 
     this.placingGrid.drawGrid(this.add, '→');
+    this.gestureCanvas.drawGestureCanvas(
+      this,
+      { x: this.offsetX, y: this.offsetY - cellSize },
+      (gridSize + 7) * cellSize,
+      (gridSize + 2) * cellSize,
+    );
+    this.drawShipParking();
     this.drawButton();
     this.drawShips();
 
@@ -53,6 +73,17 @@ export class GameSetup extends Scene {
 
   private getShipId(): number {
     return this.baseShipId++;
+  }
+
+  private drawShipParking() {
+    for (let i = 0; i < 7; i++) {
+      for (let j = 1; j < 5; j++) {
+        this.add
+          .rectangle(this.offsetX + cellSize * j, this.offsetY + cellSize * i, cellSize, cellSize)
+          .setOrigin(0)
+          .setStrokeStyle(4, 0xbbbbbb, 1);
+      }
+    }
   }
 
   private drawButton() {
@@ -121,22 +152,22 @@ export class GameSetup extends Scene {
     const allCoords: (Coord & { guarded: boolean })[] = [];
     shipConfig.forEach((v) => {
       // push all coords where the ship is on or guards into allCoords
+      const h = v.orientation === '↔️';
       for (let i = -1; i < 2; i++) {
-        allCoords.push({ x: v.x - 1, y: v.y + i, guarded: true });
+        allCoords.push({ x: h ? v.x - 1 : v.x + i, y: h ? v.y + i : v.y - 1, guarded: true });
         for (let j = 0; j < v.size; j++) {
-          allCoords.push({ x: v.x + j, y: v.y + i, guarded: i !== 0 });
+          allCoords.push({ x: h ? v.x + j : v.x + i, y: h ? v.y + i : v.y + j, guarded: i !== 0 });
         }
-        allCoords.push({ x: v.x + v.size, y: v.y + i, guarded: true });
+        allCoords.push({ x: h ? v.x + v.size : v.x + i, y: h ? v.y + i : v.y + v.size, guarded: true });
       }
     });
-    // todo es fehlen noch vertikale schiffe
     const allShipsWithinGrid = allCoords.every((c) => {
       return c.guarded || (c.x >= 0 && c.x < gridSize && c.y >= 0 && c.y < gridSize);
     });
     const shipCoords = allCoords.filter((c) => c.guarded === false);
     const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);
     return !allShipsWithinGrid
-      ? 'Not all ships are inside the grid'
+      ? 'Not all ships are within the grid'
       : !noIllegalOverlaps
         ? 'There are illegal overlaps of some ships'
         : undefined;

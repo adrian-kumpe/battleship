@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { Grid } from '../elements/Grid';
 import { Coord, Modality, PlayerConfig, PlayerNo, RoomConfig, ShipConfig } from '../shared/models';
-import { socket, gameRadio, defaultFont, gridSize } from '../main';
+import { socket, gameRadio, defaultFont, gridSize, cellSize } from '../main';
 import { GestureRecognitionService, Gestures } from '../elements/GestureRecognitionService';
 import { Ship } from '../elements/Ship';
 
@@ -12,7 +12,6 @@ export class Game extends Scene {
 
   private ownGrid: Grid;
   private opposingGrid: Grid;
-
   private gestureRecognition: GestureRecognitionService;
 
   private ownPlayerNo: PlayerNo;
@@ -20,10 +19,9 @@ export class Game extends Scene {
   private playerConfig: PlayerConfig;
   private shipConfig: ShipConfig;
 
-  private cellSize = 70;
-  private offsetY = 250;
   private offsetX = 200;
   private additionalOffsetX = 1010;
+  private offsetY = 250;
 
   private frame: Phaser.GameObjects.Rectangle;
   private framePosition = { x: 0, y: 0 };
@@ -36,14 +34,20 @@ export class Game extends Scene {
     this.opposingGrid = new Grid({
       gridOffsetX: this.offsetX,
       gridOffsetY: this.offsetY,
-      cellSize: this.cellSize,
+      cellSize: cellSize,
     });
     this.ownGrid = new Grid({
       gridOffsetX: this.offsetX + this.additionalOffsetX,
       gridOffsetY: this.offsetY,
-      cellSize: this.cellSize,
+      cellSize: cellSize,
     });
-    this.gestureRecognition = new GestureRecognitionService();
+    this.gestureRecognition = new GestureRecognitionService([
+      Gestures.CIRCLE,
+      Gestures.ARROW_DOWN,
+      Gestures.ARROW_LEFT,
+      Gestures.ARROW_RIGHT,
+      Gestures.ARROW_UP,
+    ]);
   }
 
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo; shipConfig: ShipConfig }) {
@@ -142,16 +146,11 @@ export class Game extends Scene {
 
   private addInputCanvas() {
     const canvas = this.add
-      .rectangle(
-        this.offsetX - this.cellSize,
-        this.offsetY - this.cellSize,
-        (gridSize + 2) * this.cellSize,
-        (gridSize + 2) * this.cellSize,
-      )
+      .rectangle(this.offsetX - cellSize, this.offsetY - cellSize, (gridSize + 2) * cellSize, (gridSize + 2) * cellSize)
       .setOrigin(0)
       .setStrokeStyle(4, 0xd2042d, 0.2);
     const pencil = this.add
-      .image(this.offsetX + gridSize * this.cellSize + 40, this.offsetY + gridSize * this.cellSize + 40, 'pencil')
+      .image(this.offsetX + gridSize * cellSize + 40, this.offsetY + gridSize * cellSize + 40, 'pencil')
       .setAlpha(0.2);
     let gestureCoords: Coord[];
     let graphics: Phaser.GameObjects.Graphics | undefined;
@@ -247,14 +246,14 @@ export class Game extends Scene {
       )
       .setOrigin(0, 1);
     this.add
-      .image(this.offsetX + this.additionalOffsetX + this.cellSize - 10, 900, 'circle-gesture-instruction')
+      .image(this.offsetX + this.additionalOffsetX + cellSize - 10, 900, 'circle-gesture-instruction')
       .setOrigin(1);
     this.add
-      .image(this.offsetX + this.additionalOffsetX + this.cellSize - 20, 975, 'arrow-gestures-instruction')
+      .image(this.offsetX + this.additionalOffsetX + cellSize - 20, 975, 'arrow-gestures-instruction')
       .setOrigin(1);
     this.add
       .text(
-        this.offsetX + this.additionalOffsetX + this.cellSize + 10,
+        this.offsetX + this.additionalOffsetX + cellSize + 10,
         880,
         'Attack randomly by drawing a circle',
         defaultFont,
@@ -262,7 +261,7 @@ export class Game extends Scene {
       .setOrigin(0, 1);
     this.add
       .text(
-        this.offsetX + this.additionalOffsetX + this.cellSize + 10,
+        this.offsetX + this.additionalOffsetX + cellSize + 10,
         936,
         'Use snake control by drawing arrows',
         defaultFont,
@@ -270,7 +269,7 @@ export class Game extends Scene {
       .setOrigin(0, 1);
     this.add
       .text(
-        this.offsetX + this.additionalOffsetX + this.cellSize + 10,
+        this.offsetX + this.additionalOffsetX + cellSize + 10,
         968,
         '(draw by right-clicking in the red box)',
         defaultFont,
@@ -328,7 +327,7 @@ export class Game extends Scene {
       this.frame.destroy();
     }
 
-    this.frame = this.add.rectangle(xPx, yPx, this.cellSize, this.cellSize);
+    this.frame = this.add.rectangle(xPx, yPx, cellSize, cellSize);
     this.frame.setStrokeStyle(6, 0x1c7b1c).setOrigin(0);
   }
 

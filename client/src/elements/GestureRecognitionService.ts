@@ -44,6 +44,10 @@ export class GestureRecognitionService {
     },
   ];
 
+  constructor(acceptingGestures: Gestures[]) {
+    this.gestureTemplate = this.gestureTemplate.filter((v) => acceptingGestures.includes(v.gesture)); //todo funktioniert das
+  }
+
   public getGesture(gestureCoords: Coord[]): { gesture: Gestures; d: number } {
     const result: { gesture: Gestures; d: number }[] = [];
     this.gestureTemplate

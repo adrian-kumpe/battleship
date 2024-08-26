@@ -48,4 +48,4 @@ export const defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
 };
 
 export const gridSize = 8;
-// todo wie schaut es mit der cellSize aus?
+export const cellSize = 70;
