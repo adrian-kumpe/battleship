@@ -2,25 +2,35 @@ import { Scene } from 'phaser';
 import { cellSize, defaultFont, gameRadio, gridSize, socket } from '../main';
 import { Coord, PlayerNo, RoomConfig, ShipConfig, shipDefinitions } from '../shared/models';
 import { Grid } from '../elements/Grid';
-import { Ship } from '../elements/Ship';
+import { Ship, ShipArray } from '../elements/Ship';
 import { GestureCanvas, GestureRecognition, Gestures } from '../elements/Gestures';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
 
-  private offsetX = 200;
-  private additionalOffsetX = 420;
-  private offsetY = 250;
-  private baseShipId = 1;
-  private draggableShips: Ship[] = [];
+  offsetX = 200;
+  additionalOffsetX = 420;
+  offsetY = 250;
 
   private roomConfig: RoomConfig;
   private ownPlayerNo: PlayerNo;
 
-  private placingGrid: Grid;
+  placingGrid: Grid;
   private gestureCanvas: GestureCanvas;
   private gestureRecognition: GestureRecognition;
+
+  private baseShipId = 1;
+  shipArray: ShipArray = new ShipArray();
+  /** slot for the index of the selected ship (or undefined) */
+  selectedShipIndex?: number;
+  /** the last ship that was selected so you can still rotate after moving */
+  lastSelectedShipIndex?: number;
+  /** slot for the selected coord (or undefined) */
+  selectedCoord?: Coord;
+  /** frame to display the selected coord */
+  selectedCoordRef?: Phaser.GameObjects.Rectangle;
+  keyboardInputHandler: KeyboardInputHandler;
 
   constructor() {
     super('GameSetup');
@@ -39,6 +49,7 @@ export class GameSetup extends Scene {
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
+    this.input.setTopOnly(false); // todo das evtl global machen
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
@@ -68,6 +79,8 @@ export class GameSetup extends Scene {
         shipConfig: this.getShipConfig(),
       });
     });
+
+    this.keyboardInputHandler = new KeyboardInputHandler(this);
   }
 
   private getShipId(): number {
@@ -134,12 +147,12 @@ export class GameSetup extends Scene {
           { x: i > 3 ? 0 : 5, y: (0 + 2 * i) % 8 },
         );
         draggableShip.drawShip(this);
-        this.draggableShips.push(draggableShip);
+        this.shipArray.push(draggableShip);
       });
   }
 
   private getShipConfig(): ShipConfig {
-    return this.draggableShips.map((v) => {
+    return this.shipArray.map((v) => {
       return {
         ...v.getShipMetaInformation(),
         ...v.getCoord(),
@@ -170,5 +183,270 @@ export class GameSetup extends Scene {
       : !noIllegalOverlaps
         ? 'There are illegal overlaps of some ships'
         : undefined;
+  }
+}
+
+interface IInputLogic {
+  selectShip(i?: number): true | undefined;
+  selectCoord(coord?: Coord): void;
+  moveShip(deselect: boolean): true | undefined;
+  rotateShip(): true | undefined;
+}
+
+/**
+ * basic methods to interact with ships in GameSetup
+ */
+class InputLogic implements IInputLogic {
+  static callAfter(method: () => void) {
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+      target && propertyKey;
+      const originalMethod = descriptor.value;
+      descriptor.value = function (...args: any[]) {
+        const result = originalMethod.apply(this, args);
+        method.apply(this);
+        return result;
+      };
+      return descriptor;
+    };
+  }
+
+  /** active state of each ship is recalculated */
+  protected updateActiveState() {
+    this.scene.shipArray.forEach((s) => s.setActive('inactive')); // deactivate all ships
+    const setActiveOfLastSelectedShipIndex = (active: 'semi-active' | 'inactive') => {
+      if (this.scene.lastSelectedShipIndex) {
+        this.scene.shipArray[this.scene.lastSelectedShipIndex].setActive(active);
+      }
+    };
+    if (this.scene.selectedShipIndex !== undefined) {
+      setActiveOfLastSelectedShipIndex('inactive'); // order! lastSelectedShipIndex may be the same like selectedShipIndex
+      this.scene.shipArray[this.scene.selectedShipIndex].setActive('active');
+    } else {
+      setActiveOfLastSelectedShipIndex('semi-active'); // the last selected ship is semi-active because it still can be rotated
+    }
+  }
+
+  /** vertical align of each ship is recalculated */
+  protected updateVerticalAlign() {
+    const bringShipIndexToTop = (i?: number) => {
+      if (i !== undefined && this.scene.shipArray[i].shipContainerRef /* trivial */) {
+        this.scene.children.bringToTop(this.scene.shipArray[i].shipContainerRef as Phaser.GameObjects.Container);
+      }
+    };
+    bringShipIndexToTop(this.scene.lastSelectedShipIndex);
+    bringShipIndexToTop(this.scene.selectedShipIndex);
+  }
+
+  constructor(protected scene: GameSetup) {}
+
+  /**
+   * select a ship
+   * @param i - index of the ship to select within shipArray, undefined to deselect
+   * @returns true if the selection was successfull and persists
+   */
+  @InputLogic.callAfter(function (this: InputLogic) {
+    this.updateVerticalAlign();
+    this.updateActiveState();
+  })
+  selectShip(i?: number): true | undefined {
+    this.scene.selectedShipIndex = i;
+    if (i !== undefined /* a ship is selected */) {
+      this.scene.lastSelectedShipIndex = i;
+      if (this.scene.selectedCoord === undefined /* the ship can't be moved because no coord is selected */) {
+        return true; // ship was selected and the selection persists
+      }
+    }
+  }
+
+  /**
+   * select a coord (cell of the grid)
+   * @param coord - coord to select, undefined to deselect
+   */
+  @InputLogic.callAfter(function (this: InputLogic) {
+    this.updateActiveState();
+  })
+  selectCoord(coord?: Coord) {
+    const drawFocusedCell = (coord: { xPx: number; yPx: number }) => {
+      if (!this.scene.selectedCoordRef) {
+        this.scene.selectedCoordRef = this.scene.add
+          .rectangle(coord.xPx, coord.yPx, cellSize, cellSize)
+          .setOrigin(0)
+          .setStrokeStyle(6, 0x0000ff);
+      } else {
+        this.scene.selectedCoordRef.setX(coord.xPx).setY(coord.yPx);
+      }
+    };
+    this.scene.selectedCoord = coord;
+    if (coord !== undefined /* a coord is selected */) {
+      if (this.scene.selectedShipIndex === undefined /* no ship is selected so it can't be moved */) {
+        const { xPx, yPx } = this.scene.placingGrid.getGridCellToCoord(coord.x, coord.y);
+        drawFocusedCell({ xPx: xPx, yPx: yPx });
+        // no return true; because the focused cell does not need to be hidden
+      }
+    } else {
+      this.scene.selectedCoordRef?.destroy(); // todo warum wird das benötigt?
+      this.scene.selectedCoordRef = undefined; // remove the visual selection of the coord
+    }
+  }
+
+  /**
+   * if ship and coord are selected, move the ship
+   * @param deselect - whether to deselect ship and coord after moving
+   * @returns true if a ship was moved
+   */
+  @InputLogic.callAfter(function (this: InputLogic) {
+    this.updateActiveState();
+  })
+  moveShip(deselect: boolean, coord?: Coord): true | undefined {
+    coord = coord ?? this.scene.selectedCoord;
+    if (this.scene.selectedShipIndex !== undefined && coord) {
+      this.scene.shipArray[this.scene.selectedShipIndex].setCoord(coord, true);
+      this.selectCoord(undefined); // remove selection of coord
+      if (deselect) {
+        this.selectShip(undefined); // remove selection of ship
+      }
+      return true;
+    }
+  }
+
+  /**
+   * rotate the selected ship or the ship that was selected before
+   * @returns true if a ship was rotated
+   */
+  rotateShip(): true | undefined {
+    const i = this.scene.selectedShipIndex ?? this.scene.lastSelectedShipIndex;
+    if (i !== undefined) {
+      this.scene.shipArray[i].changeOrientation();
+      return true;
+    }
+  }
+
+  /** deselect ship and coord */
+  deselect() {
+    this.selectCoord(undefined);
+    this.selectShip(undefined);
+  }
+}
+
+/**
+ * todo
+ */
+class KeyboardInputHandler extends InputLogic {
+  /** frame to display the focused coord */
+  private focusedCellRef?: Phaser.GameObjects.Rectangle;
+
+  /** @override */
+  protected updateVerticalAlign() {
+    super.updateVerticalAlign();
+    if (this.focusedCellRef) {
+      this.scene.children.bringToTop(this.focusedCellRef);
+    }
+  }
+
+  constructor(scene: GameSetup) {
+    super(scene);
+    this.addKeyboardInputListeners();
+  }
+
+  /** @override */
+  rotateShip(): true | undefined {
+    return super.rotateShip() && (this.centerFocusedCell(), true); // if super returns true then call centerFocusedCell
+  }
+
+  /** @override */
+  deselect() {
+    super.deselect();
+    this.activateFocusedCell(true);
+  }
+
+  /** get the grid coord of the focused cell */
+  getFocusCellCoord(): Coord | undefined {
+    if (this.focusedCellRef) {
+      const { x, y } = this.scene.placingGrid.getCoordToGridCell(this.focusedCellRef.x, this.focusedCellRef.y);
+      return { x: x, y: y };
+    }
+    return undefined;
+  }
+
+  /** change the focused cell by a shift, a new coord or to undefined */
+  focusCell(cell?: Coord): void;
+  focusCell(shiftX: number, shiftY: number): void;
+  focusCell(p1?: Coord | number, p2?: number) {
+    // todo das malen des rahmens kann in eine eigene methode ausgelagert werden
+    const drawFocusedCell = (coord: { xPx: number; yPx: number }) => {
+      if (!this.focusedCellRef) {
+        this.focusedCellRef = this.scene.add
+          .rectangle(coord.xPx, coord.yPx, cellSize, cellSize)
+          .setOrigin(0)
+          .setStrokeStyle(6, 0xff0000);
+      } else {
+        this.focusedCellRef.setX(coord.xPx).setY(coord.yPx);
+      }
+    };
+    if (typeof p1 === 'undefined') {
+      this.focusedCellRef = p1;
+    } else if (typeof p1 === 'object') {
+      drawFocusedCell(this.scene.placingGrid.getGridCellToCoord(p1.x, p1.y));
+    } else if (typeof p1 === 'number') {
+      const { initialX, initialY } = {
+        initialX: this.scene.offsetX + cellSize,
+        initialY: this.scene.offsetY - cellSize,
+      };
+      drawFocusedCell({
+        xPx: (this.focusedCellRef?.x ?? initialX) + cellSize * p1,
+        yPx: (this.focusedCellRef?.y ?? initialY) + cellSize * (p2 ?? 0),
+      });
+    }
+  }
+
+  /** access to show/hide focusedCell */
+  activateFocusedCell(active: boolean) {
+    this.focusedCellRef?.setAlpha(active ? 1 : 0);
+  }
+
+  /** access to center focusedCell on a ship */
+  centerFocusedCell() {
+    const i = this.scene.selectedShipIndex;
+    if (i !== undefined) {
+      this.focusCell(this.scene.shipArray[i].getCoord());
+    }
+  }
+
+  /** add keyboard inputs */
+  private addKeyboardInputListeners() {
+    const arrowKeyAction = (shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) => {
+      this.focusCell(shiftX, shiftY);
+      this.moveShip(false, this.getFocusCellCoord());
+    };
+    const confirmKeyAction = () => {
+      const coord = this.getFocusCellCoord(); // coord that is focused
+      const i = this.scene.shipArray.getShipIndexAtCoord(this.getFocusCellCoord()); // index of a ship on the focused coord
+      if (this.moveShip(true, coord) /* a ship is selected, so move it to the focused coord */) {
+        this.activateFocusedCell(true);
+        return;
+      }
+      if (i !== undefined /* there is a ship */) {
+        if (this.selectShip(i) /* the ship can be selected */) {
+          this.centerFocusedCell();
+          this.activateFocusedCell(false);
+          return;
+        }
+        if (this.moveShip(true) /* a coord is selected, so move the ship */) {
+          return;
+        }
+      }
+      this.selectCoord(coord); // only select the coord
+    };
+    if (this.scene.input.keyboard) {
+      this.scene.input.keyboard
+        .on('keydown-UP', () => arrowKeyAction(0, -1))
+        .on('keydown-DOWN', () => arrowKeyAction(0, 1))
+        .on('keydown-LEFT', () => arrowKeyAction(-1, 0))
+        .on('keydown-RIGHT', () => arrowKeyAction(1, 0))
+        .on('keydown-ESC', this.deselect.bind(this))
+        .on('keydown-ENTER', confirmKeyAction)
+        .on('keydown-SPACE', confirmKeyAction)
+        .on('keydown-R', this.rotateShip.bind(this));
+    }
   }
 }

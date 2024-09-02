@@ -2,8 +2,9 @@ import { defaultFont, gridSize } from '../main';
 import { Coord, ShipDefinition, ShipInstance } from '../shared/models';
 
 export class Ship {
-  private shipContainerRef?: Phaser.GameObjects.Container;
-  private active = false;
+  public shipContainerRef?: Phaser.GameObjects.Container;
+  /** whether the ship is active, semi-active (still can be rotated) or inactive */
+  private active: 'active' | 'semi-active' | 'inactive' = 'inactive';
 
   constructor(
     private shipMetaInformation: ShipDefinition & ShipInstance,
@@ -24,6 +25,7 @@ export class Ship {
       (this.shipContainerRef.getByName('id') as Phaser.GameObjects.Text).setRotation(
         Phaser.Math.DegToRad(this.shipMetaInformation.orientation === '↔️' ? 0 : -90),
       );
+      this.setCoord(this.coord);
     }
   }
 
@@ -47,19 +49,24 @@ export class Ship {
     }
   }
 
-  public setActive(active: boolean) {
+  public setActive(active: 'active' | 'semi-active' | 'inactive') {
+    // todo bring to top müsste hier passieren
     this.active = active;
     if (this.shipContainerRef) {
       (this.shipContainerRef.getByName('rectangle') as Phaser.GameObjects.Rectangle).setStrokeStyle(
-        active ? 5 : 0,
-        0xd2042d,
+        active !== 'inactive' ? 5 : 0,
+        active === 'semi-active' ? 0x234334 : 0xd2042d,
       );
     }
   }
 
+  public getActive(): 'active' | 'semi-active' | 'inactive' {
+    return this.active;
+  }
+
   /**
    * draw the ship into a given scene
-   * @param add method of the scene
+   * @param scene
    * @param readonly flag
    */
   public drawShip(scene: Phaser.Scene, readonly = false) {
@@ -76,6 +83,7 @@ export class Ship {
       .setInteractive();
     if (readonly) {
       container.setAlpha(0.5);
+      (container.getByName('id') as Phaser.GameObjects.Text).setAlpha(0);
     } else {
       // make the ship draggable
       scene.input.setDraggable(container);
@@ -97,24 +105,17 @@ export class Ship {
           return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.size : 0;
         };
         const checkWithinGrid = x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize;
-        const checkWithinParking = x > -6 && x + getSize('↔️') < 0 && y >= 0 && y + getSize('↕️') < 7;
+        const checkWithinParking = x > -6 && x + getSize('↔️') < 0 && y >= 0 && y + getSize('↕️') < 8;
         this.setCoord({ x, y }, checkWithinGrid || checkWithinParking);
-        this.setActive(false);
+        // this.setActive(false);
       });
       // set active + bring to the top
       container.on('dragstart', () => {
         if (this.shipContainerRef) {
-          scene.children.bringToTop(this.shipContainerRef);
+          scene.children.bringToTop(this.shipContainerRef); // todo bring to top wird in der gamesetup gemacht
         }
-        this.setActive(true);
+        // this.setActive(true);
       });
-      if (scene.input.keyboard) {
-        scene.input.keyboard.on('keydown-R', () => {
-          if (this.active) {
-            this.changeOrientation();
-          }
-        });
-      }
     }
     this.shipContainerRef = container;
     this.refreshAttributes();
@@ -124,5 +125,25 @@ export class Ship {
     this.changeOrientation(this.shipMetaInformation.orientation);
     this.setActive(this.active);
     this.setCoord(this.coord);
+  }
+}
+
+export class ShipArray extends Array {
+  public getShipIndexAtCoord(coord?: Coord): number | undefined {
+    if (coord === undefined) {
+      return undefined;
+    }
+    for (let i = 0; i < this.length; i++) {
+      for (let j = 0; j < this[i].getShipMetaInformation().size; j++) {
+        const { x, y } = this[i].getCoord();
+        const getSize = (orientation: '↔️' | '↕️') => {
+          return orientation === this[i].getShipMetaInformation().orientation ? j : 0;
+        };
+        if (coord.x === x + getSize('↔️') && coord.y === y + getSize('↕️')) {
+          return i;
+        }
+      }
+    }
+    return undefined;
   }
 }

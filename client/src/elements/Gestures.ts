@@ -13,6 +13,7 @@ export class GestureCanvas {
       .setOrigin(0)
       .setStrokeStyle(4, 0xd2042d, 0.2)
       .setInteractive();
+    // todo der stroke style sollte immer alpha 1 haben, damit die ecken nicht überdeckt sind
     const pencil = scene.add.image(coord.x + width - 30, coord.y + height - 30, 'pencil').setAlpha(0.2);
     let drawing = false;
     let gestureCoords: Coord[];
@@ -31,6 +32,7 @@ export class GestureCanvas {
     });
     canvas.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (drawing && graphics && lastPosition) {
+        scene.children.bringToTop(canvas);
         graphics
           .lineStyle(6, 0xd2042d, 1)
           .beginPath()
@@ -44,6 +46,7 @@ export class GestureCanvas {
     });
     const stopDrawing = () => {
       if (drawing && graphics) {
+        scene.children.sendToBack(canvas);
         drawing = false;
         canvas.setStrokeStyle(4, 0xd2042d, 0.2);
         pencil.setAlpha(0.2);
