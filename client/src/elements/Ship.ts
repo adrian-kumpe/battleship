@@ -5,17 +5,24 @@ export class Ship {
   public shipContainerRef?: Phaser.GameObjects.Container;
   /** whether the ship is active, semi-active (still can be rotated) or inactive */
   private active: 'active' | 'semi-active' | 'inactive' = 'inactive';
+  private shift: number;
 
   constructor(
     private shipMetaInformation: ShipDefinition & ShipInstance,
     private getCoordToGridCell: (xPx: number, yPx: number) => { x: number; y: number },
     private getGridCellToCoord: (x: number, y: number) => { xPx: number; yPx: number },
     private coord: Coord,
-  ) {}
+  ) {
+    this.shift = this.shipMetaInformation.size * 35 - 35;
+  }
 
   /** get shipMetaInformation (including orientation) */
   public getShipMetaInformation() {
     return this.shipMetaInformation;
+  }
+
+  getShipContainerRef(): Phaser.GameObjects.Container | undefined {
+    return this.shipContainerRef;
   }
 
   public changeOrientation(orientation?: '↔️' | '↕️') {
@@ -50,7 +57,6 @@ export class Ship {
   }
 
   public setActive(active: 'active' | 'semi-active' | 'inactive') {
-    // todo bring to top müsste hier passieren
     this.active = active;
     if (this.shipContainerRef) {
       (this.shipContainerRef.getByName('rectangle') as Phaser.GameObjects.Rectangle).setStrokeStyle(
@@ -64,58 +70,45 @@ export class Ship {
     return this.active;
   }
 
+  snapToCell() {
+    // depending on the orientation the shift must be substracted or not
+    const getShift = (orientation: '↔️' | '↕️') => {
+      return orientation === this.shipMetaInformation.orientation ? this.shift : 0;
+    };
+    const container = this.shipContainerRef;
+    if (container) {
+      const { x, y } = this.getCoordToGridCell(container.x - getShift('↔️'), container.y - getShift('↕️'));
+      const getSize = (orientation: '↔️' | '↕️') => {
+        return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.size : 0;
+      };
+      const checkWithinGrid = x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize;
+      const checkWithinParking = x > -6 && x + getSize('↔️') < 0 && y >= 0 && y + getSize('↕️') < 8;
+      this.setCoord({ x, y }, checkWithinGrid || checkWithinParking);
+    }
+  }
+
   /**
    * draw the ship into a given scene
    * @param scene
    * @param readonly flag
    */
   public drawShip(scene: Phaser.Scene, readonly = false) {
-    const shift = this.shipMetaInformation.size * 35 - 35;
     const ship = scene.add.image(0, 0, `ship${this.shipMetaInformation.size}`);
     ship.name = 'ship';
     const rectangle = scene.add.rectangle(0, 0, 70 * this.shipMetaInformation.size, 70);
     rectangle.name = 'rectangle';
-    const id = scene.add.text(-shift - 3, 0, `#${this.shipMetaInformation.shipId}`, defaultFont).setOrigin(0.5, 0.5); // todo schaut das auch gut aus wenn es rotiert ist?
+    const id = scene.add
+      .text(-this.shift - 3, 0, `#${this.shipMetaInformation.shipId}`, defaultFont)
+      .setOrigin(0.5, 0.5); // todo schaut das auch gut aus wenn es rotiert ist?
     id.name = 'id';
     const container = scene.add
       .container(-100, -100, [ship, rectangle, id])
       .setSize(ship.width, ship.height)
       .setInteractive();
     if (readonly) {
+      // todo das mit readonly muss in gamesetup anders gelöst werden
       container.setAlpha(0.5);
       (container.getByName('id') as Phaser.GameObjects.Text).setAlpha(0);
-    } else {
-      // make the ship draggable
-      scene.input.setDraggable(container);
-      scene.input.on(
-        'drag',
-        (_: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image, dragX: number, dragY: number) => {
-          gameObject.x = dragX;
-          gameObject.y = dragY;
-        },
-      );
-      // add snapping when the users stops dragging + set inactive
-      container.on('dragend', () => {
-        // depending on the orientation the shift must be substracted or not
-        const getShift = (orientation: '↔️' | '↕️') => {
-          return orientation === this.shipMetaInformation.orientation ? shift : 0;
-        };
-        const { x, y } = this.getCoordToGridCell(container.x - getShift('↔️'), container.y - getShift('↕️'));
-        const getSize = (orientation: '↔️' | '↕️') => {
-          return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.size : 0;
-        };
-        const checkWithinGrid = x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize;
-        const checkWithinParking = x > -6 && x + getSize('↔️') < 0 && y >= 0 && y + getSize('↕️') < 8;
-        this.setCoord({ x, y }, checkWithinGrid || checkWithinParking);
-        // this.setActive(false);
-      });
-      // set active + bring to the top
-      container.on('dragstart', () => {
-        if (this.shipContainerRef) {
-          scene.children.bringToTop(this.shipContainerRef); // todo bring to top wird in der gamesetup gemacht
-        }
-        // this.setActive(true);
-      });
     }
     this.shipContainerRef = container;
     this.refreshAttributes();

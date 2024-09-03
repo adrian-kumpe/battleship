@@ -17,7 +17,7 @@ export class GameSetup extends Scene {
   private ownPlayerNo: PlayerNo;
 
   placingGrid: Grid;
-  private gestureCanvas: GestureCanvas;
+  gestureCanvas: GestureCanvas;
   private gestureRecognition: GestureRecognition;
 
   private baseShipId = 1;
@@ -30,7 +30,8 @@ export class GameSetup extends Scene {
   selectedCoord?: Coord;
   /** frame to display the selected coord */
   selectedCoordRef?: Phaser.GameObjects.Rectangle;
-  keyboardInputHandler: KeyboardInputHandler;
+  keyboardInputLogic: KeyboardInputLogic;
+  pointerInputLogic: PointerInputLogic;
 
   constructor() {
     super('GameSetup');
@@ -80,7 +81,8 @@ export class GameSetup extends Scene {
       });
     });
 
-    this.keyboardInputHandler = new KeyboardInputHandler(this);
+    this.keyboardInputLogic = new KeyboardInputLogic(this);
+    this.pointerInputLogic = new PointerInputLogic(this);
   }
 
   private getShipId(): number {
@@ -194,12 +196,11 @@ interface IInputLogic {
 }
 
 /**
- * basic methods to interact with ships in GameSetup
+ * basic methods to interact in GameSetup
  */
 class InputLogic implements IInputLogic {
   static callAfter(method: () => void) {
-    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-      target && propertyKey;
+    return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
       const originalMethod = descriptor.value;
       descriptor.value = function (...args: any[]) {
         const result = originalMethod.apply(this, args);
@@ -238,6 +239,27 @@ class InputLogic implements IInputLogic {
   }
 
   constructor(protected scene: GameSetup) {}
+
+  /**
+   * process the selection of a coordinate (select or move a ship, select a coord)
+   * @param coord - the coord in question
+   */
+  confirmAction(coord?: Coord) {
+    const i = this.scene.shipArray.getShipIndexAtCoord(coord); // index of a ship on the focused coord
+    if (this.moveShip(true, coord) /* a ship is selected, so move it to the focused coord */) {
+      return;
+    }
+    if (i !== undefined /* there is a ship */) {
+      if (this.selectShip(i) /* the ship can be selected */) {
+        return;
+      }
+      if (this.moveShip(true) /* a coord is selected, so move the ship */) {
+        return;
+      }
+      // todo muss nicht erst move und danach select aufgerufen werden?
+    }
+    this.selectCoord(coord); // only select the coord
+  }
 
   /**
    * select a ship
@@ -329,11 +351,31 @@ class InputLogic implements IInputLogic {
 }
 
 /**
- * todo
+ * methods to interact w/ keyboard in GameSetup
  */
-class KeyboardInputHandler extends InputLogic {
+class KeyboardInputLogic extends InputLogic {
   /** frame to display the focused coord */
   private focusedCellRef?: Phaser.GameObjects.Rectangle;
+
+  /** visibility of the focused cell is recalculated */
+  private updateFocusCellVisibility() {
+    const visible = this.scene.selectedShipIndex === undefined;
+    this.focusedCellRef?.setAlpha(visible ? 1 : 0);
+  }
+
+  /** focused cell is relocated to the selected ships main coord */
+  private centerFocusedCell() {
+    const i = this.scene.selectedShipIndex;
+    if (i !== undefined) {
+      this.focusCell(this.scene.shipArray[i].getCoord());
+    }
+  }
+
+  /** helper method to navigate w/ arrow keys */
+  private arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
+    this.focusCell(shiftX, shiftY);
+    this.moveShip(false, this.getFocusCellCoord());
+  }
 
   /** @override */
   protected updateVerticalAlign() {
@@ -345,18 +387,51 @@ class KeyboardInputHandler extends InputLogic {
 
   constructor(scene: GameSetup) {
     super(scene);
-    this.addKeyboardInputListeners();
+    // add keyboard inputs
+    if (this.scene.input.keyboard) {
+      this.scene.input.keyboard
+        .on('keydown-UP', () => this.arrowKeyAction(0, -1))
+        .on('keydown-DOWN', () => this.arrowKeyAction(0, 1))
+        .on('keydown-LEFT', () => this.arrowKeyAction(-1, 0))
+        .on('keydown-RIGHT', () => this.arrowKeyAction(1, 0))
+        .on('keydown-ESC', this.deselect.bind(this))
+        .on('keydown-ENTER', () => {
+          this.confirmAction(this.getFocusCellCoord());
+        })
+        .on('keydown-SPACE', () => {
+          this.confirmAction(this.getFocusCellCoord());
+        })
+        .on('keydown-R', this.rotateShip.bind(this));
+    }
   }
 
   /** @override */
+  @KeyboardInputLogic.callAfter(function (this: KeyboardInputLogic) {
+    // todo easier to just call the methods after super.click(coord)
+    this.updateFocusCellVisibility();
+    this.centerFocusedCell();
+  })
+  confirmAction(coord?: Coord) {
+    super.confirmAction(coord);
+  }
+
+  /** @override */
+  @KeyboardInputLogic.callAfter(function (this: KeyboardInputLogic) {
+    // todo easier to just call the methods after super.rotateShip()
+    // return super.rotateShip() && (this.centerFocusedCell(), true);
+    this.centerFocusedCell();
+  })
   rotateShip(): true | undefined {
-    return super.rotateShip() && (this.centerFocusedCell(), true); // if super returns true then call centerFocusedCell
+    return super.rotateShip();
   }
 
   /** @override */
+  @KeyboardInputLogic.callAfter(function (this: KeyboardInputLogic) {
+    // todo easier to just call the method after super.deselect()
+    this.updateFocusCellVisibility();
+  })
   deselect() {
     super.deselect();
-    this.activateFocusedCell(true);
   }
 
   /** get the grid coord of the focused cell */
@@ -372,7 +447,6 @@ class KeyboardInputHandler extends InputLogic {
   focusCell(cell?: Coord): void;
   focusCell(shiftX: number, shiftY: number): void;
   focusCell(p1?: Coord | number, p2?: number) {
-    // todo das malen des rahmens kann in eine eigene methode ausgelagert werden
     const drawFocusedCell = (coord: { xPx: number; yPx: number }) => {
       if (!this.focusedCellRef) {
         this.focusedCellRef = this.scene.add
@@ -398,55 +472,54 @@ class KeyboardInputHandler extends InputLogic {
       });
     }
   }
+}
 
-  /** access to show/hide focusedCell */
-  activateFocusedCell(active: boolean) {
-    this.focusedCellRef?.setAlpha(active ? 1 : 0);
+/**
+ * methods to interact w/ point-and-click/dragging in GameSetup
+ */
+class PointerInputLogic extends InputLogic {
+  /**
+   * clicking and dragging both start w/ pointerdown; if there is a selected coord or no ship is targeted, dragging should be prevented
+   * @param coord - the coord in question
+   * @returns true if dragging, false if the pointerdown event shoud be prevented
+   */
+  private clickOrDrag(coord: Coord): boolean {
+    return this.scene.shipArray.getShipIndexAtCoord(coord) === undefined || this.scene.selectedCoord !== undefined;
   }
 
-  /** access to center focusedCell on a ship */
-  centerFocusedCell() {
-    const i = this.scene.selectedShipIndex;
-    if (i !== undefined) {
-      this.focusCell(this.scene.shipArray[i].getCoord());
-    }
-  }
-
-  /** add keyboard inputs */
-  private addKeyboardInputListeners() {
-    const arrowKeyAction = (shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) => {
-      this.focusCell(shiftX, shiftY);
-      this.moveShip(false, this.getFocusCellCoord());
-    };
-    const confirmKeyAction = () => {
-      const coord = this.getFocusCellCoord(); // coord that is focused
-      const i = this.scene.shipArray.getShipIndexAtCoord(this.getFocusCellCoord()); // index of a ship on the focused coord
-      if (this.moveShip(true, coord) /* a ship is selected, so move it to the focused coord */) {
-        this.activateFocusedCell(true);
-        return;
+  constructor(scene: GameSetup) {
+    super(scene);
+    // add pointer input
+    this.scene.gestureCanvas.getInputCanvasRef()?.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      const coord = this.scene.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
+      if (this.clickOrDrag(coord) /* click not dragging */) {
+        this.confirmAction(coord);
+        this.scene.input.setDragState(pointer, 0); // prevent dragging
       }
-      if (i !== undefined /* there is a ship */) {
-        if (this.selectShip(i) /* the ship can be selected */) {
-          this.centerFocusedCell();
-          this.activateFocusedCell(false);
-          return;
-        }
-        if (this.moveShip(true) /* a coord is selected, so move the ship */) {
-          return;
-        }
+    });
+    // add dragging input
+    this.scene.input.on(
+      'drag',
+      (_: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image, dragX: number, dragY: number) => {
+        gameObject.x = dragX;
+        gameObject.y = dragY;
+      },
+    );
+    this.scene.shipArray.forEach((s: Ship, i) => {
+      const shipContainerRef = s.getShipContainerRef();
+      if (shipContainerRef) {
+        this.scene.input.setDraggable(shipContainerRef);
+        shipContainerRef.on('dragstart', (pointer: Phaser.Input.Pointer) => {
+          const coord = this.scene.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
+          if (!this.clickOrDrag(coord) /* dragging not click */) {
+            this.selectShip(i);
+          }
+        });
+        shipContainerRef.on('dragend', () => {
+          s.snapToCell();
+          this.selectShip(undefined);
+        });
       }
-      this.selectCoord(coord); // only select the coord
-    };
-    if (this.scene.input.keyboard) {
-      this.scene.input.keyboard
-        .on('keydown-UP', () => arrowKeyAction(0, -1))
-        .on('keydown-DOWN', () => arrowKeyAction(0, 1))
-        .on('keydown-LEFT', () => arrowKeyAction(-1, 0))
-        .on('keydown-RIGHT', () => arrowKeyAction(1, 0))
-        .on('keydown-ESC', this.deselect.bind(this))
-        .on('keydown-ENTER', confirmKeyAction)
-        .on('keydown-SPACE', confirmKeyAction)
-        .on('keydown-R', this.rotateShip.bind(this));
-    }
+    });
   }
 }

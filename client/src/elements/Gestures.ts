@@ -2,10 +2,16 @@ import { gameRadio } from '../main';
 import { Coord } from '../shared/models';
 
 export class GestureCanvas {
+  private inputCanvasRef?: Phaser.GameObjects.Rectangle;
+
   constructor(
     private gestureRecognition: GestureRecognition,
     private gestureActions: Map<Gestures, () => void>,
   ) {}
+
+  getInputCanvasRef(): Phaser.GameObjects.Rectangle | undefined {
+    return this.inputCanvasRef;
+  }
 
   public drawGestureCanvas(scene: Phaser.Scene, coord: Coord, width: number, height: number) {
     const canvas = scene.add
@@ -65,6 +71,7 @@ export class GestureCanvas {
     };
     canvas.on('pointerup', stopDrawing);
     canvas.on('pointerout', stopDrawing);
+    this.inputCanvasRef = canvas;
   }
 }
 
