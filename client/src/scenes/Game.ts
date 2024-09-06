@@ -278,7 +278,7 @@ export class Game extends Scene {
   }
 
   private drawMove(xPx: number, yPx: number, hit: boolean, tint: number) {
-    this.add.image(xPx + 35, yPx + 35, hit ? 'explosion' : 'dot').setTint(tint);
+    this.add.image(xPx + cellSize / 2, yPx + cellSize / 2, hit ? 'explosion' : 'dot').setTint(tint);
   }
 
   private addInputListeners() {

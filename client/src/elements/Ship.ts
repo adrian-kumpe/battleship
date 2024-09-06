@@ -1,20 +1,17 @@
-import { defaultFont, gridSize } from '../main';
+import { cellSize, defaultFont } from '../main';
 import { Coord, ShipDefinition, ShipInstance } from '../shared/models';
 
 export class Ship {
   public shipContainerRef?: Phaser.GameObjects.Container;
   /** whether the ship is active, semi-active (still can be rotated) or inactive */
   private active: 'active' | 'semi-active' | 'inactive' = 'inactive';
-  private shift: number;
 
   constructor(
     private shipMetaInformation: ShipDefinition & ShipInstance,
     private getCoordToGridCell: (xPx: number, yPx: number) => { x: number; y: number },
     private getGridCellToCoord: (x: number, y: number) => { xPx: number; yPx: number },
     private coord: Coord,
-  ) {
-    this.shift = this.shipMetaInformation.size * 35 - 35;
-  }
+  ) {}
 
   /** get shipMetaInformation (including orientation) */
   public getShipMetaInformation() {
@@ -25,6 +22,18 @@ export class Ship {
     return this.shipContainerRef;
   }
 
+  /**
+   * according to the ships orientation, get the distance from the origin === 0.5 (center) to origin === 0 (upper left corner)
+   * to get the distance between center of ship and center of ship's main coord, use Math.abs(this.getDefaultOriginShift('↔️') - this.getDefaultOriginShift('↕️'))
+   * @param axis - the axis for which the distance should be determined
+   * @returns distance in px
+   */
+  getDefaultOriginShift(axis: '↔️' | '↕️') {
+    return axis === this.shipMetaInformation.orientation
+      ? (this.shipMetaInformation.size * cellSize) / 2
+      : cellSize / 2;
+  }
+
   public changeOrientation(orientation?: '↔️' | '↕️') {
     this.shipMetaInformation.orientation = orientation ?? (this.shipMetaInformation.orientation === '↔️' ? '↕️' : '↔️');
     if (this.shipContainerRef) {
@@ -32,7 +41,11 @@ export class Ship {
       (this.shipContainerRef.getByName('id') as Phaser.GameObjects.Text).setRotation(
         Phaser.Math.DegToRad(this.shipMetaInformation.orientation === '↔️' ? 0 : -90),
       );
-      this.setCoord(this.coord);
+    }
+    if (this.shipContainerRef) {
+      // depending on the orientation the origin shift needs to be added or substracted
+      this.shipContainerRef.x += -this.getDefaultOriginShift('↕️') + this.getDefaultOriginShift('↔️');
+      this.shipContainerRef.y += -this.getDefaultOriginShift('↔️') + this.getDefaultOriginShift('↕️');
     }
   }
 
@@ -45,14 +58,8 @@ export class Ship {
     this.coord = coord;
     if (this.shipContainerRef && moveShip) {
       const { xPx, yPx } = this.getGridCellToCoord(coord.x, coord.y);
-      // width and height need to be swapped if the ship is rotated
-      const getDefaultShift = (orientation: '↔️' | '↕️') => {
-        return orientation === this.shipMetaInformation.orientation
-          ? this.shipContainerRef!.width / 2
-          : this.shipContainerRef!.height / 2;
-      };
-      this.shipContainerRef.x = xPx + getDefaultShift('↔️');
-      this.shipContainerRef.y = yPx + getDefaultShift('↕️');
+      this.shipContainerRef.x = xPx + this.getDefaultOriginShift('↔️');
+      this.shipContainerRef.y = yPx + this.getDefaultOriginShift('↕️');
     }
   }
 
@@ -73,17 +80,16 @@ export class Ship {
   snapToCell() {
     // depending on the orientation the shift must be substracted or not
     const getShift = (orientation: '↔️' | '↕️') => {
-      return orientation === this.shipMetaInformation.orientation ? this.shift : 0;
+      return orientation === this.shipMetaInformation.orientation
+        ? Math.abs(this.getDefaultOriginShift('↔️') - this.getDefaultOriginShift('↕️'))
+        : 0;
     };
-    const container = this.shipContainerRef;
-    if (container) {
-      const { x, y } = this.getCoordToGridCell(container.x - getShift('↔️'), container.y - getShift('↕️'));
-      const getSize = (orientation: '↔️' | '↕️') => {
-        return orientation === this.shipMetaInformation.orientation ? this.shipMetaInformation.size : 0;
-      };
-      const checkWithinGrid = x >= 0 && x + getSize('↔️') <= gridSize && y >= 0 && y + getSize('↕️') <= gridSize;
-      const checkWithinParking = x > -6 && x + getSize('↔️') < 0 && y >= 0 && y + getSize('↕️') < 8;
-      this.setCoord({ x, y }, checkWithinGrid || checkWithinParking);
+    if (this.shipContainerRef) {
+      const { x, y } = this.getCoordToGridCell(
+        this.shipContainerRef.x - getShift('↔️'),
+        this.shipContainerRef.y - getShift('↕️'),
+      );
+      this.setCoord({ x, y });
     }
   }
 
@@ -98,7 +104,12 @@ export class Ship {
     const rectangle = scene.add.rectangle(0, 0, 70 * this.shipMetaInformation.size, 70);
     rectangle.name = 'rectangle';
     const id = scene.add
-      .text(-this.shift - 3, 0, `#${this.shipMetaInformation.shipId}`, defaultFont)
+      .text(
+        -Math.abs(this.getDefaultOriginShift('↔️') - this.getDefaultOriginShift('↕️')) - 3,
+        0,
+        `#${this.shipMetaInformation.shipId}`,
+        defaultFont,
+      )
       .setOrigin(0.5, 0.5); // todo schaut das auch gut aus wenn es rotiert ist?
     id.name = 'id';
     const container = scene.add
