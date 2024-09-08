@@ -200,6 +200,8 @@ class InputLogic {
     };
   }
 
+  private extensions: IInputLogicExtension[] = [];
+
   /** slot for the index of the selected ship (or undefined) */
   selectedShipIndex?: number;
   /** the last ship that was selected so you can still rotate after moving */
@@ -208,8 +210,6 @@ class InputLogic {
   selectedCoord?: Coord;
   /** frame to display the selected coord */
   selectedCoordRef?: Phaser.GameObjects.Rectangle;
-
-  private extensions: IInputLogicExtension[] = [];
 
   /** active state of each ship is recalculated */
   @InputLogic.callAfter(function (this: InputLogic) {
@@ -419,11 +419,12 @@ abstract class InputLogicExtension implements IInputLogicExtension {
 class KeyboardInputLogic extends InputLogicExtension {
   /** frame to display the focused coord */
   private focusedCellRef?: Phaser.GameObjects.Rectangle;
+  /** whether the keyboard started exclusively interacting w/ a ship */
+  private exclusiveInput = false;
 
   /** visibility of the focused cell is recalculated */
   private updateFocusCellVisibility() {
     const visible = this.inputLogic?.selectedShipIndex === undefined;
-    console.log('visible', visible);
     this.focusedCellRef?.setAlpha(visible ? 1 : 0);
   }
 
@@ -438,7 +439,9 @@ class KeyboardInputLogic extends InputLogicExtension {
   /** helper method to navigate w/ arrow keys */
   private arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
     this.focusCell(shiftX, shiftY);
-    this.inputLogic?.moveShip(false, this.getFocusCellCoord());
+    if (this.exclusiveInput) {
+      this.inputLogic?.moveShip(false, this.getFocusCellCoord());
+    }
   }
 
   /** get the grid coord of the focused cell */
@@ -510,6 +513,7 @@ class KeyboardInputLogic extends InputLogicExtension {
   confirmActionExt() {
     this.updateFocusCellVisibility();
     this.centerFocusedCell();
+    this.exclusiveInput = this.inputLogic?.selectedShipIndex !== undefined;
   }
 
   /** @override */
@@ -533,6 +537,10 @@ class PointerInputLogic extends InputLogicExtension {
   private dragCorrection?: { xPx: number; yPx: number };
   /** cache the current drag to emit drag event when rotating */
   private drag?: { xPx: number; yPx: number };
+  /** whether dragstart/pointerdown should be handled as clicking */
+  private allowClick = true;
+  /** whether dragstart/pointerdown should be handled as dragging */
+  private allowDrag = false;
 
   /** get the computed drag correction */
   private getDragCorrection(): { xPx: number; yPx: number } {
@@ -546,17 +554,6 @@ class PointerInputLogic extends InputLogicExtension {
     return { xPx: 0, yPx: 0 };
   }
 
-  /**
-   * clicking and dragging both start w/ pointerdown; if there is a selected coord or no ship is targeted, dragging should be prevented
-   * @param coord - the coord in question
-   * @returns true if dragging, false if the pointerdown event shoud be prevented
-   */
-  private clickOrDrag(coord: Coord): boolean {
-    return (
-      this.scene.shipArray.getShipIndexAtCoord(coord) === undefined || this.inputLogic?.selectedCoord !== undefined
-    );
-  }
-
   constructor(scene: GameSetup) {
     super(scene);
   }
@@ -565,11 +562,11 @@ class PointerInputLogic extends InputLogicExtension {
     super.registerInputLogic(inputLogic);
     // add pointer input
     this.scene.gestureCanvas.getInputCanvasRef()?.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const coord = this.scene.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
-      if (this.clickOrDrag(coord) /* click not dragging */) {
+      if (this.allowClick) {
+        const coord = this.scene.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
         inputLogic.confirmAction(coord);
-        this.scene.input.setDragState(pointer, 0); // prevent dragging
       }
+      this.allowClick = true;
     });
     // add dragging input
     this.scene.shipArray.forEach((s: Ship, i) => {
@@ -577,28 +574,49 @@ class PointerInputLogic extends InputLogicExtension {
       if (shipContainerRef) {
         this.scene.input.setDraggable(shipContainerRef);
         shipContainerRef.on('drag', (_: Phaser.Input.Pointer, dragX: number, dragY: number) => {
-          shipContainerRef.x = dragX - this.getDragCorrection().xPx;
-          shipContainerRef.y = dragY - this.getDragCorrection().yPx;
-          this.drag = { xPx: dragX, yPx: dragY };
+          if (this.allowDrag) {
+            shipContainerRef.x = dragX - this.getDragCorrection().xPx;
+            shipContainerRef.y = dragY - this.getDragCorrection().yPx;
+            this.drag = { xPx: dragX, yPx: dragY };
+          }
         });
         shipContainerRef.on('dragstart', (pointer: Phaser.Input.Pointer) => {
+          // dragstart event is called before pointerdown
           const coord = this.scene.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
-          if (!this.clickOrDrag(coord) /* dragging not click */) {
+          if (
+            this.scene.shipArray.getShipIndexAtCoord(coord) === undefined ||
+            this.inputLogic?.selectedCoord !== undefined /* click */
+          ) {
+            this.allowClick = true;
+            return; // clicking and dragging both start w/ dragstart/pointerdown; if there is a selected coord or no ship is targeted, handle as click
+          }
+          this.allowClick = false;
+          if (this.inputLogic?.selectedShipIndex === undefined /* drag */) {
+            this.allowDrag = true;
             inputLogic.selectShip(i);
             this.dragCorrectionActive = false; // drag correction is not active yet
             this.dragCorrection = {
               xPx: shipContainerRef.x - pointer.x - s.getDefaultOriginShift('↔️'), // set the drag correction according the pointer's and ship's position
               yPx: shipContainerRef.y - pointer.y - s.getDefaultOriginShift('↔️'), // todo warum ist das horizontal
             };
+            return;
           }
+          this.allowDrag = false;
         });
         shipContainerRef.on('dragend', () => {
-          s.snapToCell();
-          inputLogic.selectShip(undefined);
-          this.drag = undefined;
+          if (this.allowDrag) {
+            s.snapToCell();
+            inputLogic.selectShip(undefined);
+            this.drag = undefined;
+          }
         });
       }
     });
+  }
+
+  /** @override */
+  confirmActionExt() {
+    this.allowDrag = false;
   }
 
   /** @override */
