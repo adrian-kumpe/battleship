@@ -73,10 +73,8 @@ export class Game extends Scene {
     gameRadio.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} begins`);
 
     socket.on('attack', (args) => {
-      const x = args.coord.x;
-      const y = args.coord.y;
       ((grid: Grid) => {
-        const { xPx, yPx } = grid.getGridCellToCoord(x, y);
+        const { xPx, yPx } = grid.getGridCellToCoord(args.coord);
         const tint = {
           [Modality.POINT_AND_ClICK]: 0x000000,
           [Modality.VOICE]: 0x0047ab,
@@ -321,7 +319,7 @@ export class Game extends Scene {
 
     this.framePosition.x = Phaser.Math.Clamp(this.framePosition.x + byX, 0, gridSize - 1);
     this.framePosition.y = Phaser.Math.Clamp(this.framePosition.y + byY, 0, gridSize - 1);
-    const { xPx, yPx } = this.opposingGrid.getGridCellToCoord(this.framePosition.x, this.framePosition.y);
+    const { xPx, yPx } = this.opposingGrid.getGridCellToCoord(this.framePosition);
 
     if (this.frame) {
       this.frame.destroy();

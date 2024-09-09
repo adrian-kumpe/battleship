@@ -9,12 +9,11 @@ export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
 
+  private roomConfig: RoomConfig;
+  private ownPlayerNo: PlayerNo;
   offsetX = 200;
   additionalOffsetX = 420;
   offsetY = 250;
-
-  private roomConfig: RoomConfig;
-  private ownPlayerNo: PlayerNo;
 
   placingGrid: Grid;
   gestureCanvas: GestureCanvas;
@@ -61,7 +60,6 @@ export class GameSetup extends Scene {
     this.drawShipParking();
     this.drawButton();
     this.drawShips();
-
     gameRadio.drawRadio(this.add);
 
     socket.on('gameStart', (args) => {
@@ -200,8 +198,8 @@ class InputLogic {
     };
   }
 
+  /** all input modalities w/ extension methods */
   private extensions: IInputLogicExtension[] = [];
-
   /** slot for the index of the selected ship (or undefined) */
   selectedShipIndex?: number;
   /** the last ship that was selected so you can still rotate after moving */
@@ -223,9 +221,10 @@ class InputLogic {
         this.scene.shipArray[this.lastSelectedShipIndex].setActive(active);
       }
     };
-    if (this.selectedShipIndex !== undefined) {
+    const ship = this.getSelectedShip();
+    if (ship) {
       setActiveOfLastSelectedShipIndex('inactive'); // order! lastSelectedShipIndex may be the same like selectedShipIndex
-      this.scene.shipArray[this.selectedShipIndex].setActive('active');
+      ship.setActive('active');
     } else {
       setActiveOfLastSelectedShipIndex('semi-active'); // the last selected ship is semi-active because it still can be rotated
     }
@@ -248,7 +247,7 @@ class InputLogic {
   constructor(protected scene: GameSetup) {}
 
   /**
-   * register a modality; it can call public methods of this class; this class can call extension methods of IInputLogicExtension
+   * register a modality as a subscriber which can call public methods of this class; this class can call extension methods of IInputLogicExtension
    * @param {IInputLogicExtension} extension - input logic class of a input modality
    */
   registerExtension(extension: IInputLogicExtension) {
@@ -316,7 +315,7 @@ class InputLogic {
         this.selectedCoordRef = this.scene.add
           .rectangle(coord.xPx, coord.yPx, cellSize, cellSize)
           .setOrigin(0)
-          .setStrokeStyle(6, 0x0000ff);
+          .setStrokeStyle(7, 0x0000ff);
       } else {
         this.selectedCoordRef.setX(coord.xPx).setY(coord.yPx);
       }
@@ -324,7 +323,7 @@ class InputLogic {
     this.selectedCoord = coord;
     if (coord !== undefined /* a coord is selected */) {
       if (this.selectedShipIndex === undefined /* no ship is selected so it can't be moved */) {
-        const { xPx, yPx } = this.scene.placingGrid.getGridCellToCoord(coord.x, coord.y);
+        const { xPx, yPx } = this.scene.placingGrid.getGridCellToCoord(coord);
         drawFocusedCell({ xPx: xPx, yPx: yPx });
         // no return true; because the focused cell does not need to be hidden
       }
@@ -346,8 +345,9 @@ class InputLogic {
   })
   moveShip(deselect: boolean, coord?: Coord): true | undefined {
     coord = coord ?? this.selectedCoord;
-    if (this.selectedShipIndex !== undefined && coord) {
-      this.scene.shipArray[this.selectedShipIndex].setCoord(coord, true);
+    const ship = this.getSelectedShip();
+    if (ship && coord) {
+      ship.setCoord(coord, true);
       this.selectCoord(undefined); // remove selection of coord
       if (deselect) {
         this.selectShip(undefined); // remove selection of ship
@@ -379,6 +379,13 @@ class InputLogic {
     this.selectCoord(undefined);
     this.selectShip(undefined);
   }
+
+  /** get the selected ship (or undefined) */
+  getSelectedShip(): Ship | undefined {
+    if (this.selectedShipIndex !== undefined) {
+      return this.scene.shipArray[this.selectedShipIndex];
+    }
+  }
 }
 
 /**
@@ -402,6 +409,7 @@ abstract class InputLogicExtension implements IInputLogicExtension {
   updateActiveStateExt() {}
   updateVerticalAlignExt() {}
   constructor(protected scene: GameSetup) {}
+  /** subscribe to inputLogic; add input events */
   registerInputLogic(inputLogic: InputLogic) {
     this.inputLogic = inputLogic;
   }
@@ -415,6 +423,7 @@ abstract class InputLogicExtension implements IInputLogicExtension {
 
 /**
  * methods to interact w/ keyboard in GameSetup
+ * @implements IInputLogicExtension
  */
 class KeyboardInputLogic extends InputLogicExtension {
   /** frame to display the focused coord */
@@ -461,16 +470,20 @@ class KeyboardInputLogic extends InputLogicExtension {
         this.focusedCellRef = this.scene.add
           .rectangle(coord.xPx, coord.yPx, cellSize, cellSize)
           .setOrigin(0)
-          .setStrokeStyle(6, 0xff0000);
+          .setStrokeStyle(7, 0xff4500);
       } else {
         this.focusedCellRef.setX(coord.xPx).setY(coord.yPx);
       }
     };
     if (typeof p1 === 'undefined') {
       this.focusedCellRef = p1;
-    } else if (typeof p1 === 'object') {
-      drawFocusedCell(this.scene.placingGrid.getGridCellToCoord(p1.x, p1.y));
-    } else if (typeof p1 === 'number') {
+      return;
+    }
+    if (typeof p1 === 'object') {
+      drawFocusedCell(this.scene.placingGrid.getGridCellToCoord(p1));
+      return;
+    }
+    if (typeof p1 === 'number') {
       const { initialX, initialY } = {
         initialX: this.scene.offsetX + cellSize,
         initialY: this.scene.offsetY - cellSize,
@@ -479,6 +492,7 @@ class KeyboardInputLogic extends InputLogicExtension {
         xPx: (this.focusedCellRef?.x ?? initialX) + cellSize * p1,
         yPx: (this.focusedCellRef?.y ?? initialY) + cellSize * (p2 ?? 0),
       });
+      return;
     }
   }
 
@@ -493,6 +507,7 @@ class KeyboardInputLogic extends InputLogicExtension {
     super(scene);
   }
 
+  /** @override */
   registerInputLogic(inputLogic: InputLogic) {
     super.registerInputLogic(inputLogic);
     // add keyboard inputs
@@ -529,6 +544,7 @@ class KeyboardInputLogic extends InputLogicExtension {
 
 /**
  * methods to interact w/ point-and-click/dragging in GameSetup
+ * @implements IInputLogicExtension
  */
 class PointerInputLogic extends InputLogicExtension {
   /** when dragging the pointer is not centered on the ship; only after first rotating activate the correction */
@@ -544,8 +560,8 @@ class PointerInputLogic extends InputLogicExtension {
 
   /** get the computed drag correction */
   private getDragCorrection(): { xPx: number; yPx: number } {
-    if (this.dragCorrectionActive && this.inputLogic?.selectedShipIndex) {
-      const ship = this.scene.shipArray[this.inputLogic.selectedShipIndex];
+    const ship = this.inputLogic?.getSelectedShip();
+    if (this.dragCorrectionActive && ship) {
       return {
         xPx: ship.getDefaultOriginShift('↕️') + (this.dragCorrection?.xPx ?? 0),
         yPx: ship.getDefaultOriginShift('↔️') + (this.dragCorrection?.yPx ?? 0),
@@ -558,6 +574,7 @@ class PointerInputLogic extends InputLogicExtension {
     super(scene);
   }
 
+  /** @override */
   registerInputLogic(inputLogic: InputLogic) {
     super.registerInputLogic(inputLogic);
     // add pointer input
@@ -622,13 +639,9 @@ class PointerInputLogic extends InputLogicExtension {
   /** @override */
   rotateShipExt() {
     this.dragCorrectionActive = true;
-    if (this.inputLogic?.selectedShipIndex && this.drag) {
-      this.scene.shipArray[this.inputLogic.selectedShipIndex].shipContainerRef?.emit(
-        'drag',
-        undefined,
-        this.drag.xPx, // todo warum muss ich den wert zwischenspeichern
-        this.drag.yPx,
-      ); // manually emit drag event because drag event is triggered only when changing the pointer's position
+    const ship = this.inputLogic?.getSelectedShip();
+    if (ship && this.drag) {
+      ship.shipContainerRef?.emit('drag', undefined, this.drag.xPx, this.drag.yPx); // manually emit drag event because drag event is triggered only when changing the pointer's position
     }
   }
 }

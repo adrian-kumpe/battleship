@@ -1,4 +1,5 @@
 import { defaultFont, gridSize } from '../main';
+import { Coord } from '../shared/models';
 
 interface GridDrawData {
   gridOffsetX: number;
@@ -7,14 +8,14 @@ interface GridDrawData {
 }
 
 export class Grid {
-  public shipCount: ShipCountService;
+  shipCount: ShipCountService;
 
   constructor(private gridDrawData: GridDrawData) {
     this.shipCount = new ShipCountService();
   }
 
   /** draw the grid into a given scene */
-  public drawGrid(add: Phaser.GameObjects.GameObjectFactory, legendPosition: '→' | '←') {
+  drawGrid(add: Phaser.GameObjects.GameObjectFactory, legendPosition: '→' | '←') {
     // todo gridDrawData entfernen damit das kleiner wird?
     for (let row = 0; row < gridSize; row++) {
       // draw horizontal legend (A-F)
@@ -47,11 +48,14 @@ export class Grid {
 
   /**
    * convert grid coordinates to x and y pixel coordinates
-   * @param x coordinate
-   * @param y coordinate
+   * @param x and y coordinate
    * @returns xPx and yPx (pixel coordinates)
    */
-  public getGridCellToCoord(x: number, y: number): { xPx: number; yPx: number } {
+  getGridCellToCoord(xy: Coord): { xPx: number; yPx: number };
+  getGridCellToCoord(x: number, y: number): { xPx: number; yPx: number };
+  getGridCellToCoord(p1: Coord | number, p2?: number): { xPx: number; yPx: number } {
+    const x: number = typeof p1 === 'object' ? p1.x : p1;
+    const y: number = typeof p1 === 'object' ? p1.y : p2!;
     return {
       xPx: this.gridDrawData.gridOffsetX + this.gridDrawData.cellSize * x,
       yPx: this.gridDrawData.gridOffsetY + this.gridDrawData.cellSize * y,
@@ -60,11 +64,10 @@ export class Grid {
 
   /**
    * convert x and y pixel coordinates to grid coordinates
-   * @param xPx pixel coordinate
-   * @param yPx pixel coordinate
+   * @param xPx and yPx pixel coordinate
    * @returns x and y coordinates
    */
-  public getCoordToGridCell(xPx: number, yPx: number): { x: number; y: number } {
+  getCoordToGridCell(xPx: number, yPx: number): { x: number; y: number } {
     return {
       x: Math.floor((xPx - this.gridDrawData.gridOffsetX) / this.gridDrawData.cellSize),
       y: Math.floor((yPx - this.gridDrawData.gridOffsetY) / this.gridDrawData.cellSize),
@@ -76,13 +79,13 @@ class ShipCountService {
   /** array with the number of ships for each size */
   private shipCount: number[] = [];
   /** reference to update gui elements */
-  public shipCountReference: Phaser.GameObjects.Text[] = [];
+  shipCountReference: Phaser.GameObjects.Text[] = [];
 
-  public getShipCount() {
+  getShipCount() {
     return this.shipCount;
   } // todo einfach beim update zurückgeben?
 
-  public updateShipCount(newShipCount: number[]) {
+  updateShipCount(newShipCount: number[]) {
     newShipCount.forEach((c, i) => {
       if (this.shipCountReference[i]) {
         this.shipCount[i] = newShipCount[i];

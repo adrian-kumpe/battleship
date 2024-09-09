@@ -2,19 +2,22 @@ import { cellSize, defaultFont } from '../main';
 import { Coord, ShipDefinition, ShipInstance } from '../shared/models';
 
 export class Ship {
-  public shipContainerRef?: Phaser.GameObjects.Container;
+  shipContainerRef?: Phaser.GameObjects.Container;
   /** whether the ship is active, semi-active (still can be rotated) or inactive */
   private active: 'active' | 'semi-active' | 'inactive' = 'inactive';
 
   constructor(
     private shipMetaInformation: ShipDefinition & ShipInstance,
     private getCoordToGridCell: (xPx: number, yPx: number) => { x: number; y: number },
-    private getGridCellToCoord: (x: number, y: number) => { xPx: number; yPx: number },
+    private getGridCellToCoord: {
+      (xy: Coord): { xPx: number; yPx: number };
+      (x: number, y: number): { xPx: number; yPx: number };
+    },
     private coord: Coord,
   ) {}
 
   /** get shipMetaInformation (including orientation) */
-  public getShipMetaInformation() {
+  getShipMetaInformation() {
     return this.shipMetaInformation;
   }
 
@@ -34,7 +37,7 @@ export class Ship {
       : cellSize / 2;
   }
 
-  public changeOrientation(orientation?: '↔️' | '↕️') {
+  changeOrientation(orientation?: '↔️' | '↕️') {
     this.shipMetaInformation.orientation = orientation ?? (this.shipMetaInformation.orientation === '↔️' ? '↕️' : '↔️');
     if (this.shipContainerRef) {
       this.shipContainerRef.setRotation(Phaser.Math.DegToRad(this.shipMetaInformation.orientation === '↔️' ? 0 : 90));
@@ -49,31 +52,32 @@ export class Ship {
     }
   }
 
-  public getCoord(): Coord {
-    // todo coord muss auch invalide sein können
+  getCoord(): Coord {
     return this.coord;
   }
 
-  public setCoord(coord: Coord, moveShip = true) {
+  setCoord(coord: Coord, moveShip = true) {
     this.coord = coord;
     if (this.shipContainerRef && moveShip) {
-      const { xPx, yPx } = this.getGridCellToCoord(coord.x, coord.y);
+      const { xPx, yPx } = this.getGridCellToCoord(coord);
       this.shipContainerRef.x = xPx + this.getDefaultOriginShift('↔️');
       this.shipContainerRef.y = yPx + this.getDefaultOriginShift('↕️');
     }
   }
 
-  public setActive(active: 'active' | 'semi-active' | 'inactive') {
+  setActive(active: 'active' | 'semi-active' | 'inactive') {
     this.active = active;
     if (this.shipContainerRef) {
-      (this.shipContainerRef.getByName('rectangle') as Phaser.GameObjects.Rectangle).setStrokeStyle(
-        active !== 'inactive' ? 5 : 0,
-        active === 'semi-active' ? 0x234334 : 0xd2042d,
+      const rectangle = this.shipContainerRef.getByName('rectangle') as Phaser.GameObjects.Rectangle;
+      rectangle.setStrokeStyle(
+        active === 'inactive' ? 0 : /* active */ 7,
+        active === 'active' ? 0xff4500 : /* semi-active */ 0xffa985,
       );
+      this.shipContainerRef.sendToBack(rectangle); //todo warum kann ich nicht die einfügereihenfolge ändern
     }
   }
 
-  public getActive(): 'active' | 'semi-active' | 'inactive' {
+  getActive(): 'active' | 'semi-active' | 'inactive' {
     return this.active;
   }
 
@@ -98,7 +102,7 @@ export class Ship {
    * @param scene
    * @param readonly flag
    */
-  public drawShip(scene: Phaser.Scene, readonly = false) {
+  drawShip(scene: Phaser.Scene, readonly = false) {
     const ship = scene.add.image(0, 0, `ship${this.shipMetaInformation.size}`);
     ship.name = 'ship';
     const rectangle = scene.add.rectangle(0, 0, 70 * this.shipMetaInformation.size, 70);
@@ -122,10 +126,7 @@ export class Ship {
       (container.getByName('id') as Phaser.GameObjects.Text).setAlpha(0);
     }
     this.shipContainerRef = container;
-    this.refreshAttributes();
-  }
-
-  public refreshAttributes() {
+    // refresh attributes
     this.changeOrientation(this.shipMetaInformation.orientation);
     this.setActive(this.active);
     this.setCoord(this.coord);
