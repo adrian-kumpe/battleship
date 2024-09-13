@@ -119,8 +119,8 @@ export class GestureRecognition {
     },
   ];
 
-  constructor(acceptingGestures: Gestures[]) {
-    this.gestureTemplate = this.gestureTemplate.filter((v) => acceptingGestures.includes(v.gesture)); //todo funktioniert das
+  constructor() {
+    // this.gestureTemplate = this.gestureTemplate.filter((v) => acceptingGestures.includes(v.gesture)); //todo funktioniert das
   }
 
   public getGesture(gestureCoords: Coord[]): { gesture: Gestures; d: number } {

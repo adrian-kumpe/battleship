@@ -1,6 +1,6 @@
 import { Boot } from './scenes/Boot';
 import { Game as MainGame } from './scenes/Game';
-import { GameSetup as MainGameSetup } from './scenes/GameSetup';
+import { GameSetup as MainGameSetup } from './scenes/GameSetup/GameSetup';
 import { GameOver } from './scenes/GameOver';
 import { MainMenu } from './scenes/MainMenu';
 import { Preloader } from './scenes/Preloader';

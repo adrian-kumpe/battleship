@@ -3,8 +3,8 @@ import { Coord, ShipDefinition, ShipInstance } from '../shared/models';
 
 export class Ship {
   shipContainerRef?: Phaser.GameObjects.Container;
-  /** whether the ship is active, semi-active (still can be rotated) or inactive */
-  private active: 'active' | 'semi-active' | 'inactive' = 'inactive';
+  /** whether the ship is active 🌕, semi-active 🌓 (still can be rotated) or inactive 🌑 */
+  private active: '🌕' | '🌓' | '🌑' = '🌑';
 
   constructor(
     private shipMetaInformation: ShipDefinition & ShipInstance,
@@ -65,19 +65,16 @@ export class Ship {
     }
   }
 
-  setActive(active: 'active' | 'semi-active' | 'inactive') {
+  setActive(active: '🌕' | '🌓' | '🌑') {
     this.active = active;
     if (this.shipContainerRef) {
       const rectangle = this.shipContainerRef.getByName('rectangle') as Phaser.GameObjects.Rectangle;
-      rectangle.setStrokeStyle(
-        active === 'inactive' ? 0 : /* active */ 7,
-        active === 'active' ? 0xff4500 : /* semi-active */ 0xffa985,
-      );
+      rectangle.setStrokeStyle(active === '🌑' ? 0 : /* 🌕 */ 7, active === '🌕' ? 0xff4500 : /* 🌓 */ 0xffa985);
       this.shipContainerRef.sendToBack(rectangle); //todo warum kann ich nicht die einfügereihenfolge ändern
     }
   }
 
-  getActive(): 'active' | 'semi-active' | 'inactive' {
+  getActive(): '🌕' | '🌓' | '🌑' {
     return this.active;
   }
 

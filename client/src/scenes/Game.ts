@@ -41,13 +41,7 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: cellSize,
     });
-    this.gestureRecognition = new GestureRecognition([
-      Gestures.CIRCLE,
-      Gestures.ARROW_DOWN,
-      Gestures.ARROW_LEFT,
-      Gestures.ARROW_RIGHT,
-      Gestures.ARROW_UP,
-    ]);
+    this.gestureRecognition = new GestureRecognition();
   }
 
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo; shipConfig: ShipConfig }) {
