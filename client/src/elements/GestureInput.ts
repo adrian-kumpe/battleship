@@ -34,7 +34,6 @@ export abstract class GestureInput {
     });
     canvas.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (drawing && graphics && lastPosition) {
-        this.scene.children.bringToTop(canvas);
         graphics
           .lineStyle(6, 0xd2042d, 1)
           .beginPath()
@@ -48,7 +47,6 @@ export abstract class GestureInput {
     });
     const stopDrawing = () => {
       if (drawing && graphics) {
-        this.scene.children.sendToBack(canvas);
         drawing = false;
         canvas.setStrokeStyle(4, 0xd2042d, 0.2);
         pencil.setAlpha(0.2);
@@ -56,7 +54,13 @@ export abstract class GestureInput {
         this.evaluateGestures(gestureCoords);
       }
     };
-    canvas.on('pointerup', stopDrawing);
+    canvas.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      console.log('alarm #2');
+      if (pointer.rightButtonDown()) {
+        return;
+      }
+      stopDrawing();
+    });
     canvas.on('pointerout', stopDrawing);
   }
 }
