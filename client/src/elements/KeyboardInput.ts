@@ -2,11 +2,15 @@ import { cellSize } from '../main';
 import { Coord } from '../shared/models';
 import { Grid } from './Grid';
 
+/**
+ * generic methods to handle keyboard inputs
+ * @abstract
+ */
 export abstract class KeyboardInput {
   /** frame to display the focused coord */
   protected focusedCellRef?: Phaser.GameObjects.Rectangle;
 
-  /** helper method to navigate w/ arrow keys */
+  /** navigate w/ arrow keys */
   protected arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
     this.focusCell(shiftX, shiftY);
   }

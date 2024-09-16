@@ -6,8 +6,7 @@ import { Ship, ShipArray } from '../../elements/Ship';
 import { GestureCanvas, GestureRecognition } from '../../elements/Gestures';
 import { InputLogic } from './InputLogic';
 import { KeyboardInputLogic } from './KeyboardInputLogic';
-import { PointerInputLogic } from './PointerInputLogic';
-import { GestureInputLogic } from './GestureInputLogic';
+import { PointerAndGestureInputLogic } from './PointerAndGestureInputLogic';
 
 export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -27,8 +26,7 @@ export class GameSetup extends Scene {
   shipArray: ShipArray = new ShipArray();
   inputLogic: InputLogic;
   keyboardInputLogic: KeyboardInputLogic;
-  pointerInputLogic: PointerInputLogic;
-  gestureInputLogic: GestureInputLogic;
+  pointerInputLogic: PointerAndGestureInputLogic;
 
   constructor() {
     super('GameSetup');
@@ -67,13 +65,17 @@ export class GameSetup extends Scene {
 
     this.inputLogic = new InputLogic(this);
     this.gestureRecognition = new GestureRecognition();
-    this.gestureInputLogic = new GestureInputLogic(this, this.inputLogic, this.gestureRecognition);
-    this.gestureInputLogic.drawGestureCanvas(
+    this.pointerInputLogic = new PointerAndGestureInputLogic(
+      this,
+      this.inputLogic,
+      this.shipArray,
+      this.placingGrid,
+      this.gestureRecognition,
       { x: this.offsetX, y: this.offsetY - cellSize },
       (gridSize + 7) * cellSize,
       (gridSize + 2) * cellSize,
     );
-    this.inputLogic.registerExtension(this.gestureInputLogic);
+    this.inputLogic.registerExtension(this.pointerInputLogic);
     this.keyboardInputLogic = new KeyboardInputLogic(
       this,
       this.placingGrid,
@@ -83,8 +85,6 @@ export class GameSetup extends Scene {
       this.shipArray,
     );
     this.inputLogic.registerExtension(this.keyboardInputLogic);
-    this.pointerInputLogic = new PointerInputLogic(this, this.inputLogic, this.shipArray, this.placingGrid);
-    this.inputLogic.registerExtension(this.pointerInputLogic);
   }
 
   private getShipId(): number {
