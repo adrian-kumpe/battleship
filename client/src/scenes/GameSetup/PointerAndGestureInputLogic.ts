@@ -1,4 +1,4 @@
-import { PointerAndGestureInput } from '../../elements/PointerAndGestureInput';
+import { PointerAndGestureInput } from '../../modalities/PointerAndGestureInput';
 import { GestureRecognition, Gestures } from '../../elements/Gestures';
 import { Grid } from '../../elements/Grid';
 import { Ship, ShipArray } from '../../elements/Ship';

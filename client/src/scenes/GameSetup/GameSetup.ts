@@ -21,12 +21,11 @@ export class GameSetup extends Scene {
   placingGrid: Grid;
   gestureCanvas: GestureCanvas;
   private gestureRecognition: GestureRecognition;
-
   private baseShipId = 1;
   shipArray: ShipArray = new ShipArray();
   inputLogic: InputLogic;
   keyboardInputLogic: KeyboardInputLogic;
-  pointerInputLogic: PointerAndGestureInputLogic;
+  pointerAndGestureInputLogic: PointerAndGestureInputLogic;
 
   constructor() {
     super('GameSetup');
@@ -39,7 +38,7 @@ export class GameSetup extends Scene {
   }
 
   create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
-    this.input.setTopOnly(false); // todo das evtl global machen
+    this.input.setTopOnly(false);
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
@@ -65,7 +64,7 @@ export class GameSetup extends Scene {
 
     this.inputLogic = new InputLogic(this);
     this.gestureRecognition = new GestureRecognition();
-    this.pointerInputLogic = new PointerAndGestureInputLogic(
+    this.pointerAndGestureInputLogic = new PointerAndGestureInputLogic(
       this,
       this.inputLogic,
       this.shipArray,
@@ -75,7 +74,7 @@ export class GameSetup extends Scene {
       (gridSize + 7) * cellSize,
       (gridSize + 2) * cellSize,
     );
-    this.inputLogic.registerExtension(this.pointerInputLogic);
+    this.inputLogic.registerExtension(this.pointerAndGestureInputLogic);
     this.keyboardInputLogic = new KeyboardInputLogic(
       this,
       this.placingGrid,

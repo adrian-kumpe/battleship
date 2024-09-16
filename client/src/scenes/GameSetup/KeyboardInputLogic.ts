@@ -1,9 +1,10 @@
 import { Grid } from '../../elements/Grid';
-import { KeyboardInput } from '../../elements/KeyboardInput';
+import { KeyboardInput } from '../../modalities/KeyboardInput';
 import { ShipArray } from '../../elements/Ship';
 import { GameSetup } from './GameSetup';
 import { IInputLogicExtension, InputLogic } from './InputLogic';
 
+// todo namespace verwenden?
 /**
  * methods to interact w/ keyboard in GameSetup
  * @implements IInputLogicExtension

@@ -1,3 +1,4 @@
+import { InputLogicBase } from '../../modalities/InputLogicBase';
 import { Ship } from '../../elements/Ship';
 import { cellSize } from '../../main';
 import { Coord } from '../../shared/models';
@@ -21,21 +22,7 @@ export interface IInputLogicExtension {
 /**
  * basic methods to interact in GameSetup
  */
-export class InputLogic {
-  static callAfter(method: () => void) {
-    return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
-      const originalMethod = descriptor.value;
-      descriptor.value = function (...args: any[]) {
-        const result = originalMethod.apply(this, args);
-        method.apply(this);
-        return result;
-      };
-      return descriptor;
-    };
-  }
-
-  /** all input modalities w/ extension methods */
-  private extensions: IInputLogicExtension[] = [];
+export class InputLogic extends InputLogicBase<IInputLogicExtension> {
   /** slot for the index of the selected ship (or undefined) */
   selectedShipIndex?: number;
   /** the last ship that was selected so you can still rotate after moving */
@@ -59,7 +46,8 @@ export class InputLogic {
     };
     const ship = this.getSelectedShip();
     if (ship) {
-      setActiveOfLastSelectedShipIndex('🌑'); // order! lastSelectedShipIndex may be the same like selectedShipIndex
+      setActiveOfLastSelectedShipIndex('🌑');
+      // order! lastSelectedShipIndex may be the same like selectedShipIndex
       ship.setActive('🌕');
     } else {
       setActiveOfLastSelectedShipIndex('🌓'); // the last selected ship is semi-active because it still can be rotated
@@ -80,14 +68,8 @@ export class InputLogic {
     bringShipIndexToTop(this.selectedShipIndex);
   }
 
-  constructor(protected scene: GameSetup) {}
-
-  /**
-   * register a modality as a subscriber; this class can call extension methods of IInputLogicExtension
-   * @param {IInputLogicExtension} extension - input logic class of a input modality
-   */
-  registerExtension(extension: IInputLogicExtension) {
-    this.extensions.push(extension);
+  constructor(protected scene: GameSetup) {
+    super();
   }
 
   /**

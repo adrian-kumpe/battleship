@@ -1,6 +1,6 @@
 import { cellSize } from '../main';
 import { Coord } from '../shared/models';
-import { Grid } from './Grid';
+import { Grid } from '../elements/Grid';
 
 /**
  * generic methods to handle keyboard inputs
