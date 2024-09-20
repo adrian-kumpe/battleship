@@ -1,4 +1,4 @@
-import { PointerAndGestureInput } from '../../modalities/PointerAndGestureInput';
+import { DraggablePointerAndGestureInput } from '../../modalities/PointerAndGestureInput';
 import { GestureRecognition, Gestures } from '../../elements/Gestures';
 import { Grid } from '../../elements/Grid';
 import { Ship, ShipArray } from '../../elements/Ship';
@@ -11,16 +11,11 @@ import { InputLogic, IInputLogicExtension } from './InputLogic';
  * methods to interact w/ point-and-click/dragging in GameSetup
  * @implements IInputLogicExtension
  */
-export class PointerAndGestureInputLogic extends PointerAndGestureInput implements IInputLogicExtension {
+export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput implements IInputLogicExtension {
   /** when dragging the pointer is not centered on the ship; only after first rotating activate the correction */
   private dragCorrectionActive = false;
   /** distance between center of ship and pointer */
   private dragCorrection?: { xPx: number; yPx: number };
-  /** current dragging state to use in pointer input events */
-  private dragging = false;
-  // graphics for dragging
-  private draggingLastPosition?: Phaser.Math.Vector2;
-  private draggingGraphicsArray: Phaser.GameObjects.Graphics[] = [];
 
   /** get the computed drag correction */
   private getDragCorrection(): { xPx: number; yPx: number } {
@@ -40,7 +35,7 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
   }
 
   /** @override */
-  evaluateGestures(gestureCoords: Coord[]) {
+  protected evaluateGestures(gestureCoords: Coord[]) {
     // todo sollte das gameradio nicht woanders hin?
     const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
     if (d > 1000) {
@@ -100,15 +95,13 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
     ) {
       const ship: Ship = this.shipArray[shipIndexAtCoord];
       if (ship) {
-        this.dragging = true;
+        this.dragstart(pointer);
         this.inputLogic.selectShip(shipIndexAtCoord);
         this.dragCorrectionActive = false; // drag correction is not active yet
         this.dragCorrection = {
           xPx: pointer.x - (ship.shipContainerRef?.x ?? 0),
           yPx: pointer.y - (ship.shipContainerRef?.y ?? 0),
         };
-        // to add dragging trail graphics
-        this.draggingLastPosition = pointer.position.clone();
       }
       return;
     }
@@ -119,28 +112,15 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
   protected pointermove(pointer: Phaser.Input.Pointer) {
     if (
       this.dragging &&
-      this.inputLogic.selectedShipIndex !== undefined &&
-      this.draggingLastPosition /* right pointermove and dragging: drag ship */
+      this.inputLogic.selectedShipIndex !== undefined /* right pointermove and dragging: drag ship */
     ) {
       const ship = this.inputLogic.getSelectedShip();
       if (ship && ship.shipContainerRef) {
-        ship.shipContainerRef.x = pointer.x - this.getDragCorrection().xPx;
-        ship.shipContainerRef.y = pointer.y - this.getDragCorrection().yPx;
-        // draw dragging trail
-        const graphics = this.scene.add
-          .graphics()
-          .lineStyle(6, 0xff7700, 1)
-          .beginPath()
-          .moveTo(this.draggingLastPosition.x, this.draggingLastPosition.y)
-          .lineTo(pointer.position.x, pointer.position.y)
-          .strokePath()
-          .closePath();
-        this.draggingGraphicsArray.push(graphics);
-        this.draggingGraphicsArray.map((g, i) =>
-          g.setAlpha(Math.max(0, 1 - (this.draggingGraphicsArray.length - i) * 0.01)),
-        );
+        ship.shipContainerRef
+          .setX(pointer.x - this.getDragCorrection().xPx)
+          .setY(pointer.y - this.getDragCorrection().yPx);
+        this.dragmove(pointer);
         this.scene.children.bringToTop(ship.shipContainerRef);
-        this.draggingLastPosition = pointer.position.clone();
       }
       return;
     }
@@ -158,8 +138,7 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
       if (ship) {
         ship.snapToCell();
         this.inputLogic.selectShip(undefined);
-        this.dragging = false;
-        this.draggingGraphicsArray.forEach((g) => g.destroy());
+        this.dragend();
       }
       return;
     }
@@ -184,8 +163,7 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
   }
 
   confirmActionExt() {
-    this.dragging = false;
-    this.draggingGraphicsArray.forEach((g) => g.destroy());
+    this.dragend();
   }
 
   selectShipExt() {}

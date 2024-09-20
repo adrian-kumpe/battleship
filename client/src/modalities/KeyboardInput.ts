@@ -15,6 +15,11 @@ export abstract class KeyboardInput {
     this.focusCell(shiftX, shiftY);
   }
 
+  /** visibility of the focused cell is recalculated */
+  protected updateFocusCellVisibility(alpha: 0 | 1) {
+    this.focusedCellRef?.setAlpha(alpha);
+  }
+
   /** get the grid coord of the focused cell */
   protected getFocusCellCoord(): Coord | undefined {
     if (this.focusedCellRef) {

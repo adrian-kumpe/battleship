@@ -13,7 +13,7 @@ export class Game extends Scene {
   gameText: Phaser.GameObjects.Text;
 
   private ownGrid: Grid;
-  private opposingGrid: Grid;
+  opposingGrid: Grid;
   // private gestureRecognition: GestureRecognition;
 
   private ownPlayerNo: PlayerNo;
@@ -21,9 +21,9 @@ export class Game extends Scene {
   private playerConfig: PlayerConfig;
   private shipConfig: ShipConfig;
 
-  private offsetX = 200;
+  offsetX = 200;
   private additionalOffsetX = 1010;
-  private offsetY = 250;
+  offsetY = 250;
 
   inputLogic: InputLogic;
   keyboardInputLogic: KeyboardInputLogic;
@@ -145,88 +145,6 @@ export class Game extends Scene {
     this.opposingGrid.shipCount.updateShipCount(this.roomConfig.availableShips);
     this.ownGrid.shipCount.updateShipCount(this.roomConfig.availableShips);
   }
-
-  // private addInputCanvas() {
-  //   const canvas = this.add
-  //     .rectangle(this.offsetX - cellSize, this.offsetY - cellSize, (gridSize + 2) * cellSize, (gridSize + 2) * cellSize)
-  //     .setOrigin(0)
-  //     .setStrokeStyle(4, 0xd2042d, 0.2);
-  //   const pencil = this.add
-  //     .image(this.offsetX + gridSize * cellSize + 40, this.offsetY + gridSize * cellSize + 40, 'pencil')
-  //     .setAlpha(0.2);
-  //   let gestureCoords: Coord[];
-  //   let graphics: Phaser.GameObjects.Graphics | undefined;
-  //   let lastPosition: Phaser.Math.Vector2 | undefined;
-  //   let drawing = false;
-
-  //   canvas.setInteractive();
-  //   canvas.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-  //     if (pointer.leftButtonDown()) {
-  //       console.warn('The gesture Input is currently being used');
-  //       gameRadio.sendMessage('The gesture Input is currently being used');
-  //       return;
-
-  //       const { x, y } = this.opposingGrid.getCoordToGridCell(pointer.x, pointer.y);
-  //       socket.emit('attack', { coord: { x, y }, modality: Modality.POINT_AND_ClICK }, this.attackErrorHandler);
-  //     } else if (pointer.rightButtonDown()) {
-  //       drawing = true;
-  //       gestureCoords = [];
-  //       canvas.setStrokeStyle(4, 0xd2042d, 1);
-  //       pencil.setAlpha(1);
-  //       lastPosition = pointer.position.clone();
-  //       graphics = this.add.graphics();
-  //     }
-  //   });
-  //   canvas.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-  //     if (drawing && graphics && lastPosition) {
-  //       graphics
-  //         .lineStyle(6, 0xd2042d, 1)
-  //         .beginPath()
-  //         .moveTo(lastPosition.x, lastPosition.y)
-  //         .lineTo(pointer.position.x, pointer.position.y)
-  //         .strokePath()
-  //         .closePath();
-  //       lastPosition = pointer.position.clone();
-  //       gestureCoords.push({ x: Math.round(lastPosition.x), y: Math.round(lastPosition.y) });
-  //     }
-  //   });
-  //   const stopDrawing = () => {
-  //     if (drawing && graphics) {
-  //       drawing = false;
-  //       canvas.setStrokeStyle(4, 0xd2042d, 0.2);
-  //       pencil.setAlpha(0.2);
-  //       graphics.destroy();
-  //       const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
-  //       if (d > 1000) {
-  //         gameRadio.sendMessage("Gesture couldn't be recognized with sufficient certainty");
-  //       } else {
-  //         gameRadio.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
-  //         if (gesture === Gestures.CIRCLE) {
-  //           socket.emit(
-  //             'attack',
-  //             { coord: { x: 0, y: 0 }, randomCoord: true, modality: Modality.GESTURE },
-  //             this.attackErrorHandler,
-  //           );
-  //           // todo die Koordinate wird noch übermittelt; evtl. kann das der Startpunkt für weitere Funktionalitäten sein
-  //         } else {
-  //           const snakeMovement = {
-  //             [Gestures.ARROW_UP]: { up: 1, right: 0 },
-  //             [Gestures.ARROW_DOWN]: { up: -1, right: 0 },
-  //             [Gestures.ARROW_RIGHT]: { up: 0, right: 1 },
-  //             [Gestures.ARROW_LEFT]: { up: 0, right: -1 },
-  //           }[gesture];
-  //           socket.emit(
-  //             'attack',
-  //             { coord: { x: 0, y: 0 }, snakeMovement: snakeMovement, modality: Modality.GESTURE },
-  //             this.attackErrorHandler,
-  //           );
-  //         }
-  //       }
-  //     }
-  //   };
-  //   canvas.on('pointerup', stopDrawing);
-  //   canvas.on('pointerout', stopDrawing);
-  // }
 
   private drawInstructions() {
     this.add

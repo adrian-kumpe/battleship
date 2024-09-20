@@ -60,7 +60,7 @@ export class InputLogic extends InputLogicBase<IInputLogicExtension> {
   })
   private updateVerticalAlign() {
     const bringShipIndexToTop = (i?: number) => {
-      if (i !== undefined && this.scene.shipArray[i].shipContainerRef /* trivial */) {
+      if (i !== undefined && this.scene.shipArray[i].shipContainerRef) {
         this.scene.children.bringToTop(this.scene.shipArray[i].shipContainerRef as Phaser.GameObjects.Container);
       }
     };

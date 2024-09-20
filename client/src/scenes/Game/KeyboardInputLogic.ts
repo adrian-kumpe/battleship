@@ -8,7 +8,28 @@ import { IInputLogicExtension, InputLogic } from './InputLogic';
  * @implements IInputLogicExtension
  */
 export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExtension {
-  constructor(scene: Game, placingGrid: Grid, offsetX: number, offsetY: number, inputLogic: InputLogic) {
+  /** @override */
+  protected arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
+    super.arrowKeyAction(shiftX, shiftY);
+    if (this.inputLogic.exclusiveInputInUse) {
+      this.updateFocusCellVisibility(1);
+    } else {
+      const coord = this.getFocusCellCoord();
+      if (coord) {
+        this.inputLogic.selectCoord(coord);
+      }
+    }
+  }
+
+  // todo bugfix in game und gamesetup für start der koordinate
+
+  constructor(
+    scene: Game,
+    placingGrid: Grid,
+    offsetX: number,
+    offsetY: number,
+    private inputLogic: InputLogic,
+  ) {
     super(scene, placingGrid, offsetX, offsetY);
     // add keyboard inputs
     if (this.scene.input.keyboard) {
@@ -24,4 +45,9 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
   }
 
   attackCoordExt() {}
+
+  selectCoordExt() {
+    this.focusCell(this.inputLogic.getSelectedCellCoord());
+    this.updateFocusCellVisibility(0);
+  }
 }

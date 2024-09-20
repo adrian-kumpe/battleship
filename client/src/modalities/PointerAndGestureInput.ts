@@ -83,3 +83,51 @@ export abstract class PointerAndGestureInput {
     this.addInputEvents();
   }
 }
+
+/**
+ * adds basic dragging properties and methods to PointerAndGestureInput
+ * @abstract
+ */
+export abstract class DraggablePointerAndGestureInput extends PointerAndGestureInput {
+  /** current dragging state to use in pointer input events */
+  protected dragging = false;
+  /** last position of pointer used to draw dragging trail */
+  protected draggingLastPosition?: Phaser.Math.Vector2;
+  /** graphics for the dragging trail */
+  protected draggingGraphicsArray: Phaser.GameObjects.Graphics[] = [];
+
+  /** start dragging */
+  protected dragstart(pointer: Phaser.Input.Pointer) {
+    this.dragging = true;
+    this.draggingLastPosition = pointer.position.clone(); // to add dragging trail graphics
+  }
+
+  /** draw dragging trail whilst dragging */
+  protected dragmove(pointer: Phaser.Input.Pointer) {
+    if (this.draggingLastPosition) {
+      const graphics = this.scene.add
+        .graphics()
+        .lineStyle(6, 0xff7700, 1)
+        .beginPath()
+        .moveTo(this.draggingLastPosition.x, this.draggingLastPosition.y)
+        .lineTo(pointer.position.x, pointer.position.y)
+        .strokePath()
+        .closePath();
+      this.draggingGraphicsArray.push(graphics);
+      this.draggingGraphicsArray.map((g, i) =>
+        g.setAlpha(Math.max(0, 1 - (this.draggingGraphicsArray.length - i) * 0.01)),
+      );
+      this.draggingLastPosition = pointer.position.clone();
+    }
+  }
+
+  /** stop dragging */
+  protected dragend() {
+    this.dragging = false;
+    this.draggingGraphicsArray.forEach((g) => g.destroy());
+  }
+
+  constructor(scene: Phaser.Scene, coord: Coord, width: number, height: number) {
+    super(scene, coord, width, height);
+  }
+}

@@ -12,12 +12,6 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
   /** whether the keyboard started exclusively interacting w/ a ship */
   private exclusiveInput = false;
 
-  /** visibility of the focused cell is recalculated */
-  private updateFocusCellVisibility(alpha?: 0 | 1) {
-    const visible = this.inputLogic.selectedShipIndex === undefined;
-    this.focusedCellRef?.setAlpha(alpha ?? (visible ? 1 : 0));
-  }
-
   /** focused cell is relocated to the selected ships main coord */
   private centerFocusedCell() {
     const i = this.inputLogic.selectedShipIndex;
@@ -26,10 +20,7 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
     }
   }
 
-  /**
-   * navigate w/ arrow keys
-   * @override
-   */
+  /** @override */
   protected arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
     super.arrowKeyAction(shiftX, shiftY);
     if (this.exclusiveInput) {
@@ -37,6 +28,16 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
     } else {
       this.updateFocusCellVisibility(1);
     }
+  }
+
+  /** @override */
+  protected updateFocusCellVisibility(alpha?: 0 | 1) {
+    if (alpha !== undefined) {
+      super.updateFocusCellVisibility(alpha);
+      return;
+    }
+    const visible = this.inputLogic.selectedShipIndex === undefined;
+    this.focusedCellRef?.setAlpha(visible ? 1 : 0);
   }
 
   updateActiveStateExt() {}
