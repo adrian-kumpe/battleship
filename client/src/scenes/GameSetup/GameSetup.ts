@@ -50,6 +50,7 @@ export class GameSetup extends Scene {
     this.drawShipParking();
     this.drawButton();
     this.drawShips();
+    this.drawInstructions();
     gameRadio.drawRadio(this.add);
 
     socket.on('gameStart', (args) => {
@@ -152,6 +153,10 @@ export class GameSetup extends Scene {
         draggableShip.drawShip(this);
         this.shipArray.push(draggableShip);
       });
+  }
+
+  private drawInstructions() {
+    this.add.text(1300, this.offsetY, `Das ist nur ein Test`, defaultFont);
   }
 
   private getShipConfig(): ShipConfig {

@@ -1,8 +1,8 @@
 /**
  * @param IInputLogicExtension
  */
-export class InputLogicBase<T> {
-  static callAfter(method: () => void) {
+export abstract class InputLogicBase<T> {
+  protected static callAfter(method: () => void) {
     return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
       const originalMethod = descriptor.value;
       descriptor.value = function (...args: any[]) {

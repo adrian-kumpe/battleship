@@ -13,20 +13,22 @@ export abstract class PointerAndGestureInput {
   protected pencil: Phaser.GameObjects.Image;
 
   private drawGestureCanvas(coord: Coord, width: number, height: number) {
-    const canvas = this.scene.add
+    this.canvas = this.scene.add
       .rectangle(coord.x, coord.y, width, height)
       .setOrigin(0)
       .setStrokeStyle(4, 0xd2042d, 0.2)
       .setInteractive();
+    // e8c4ce
     // todo der stroke style sollte immer alpha 1 haben, damit die ecken nicht überdeckt sind
-    const pencil = this.scene.add.image(coord.x + width - 30, coord.y + height - 30, 'pencil').setAlpha(0.2);
-    canvas
+    this.pencil = this.scene.add.image(coord.x + width - 30, coord.y + height - 30, 'pencil').setAlpha(0.2);
+  }
+
+  private addInputEvents() {
+    this.scene.input
       .on('pointerdown', (pointer: Phaser.Input.Pointer) => this.pointerdown(pointer))
       .on('pointermove', (pointer: Phaser.Input.Pointer) => this.pointermove(pointer))
       .on('pointerup', (pointer: Phaser.Input.Pointer) => this.pointerup(pointer))
       .on('pointerout', (pointer: Phaser.Input.Pointer) => this.pointerup(pointer));
-    this.canvas = canvas;
-    this.pencil = pencil;
   }
 
   /**
@@ -50,6 +52,7 @@ export abstract class PointerAndGestureInput {
     if (this.drawing && this.graphics && this.lastPosition) {
       this.graphics
         .lineStyle(6, 0xd2042d, 1)
+        .setDepth(2) // todo vlt lieber die finger lassen vom z-index?
         .beginPath()
         .moveTo(this.lastPosition.x, this.lastPosition.y)
         .lineTo(pointer.position.x, pointer.position.y)
@@ -77,5 +80,6 @@ export abstract class PointerAndGestureInput {
     height: number,
   ) {
     this.drawGestureCanvas(coord, width, height);
+    this.addInputEvents();
   }
 }

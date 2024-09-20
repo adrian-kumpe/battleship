@@ -76,9 +76,11 @@ export class Game extends Scene {
     this.inputLogic.registerExtension(this.keyboardInputLogic);
     this.pointerAndGestureInputLogic = new PointerAndGestureInputLogic(
       this,
-      { x: this.offsetX, y: this.offsetY - cellSize },
-      (gridSize + 7) * cellSize,
+      { x: this.offsetX - cellSize, y: this.offsetY - cellSize },
       (gridSize + 2) * cellSize,
+      (gridSize + 2) * cellSize,
+      this.inputLogic,
+      this.opposingGrid,
     );
     this.inputLogic.registerExtension(this.pointerAndGestureInputLogic);
 

@@ -4,7 +4,6 @@ import { ShipArray } from '../../elements/Ship';
 import { GameSetup } from './GameSetup';
 import { IInputLogicExtension, InputLogic } from './InputLogic';
 
-// todo namespace verwenden?
 /**
  * methods to interact w/ keyboard in GameSetup
  * @implements IInputLogicExtension
@@ -22,7 +21,7 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
   /** focused cell is relocated to the selected ships main coord */
   private centerFocusedCell() {
     const i = this.inputLogic.selectedShipIndex;
-    if (i !== undefined) {
+    if (i !== undefined && this.focusedCellRef) {
       this.focusCell(this.shipArray[i].getCoord());
     }
   }
@@ -64,16 +63,23 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
         .on('keydown-DOWN', () => this.arrowKeyAction(0, 1))
         .on('keydown-LEFT', () => this.arrowKeyAction(-1, 0))
         .on('keydown-RIGHT', () => this.arrowKeyAction(1, 0))
-        .on('keydown-ESC', this.deselectExt.bind(this))
+        .on('keydown-ESC', () => this.inputLogic.deselect())
         .on('keydown-ENTER', () => inputLogic.confirmAction(this.getFocusCellCoord()))
         .on('keydown-SPACE', () => inputLogic.confirmAction(this.getFocusCellCoord()))
         .on('keydown-R', () => inputLogic.rotateShip());
+      // .on('keydown-ONE', () => this.inputLogic.selectShip(0))
+      // .on('keydown-TWO', () => this.inputLogic.selectShip(1))
+      // .on('keydown-THREE', () => this.inputLogic.selectShip(2))
+      // .on('keydown-FOUR', () => this.inputLogic.selectShip(3))
+      // .on('keydown-FIVE', () => this.inputLogic.selectShip(4))
+      // .on('keydown-SIX', () => this.inputLogic.selectShip(5))
+      // .on('keydown-SEVEN', () => this.inputLogic.selectShip(6));
     }
   }
 
   confirmActionExt() {
-    this.updateFocusCellVisibility();
     this.centerFocusedCell();
+    this.updateFocusCellVisibility();
     this.exclusiveInput = this.inputLogic.selectedShipIndex !== undefined;
   }
 

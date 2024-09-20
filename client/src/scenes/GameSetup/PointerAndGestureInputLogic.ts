@@ -18,6 +18,9 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
   private dragCorrection?: { xPx: number; yPx: number };
   /** current dragging state to use in pointer input events */
   private dragging = false;
+  // graphics for dragging
+  private draggingLastPosition?: Phaser.Math.Vector2;
+  private draggingGraphicsArray: Phaser.GameObjects.Graphics[] = [];
 
   /** get the computed drag correction */
   private getDragCorrection(): { xPx: number; yPx: number } {
@@ -84,16 +87,19 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
 
   /** @override */
   protected pointerdown(pointer: Phaser.Input.Pointer) {
-    super.pointerdown(pointer); // right pointerdown: draw gesture
-    if (pointer.leftButtonDown() && !this.dragging /* left pointerdown: start dragging */) {
-      const coord = this.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
-      const shipIndexAtCoord = this.shipArray.getShipIndexAtCoord(coord);
-      if (shipIndexAtCoord === undefined || this.inputLogic.selectedCoord !== undefined /* click */) {
-        this.inputLogic.confirmAction(coord);
-        return;
-      }
+    const coord = this.placingGrid.getCoordToGridCell(pointer.x, pointer.y);
+    if (pointer.leftButtonDown() /* left pointerdown: click */) {
+      this.inputLogic.confirmAction(coord);
+      return;
+    }
+    const shipIndexAtCoord = this.shipArray.getShipIndexAtCoord(coord);
+    if (
+      pointer.rightButtonDown() &&
+      shipIndexAtCoord !== undefined &&
+      this.inputLogic.selectedShipIndex === undefined /* right pointerdown on a ship: start dragging */
+    ) {
       const ship: Ship = this.shipArray[shipIndexAtCoord];
-      if (this.inputLogic.selectedShipIndex === undefined /* drag */ && ship) {
+      if (ship) {
         this.dragging = true;
         this.inputLogic.selectShip(shipIndexAtCoord);
         this.dragCorrectionActive = false; // drag correction is not active yet
@@ -101,32 +107,63 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
           xPx: pointer.x - (ship.shipContainerRef?.x ?? 0),
           yPx: pointer.y - (ship.shipContainerRef?.y ?? 0),
         };
-        return;
+        // to add dragging trail graphics
+        this.draggingLastPosition = pointer.position.clone();
       }
+      return;
     }
+    super.pointerdown(pointer); // right pointerdown, no ship: draw gesture
   }
 
   /** @override */
   protected pointermove(pointer: Phaser.Input.Pointer) {
-    super.pointermove(pointer); // right pointermove: draw gesture
-    if (this.dragging && this.inputLogic.selectedShipIndex !== undefined /* left pointermove: drag ship */) {
-      const ship = this.shipArray[this.inputLogic.selectedShipIndex];
-      ship.shipContainerRef.x = pointer.x - this.getDragCorrection().xPx;
-      ship.shipContainerRef.y = pointer.y - this.getDragCorrection().yPx;
+    if (
+      this.dragging &&
+      this.inputLogic.selectedShipIndex !== undefined &&
+      this.draggingLastPosition /* right pointermove and dragging: drag ship */
+    ) {
+      const ship = this.inputLogic.getSelectedShip();
+      if (ship && ship.shipContainerRef) {
+        ship.shipContainerRef.x = pointer.x - this.getDragCorrection().xPx;
+        ship.shipContainerRef.y = pointer.y - this.getDragCorrection().yPx;
+        // draw dragging trail
+        const graphics = this.scene.add
+          .graphics()
+          .lineStyle(6, 0xff7700, 1)
+          .beginPath()
+          .moveTo(this.draggingLastPosition.x, this.draggingLastPosition.y)
+          .lineTo(pointer.position.x, pointer.position.y)
+          .strokePath()
+          .closePath();
+        this.draggingGraphicsArray.push(graphics);
+        this.draggingGraphicsArray.map((g, i) =>
+          g.setAlpha(Math.max(0, 1 - (this.draggingGraphicsArray.length - i) * 0.01)),
+        );
+        this.scene.children.bringToTop(ship.shipContainerRef);
+        this.draggingLastPosition = pointer.position.clone();
+      }
+      return;
     }
+    super.pointermove(pointer); // right pointermove: draw gesture
   }
 
   /** @override */
   protected pointerup(pointer: Phaser.Input.Pointer) {
-    super.pointerup(pointer); // right pointerup: confirm gesture
-    if (!pointer.leftButtonDown() /* left pointerup: stop dragging */) {
-      if (this.dragging && this.inputLogic.selectedShipIndex !== undefined) {
-        const ship = this.shipArray[this.inputLogic.selectedShipIndex];
+    if (
+      !pointer.rightButtonDown() &&
+      this.dragging &&
+      this.inputLogic.selectedShipIndex !== undefined /* right pointerup and dragging: stop dragging */
+    ) {
+      const ship = this.inputLogic.getSelectedShip();
+      if (ship) {
         ship.snapToCell();
         this.inputLogic.selectShip(undefined);
         this.dragging = false;
+        this.draggingGraphicsArray.forEach((g) => g.destroy());
       }
+      return;
     }
+    super.pointerup(pointer); // right pointerup: confirm gesture
   }
 
   updateActiveStateExt() {}
@@ -148,6 +185,7 @@ export class PointerAndGestureInputLogic extends PointerAndGestureInput implemen
 
   confirmActionExt() {
     this.dragging = false;
+    this.draggingGraphicsArray.forEach((g) => g.destroy());
   }
 
   selectShipExt() {}
