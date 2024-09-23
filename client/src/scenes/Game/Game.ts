@@ -6,6 +6,7 @@ import { Ship } from '../../elements/Ship';
 import { KeyboardInputLogic } from './KeyboardInputLogic';
 import { InputLogic } from './InputLogic';
 import { PointerAndGestureInputLogic } from './PointerAndGestureInputLogic';
+import { GestureRecognition } from '../../elements/Gestures';
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -14,7 +15,7 @@ export class Game extends Scene {
 
   private ownGrid: Grid;
   opposingGrid: Grid;
-  // private gestureRecognition: GestureRecognition;
+  private gestureRecognition: GestureRecognition;
 
   private ownPlayerNo: PlayerNo;
   private roomConfig: RoomConfig;
@@ -42,7 +43,7 @@ export class Game extends Scene {
       gridOffsetY: this.offsetY,
       cellSize: cellSize,
     });
-    // this.gestureRecognition = new GestureRecognition();
+    this.gestureRecognition = new GestureRecognition();
   }
 
   create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo; shipConfig: ShipConfig }) {
@@ -81,6 +82,7 @@ export class Game extends Scene {
       (gridSize + 2) * cellSize,
       this.inputLogic,
       this.opposingGrid,
+      this.gestureRecognition,
     );
     this.inputLogic.registerExtension(this.pointerAndGestureInputLogic);
 

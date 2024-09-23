@@ -66,15 +66,7 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
         .on('keydown-RIGHT', () => this.arrowKeyAction(1, 0))
         .on('keydown-ESC', () => this.inputLogic.deselect())
         .on('keydown-ENTER', () => inputLogic.confirmAction(this.getFocusCellCoord()))
-        .on('keydown-SPACE', () => inputLogic.confirmAction(this.getFocusCellCoord()))
         .on('keydown-R', () => inputLogic.rotateShip());
-      // .on('keydown-ONE', () => this.inputLogic.selectShip(0))
-      // .on('keydown-TWO', () => this.inputLogic.selectShip(1))
-      // .on('keydown-THREE', () => this.inputLogic.selectShip(2))
-      // .on('keydown-FOUR', () => this.inputLogic.selectShip(3))
-      // .on('keydown-FIVE', () => this.inputLogic.selectShip(4))
-      // .on('keydown-SIX', () => this.inputLogic.selectShip(5))
-      // .on('keydown-SEVEN', () => this.inputLogic.selectShip(6));
     }
   }
 

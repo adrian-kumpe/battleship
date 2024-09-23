@@ -14,7 +14,7 @@ export abstract class PointerAndGestureInput {
 
   private drawGestureCanvas(coord: Coord, width: number, height: number) {
     this.canvas = this.scene.add
-      .rectangle(coord.x, coord.y, width, height)
+      .rectangle(coord.x, coord.y, width, height) // todo hier wird Coord falsch genutzt
       .setOrigin(0)
       .setStrokeStyle(4, 0xd2042d, 0.2)
       .setInteractive();

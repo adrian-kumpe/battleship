@@ -36,7 +36,6 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
 
   /** @override */
   protected evaluateGestures(gestureCoords: Coord[]) {
-    // todo sollte das gameradio nicht woanders hin?
     const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
     if (d > 1000) {
       gameRadio.sendMessage("Gesture couldn't be recognized with sufficient certainty");

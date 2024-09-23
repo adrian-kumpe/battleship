@@ -10,25 +10,21 @@ import { Game } from './Game';
 export interface IInputLogicExtension {
   attackCoordExt(): void;
   selectCoordExt(): void;
+  reloadExt(): void;
 }
 
 /**
  * basic methods to interact in Game
  */
 export class InputLogic extends InputLogicBase<IInputLogicExtension> {
+  /** whether the player can attack (reloading is necessary) */
+  private oneInTheChamber = true;
   /** slot for the selected coord */
   selectedCoord: Coord = { x: 0, y: 0 };
   /** frame to display the selected coord */
   crosshairRef: Phaser.GameObjects.Container;
-  /** the crosshair is exclusively used */
+  /** slot to check whether the crosshair is exclusively used */
   exclusiveInputInUse = false;
-
-  private attackErrorHandler = (error?: string) => {
-    if (error) {
-      console.warn(error);
-      gameRadio.sendMessage('Error: ' + error);
-    }
-  };
 
   constructor(protected scene: Game) {
     super();
@@ -65,18 +61,27 @@ export class InputLogic extends InputLogicBase<IInputLogicExtension> {
   }
 
   /**
-   * place an attack
-   * @param coord
+   * confirm the attack on the selected coord
    */
   @InputLogic.callAfter(function (this: InputLogic) {
     this.extensions.forEach((e) => e.attackCoordExt());
   })
-  attackCoord(coord?: Coord) {
-    if (coord) {
-      this.selectCoord(coord);
+  confirmAttack() {
+    if (!this.oneInTheChamber) {
+      const error = 'You need to reload';
+      console.warn(error);
+      gameRadio.sendMessage('Error: ' + error);
+      return;
     }
-    coord = this.getSelectedCellCoord();
-    socket.emit('attack', { coord: coord, modality: Modality.GESTURE }, this.attackErrorHandler);
+    const coord = this.getSelectedCellCoord();
+    socket.emit('attack', { coord: coord, modality: Modality.GESTURE }, (error?: string) => {
+      if (error) {
+        console.warn(error);
+        gameRadio.sendMessage('Error: ' + error);
+      } else {
+        this.oneInTheChamber = false;
+      }
+    });
     // todo modality entfernen
   }
 
@@ -88,8 +93,22 @@ export class InputLogic extends InputLogicBase<IInputLogicExtension> {
     this.extensions.forEach((e) => e.selectCoordExt());
   })
   selectCoord(coord: Coord) {
-    this.selectedCoord = coord;
-    const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(coord);
-    this.crosshairRef.setX(xPx).setY(yPx);
+    const coordWithinGrid = coord && coord.x >= 0 && coord.x < gridSize && coord.y >= 0 && coord.y < gridSize;
+    if (coordWithinGrid) {
+      this.selectedCoord = coord;
+      const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(coord);
+      this.crosshairRef.setX(xPx).setY(yPx);
+    }
+  }
+
+  /**
+   * reload after placing an attack
+   */
+  @InputLogic.callAfter(function (this: InputLogic) {
+    this.extensions.forEach((e) => e.reloadExt());
+  })
+  reload() {
+    console.log('reload!'); // todo das muss noch ins gui
+    this.oneInTheChamber = true;
   }
 }

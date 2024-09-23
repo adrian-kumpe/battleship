@@ -1,5 +1,6 @@
+import { GestureRecognition, Gestures } from '../../elements/Gestures';
 import { Grid } from '../../elements/Grid';
-import { cellSize } from '../../main';
+import { cellSize, gameRadio, gridSize } from '../../main';
 import { DraggablePointerAndGestureInput } from '../../modalities/PointerAndGestureInput';
 import { Coord } from '../../shared/models';
 import { Game } from './Game';
@@ -16,11 +17,28 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
       this.inputLogic.crosshairRef.y + 35,
     );
     this.inputLogic.selectCoord(coord);
+    this.inputLogic.confirmAttack();
   }
 
   /** @override */
   protected evaluateGestures(gestureCoords: Coord[]) {
-    console.log(gestureCoords);
+    const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
+    if (d > 1000) {
+      gameRadio.sendMessage("Gesture couldn't be recognized with sufficient certainty");
+    } else {
+      gameRadio.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
+      (
+        new Map<Gestures, () => void>([
+          [
+            Gestures.CIRCLE,
+            () => {
+              console.log('CIRCLE');
+              this.inputLogic.reload();
+            },
+          ],
+        ]).get(gesture) || (() => {})
+      )();
+    }
   }
 
   /** @override */
@@ -39,7 +57,8 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
   protected pointerdown(pointer: Phaser.Input.Pointer) {
     const coord = this.opposingGrid.getCoordToGridCell(pointer.x, pointer.y);
     if (pointer.leftButtonDown()) {
-      this.inputLogic.attackCoord(coord);
+      this.inputLogic.selectCoord(coord);
+      this.inputLogic.confirmAttack();
       return;
     }
     const selectedCoord = this.inputLogic.getSelectedCellCoord();
@@ -57,9 +76,24 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
   /** @override */
   protected pointermove(pointer: Phaser.Input.Pointer) {
     if (this.dragging) {
-      this.inputLogic.crosshairRef.setX(pointer.x - cellSize / 2).setY(pointer.y - cellSize / 2);
+      const pointermoveWithinBounds = (v: number, min: number, max: number) =>
+        v - min < 0 ? min : v - max > 0 ? max : v;
+      this.inputLogic.crosshairRef
+        .setX(
+          pointermoveWithinBounds(
+            pointer.x - cellSize / 2,
+            (this.scene as Game).offsetX,
+            (this.scene as Game).offsetX + (gridSize - 1) * cellSize,
+          ),
+        )
+        .setY(
+          pointermoveWithinBounds(
+            pointer.y - cellSize / 2,
+            (this.scene as Game).offsetY,
+            (this.scene as Game).offsetY + (gridSize - 1) * cellSize,
+          ),
+        ); // todo unschöne Lösung mit as Game
       this.dragmove(pointer);
-      // this.scene.children.bringToTop(ship.shipContainerRef);
       return;
     }
     super.pointermove(pointer); // right pointermove: draw gesture
@@ -82,6 +116,7 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
     height: number,
     private inputLogic: InputLogic,
     private opposingGrid: Grid,
+    private gestureRecognition: GestureRecognition,
   ) {
     super(scene, coord, width, height);
   }
@@ -91,4 +126,6 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
   }
 
   selectCoordExt() {}
+
+  reloadExt() {}
 }

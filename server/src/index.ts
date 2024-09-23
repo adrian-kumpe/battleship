@@ -169,6 +169,7 @@ io.on('connection', (socket: Socket) => {
         console.warn(error ?? 'Internal error');
         return cb(error ?? 'Internal error');
       }
+      cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
       performAttack(room, playerNo, attackedPlayer, coord, args.modality);
     },
   );

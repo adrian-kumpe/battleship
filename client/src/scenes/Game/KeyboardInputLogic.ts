@@ -2,6 +2,7 @@ import { KeyboardInput } from '../../modalities/KeyboardInput';
 import { Grid } from '../../elements/Grid';
 import { Game } from './Game';
 import { IInputLogicExtension, InputLogic } from './InputLogic';
+import { gridSize } from '../../main';
 
 /**
  * methods to interact w/ keyboard in Game
@@ -11,13 +12,11 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
   /** @override */
   protected arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
     super.arrowKeyAction(shiftX, shiftY);
-    if (this.inputLogic.exclusiveInputInUse) {
-      this.updateFocusCellVisibility(1);
-    } else {
-      const coord = this.getFocusCellCoord();
-      if (coord) {
-        this.inputLogic.selectCoord(coord);
-      }
+    const coord = this.getFocusCellCoord();
+    const coordWithinGrid = coord && coord.x >= 0 && coord.x < gridSize && coord.y >= 0 && coord.y < gridSize;
+    this.updateFocusCellVisibility(!coordWithinGrid || this.inputLogic.exclusiveInputInUse ? 1 : 0);
+    if (coordWithinGrid && !this.inputLogic.exclusiveInputInUse) {
+      this.inputLogic.selectCoord(coord);
     }
   }
 
@@ -38,9 +37,18 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
         .on('keydown-DOWN', () => this.arrowKeyAction(0, 1))
         .on('keydown-LEFT', () => this.arrowKeyAction(-1, 0))
         .on('keydown-RIGHT', () => this.arrowKeyAction(1, 0))
-        // .on('keydown-ESC', this.deselectExt.bind(this))
-        .on('keydown-ENTER', () => inputLogic.attackCoord(this.getFocusCellCoord()))
-        .on('keydown-SPACE', () => inputLogic.attackCoord(this.getFocusCellCoord()));
+        .on('keydown-ESC', () => {
+          this.updateFocusCellVisibility(0);
+          this.focusCell(undefined);
+        })
+        .on('keydown-ENTER', () => {
+          const coord = this.getFocusCellCoord();
+          if (coord) {
+            inputLogic.selectCoord(coord);
+            inputLogic.confirmAttack();
+          }
+        })
+        .on('keydown-R', () => inputLogic.reload());
     }
   }
 
@@ -50,4 +58,6 @@ export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExte
     this.focusCell(this.inputLogic.getSelectedCellCoord());
     this.updateFocusCellVisibility(0);
   }
+
+  reloadExt() {}
 }
