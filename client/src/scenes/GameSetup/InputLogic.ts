@@ -22,7 +22,7 @@ export interface IInputLogicExtension {
 /**
  * basic methods to interact in GameSetup
  */
-export class InputLogic extends InputLogicBase<IInputLogicExtension> {
+export class InputLogic extends InputLogicBase<GameSetup, IInputLogicExtension> {
   /** slot for the index of the selected ship (or undefined) */
   selectedShipIndex?: number;
   /** the last ship that was selected so you can still rotate after moving */
@@ -68,8 +68,8 @@ export class InputLogic extends InputLogicBase<IInputLogicExtension> {
     bringShipIndexToTop(this.selectedShipIndex);
   }
 
-  constructor(protected scene: GameSetup) {
-    super();
+  constructor(scene: GameSetup) {
+    super(scene);
   }
 
   /**

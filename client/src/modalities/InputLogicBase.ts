@@ -1,7 +1,7 @@
 /**
  * @param IInputLogicExtension
  */
-export abstract class InputLogicBase<T> {
+export abstract class InputLogicBase<T extends Phaser.Scene, I> {
   protected static callAfter(method: () => void) {
     return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
       const originalMethod = descriptor.value;
@@ -15,13 +15,15 @@ export abstract class InputLogicBase<T> {
   }
 
   /** all input modalities w/ extension methods */
-  protected extensions: T[] = [];
+  protected extensions: I[] = [];
+
+  constructor(protected scene: T) {}
 
   /**
    * register a modality as a subscriber; this class can call extension methods of T
-   * @param {T} extension - input logic class of a input modality
+   * @param {I} extension - input logic class of a input modality
    */
-  registerExtension(extension: T) {
+  registerExtension(extension: I) {
     this.extensions.push(extension);
   }
 }

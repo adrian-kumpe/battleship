@@ -10,7 +10,7 @@ import { IInputLogicExtension, InputLogic } from './InputLogic';
  * methods to interact w/ point-and-click/dragging in Game
  * @implements IInputLogicExtension
  */
-export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput implements IInputLogicExtension {
+export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput<Game> implements IInputLogicExtension {
   private crosshairSnapToCell() {
     const coord = this.opposingGrid.getCoordToGridCell(
       this.inputLogic.crosshairRef.x + 35,
@@ -82,15 +82,15 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
         .setX(
           pointermoveWithinBounds(
             pointer.x - cellSize / 2,
-            (this.scene as Game).offsetX,
-            (this.scene as Game).offsetX + (gridSize - 1) * cellSize,
+            this.scene.offsetX,
+            this.scene.offsetX + (gridSize - 1) * cellSize,
           ),
         )
         .setY(
           pointermoveWithinBounds(
             pointer.y - cellSize / 2,
-            (this.scene as Game).offsetY,
-            (this.scene as Game).offsetY + (gridSize - 1) * cellSize,
+            this.scene.offsetY,
+            this.scene.offsetY + (gridSize - 1) * cellSize,
           ),
         ); // todo unschöne Lösung mit as Game
       this.dragmove(pointer);

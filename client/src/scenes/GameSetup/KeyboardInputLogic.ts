@@ -8,7 +8,7 @@ import { IInputLogicExtension, InputLogic } from './InputLogic';
  * methods to interact w/ keyboard in GameSetup
  * @implements IInputLogicExtension
  */
-export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExtension {
+export class KeyboardInputLogic extends KeyboardInput<GameSetup> implements IInputLogicExtension {
   /** whether the keyboard started exclusively interacting w/ a ship */
   private exclusiveInput = false;
 

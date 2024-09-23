@@ -4,7 +4,7 @@ import { Coord } from '../shared/models';
  * generic methods to handle pointer and gesture inputs
  * @abstract
  */
-export abstract class PointerAndGestureInput {
+export abstract class PointerAndGestureInput<T extends Phaser.Scene> {
   protected drawing = false;
   protected gestureCoords: Coord[];
   protected graphics?: Phaser.GameObjects.Graphics;
@@ -74,7 +74,7 @@ export abstract class PointerAndGestureInput {
   }
 
   constructor(
-    protected scene: Phaser.Scene,
+    protected scene: T,
     coord: Coord,
     width: number,
     height: number,
@@ -88,7 +88,7 @@ export abstract class PointerAndGestureInput {
  * adds basic dragging properties and methods to PointerAndGestureInput
  * @abstract
  */
-export abstract class DraggablePointerAndGestureInput extends PointerAndGestureInput {
+export abstract class DraggablePointerAndGestureInput<T extends Phaser.Scene> extends PointerAndGestureInput<T> {
   /** current dragging state to use in pointer input events */
   protected dragging = false;
   /** last position of pointer used to draw dragging trail */
@@ -127,7 +127,7 @@ export abstract class DraggablePointerAndGestureInput extends PointerAndGestureI
     this.draggingGraphicsArray.forEach((g) => g.destroy());
   }
 
-  constructor(scene: Phaser.Scene, coord: Coord, width: number, height: number) {
+  constructor(scene: T, coord: Coord, width: number, height: number) {
     super(scene, coord, width, height);
   }
 }

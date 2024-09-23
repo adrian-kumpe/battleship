@@ -11,7 +11,10 @@ import { InputLogic, IInputLogicExtension } from './InputLogic';
  * methods to interact w/ point-and-click/dragging in GameSetup
  * @implements IInputLogicExtension
  */
-export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput implements IInputLogicExtension {
+export class PointerAndGestureInputLogic
+  extends DraggablePointerAndGestureInput<GameSetup>
+  implements IInputLogicExtension
+{
   /** when dragging the pointer is not centered on the ship; only after first rotating activate the correction */
   private dragCorrectionActive = false;
   /** distance between center of ship and pointer */

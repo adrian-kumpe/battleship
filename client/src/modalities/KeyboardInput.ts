@@ -6,7 +6,7 @@ import { Grid } from '../elements/Grid';
  * generic methods to handle keyboard inputs
  * @abstract
  */
-export abstract class KeyboardInput {
+export abstract class KeyboardInput<T extends Phaser.Scene> {
   /** frame to display the focused coord */
   protected focusedCellRef?: Phaser.GameObjects.Rectangle;
 
@@ -64,7 +64,7 @@ export abstract class KeyboardInput {
   }
 
   constructor(
-    protected scene: Phaser.Scene,
+    protected scene: T,
     protected placingGrid: Grid,
     protected offsetX: number,
     protected offsetY: number,

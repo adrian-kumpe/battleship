@@ -8,7 +8,7 @@ import { gridSize } from '../../main';
  * methods to interact w/ keyboard in Game
  * @implements IInputLogicExtension
  */
-export class KeyboardInputLogic extends KeyboardInput implements IInputLogicExtension {
+export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLogicExtension {
   /** @override */
   protected arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
     super.arrowKeyAction(shiftX, shiftY);

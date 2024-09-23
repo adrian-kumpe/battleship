@@ -16,7 +16,7 @@ export interface IInputLogicExtension {
 /**
  * basic methods to interact in Game
  */
-export class InputLogic extends InputLogicBase<IInputLogicExtension> {
+export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
   /** whether the player can attack (reloading is necessary) */
   private oneInTheChamber = true;
   /** slot for the selected coord */
@@ -26,8 +26,8 @@ export class InputLogic extends InputLogicBase<IInputLogicExtension> {
   /** slot to check whether the crosshair is exclusively used */
   exclusiveInputInUse = false;
 
-  constructor(protected scene: Game) {
-    super();
+  constructor(scene: Game) {
+    super(scene);
     const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(0, 0);
     const container = this.scene.add.container(xPx, yPx);
     const frame = this.scene.add.rectangle(0, 0, cellSize, cellSize).setOrigin(0).setStrokeStyle(7, 0x00ff00);
