@@ -8,6 +8,7 @@ import { InputLogic } from './InputLogic';
 import { PointerAndGestureInputLogic } from './PointerAndGestureInputLogic';
 import { GestureRecognition } from '../../elements/Gestures';
 
+// todo raumnummer wird dann im game nicht mehr benötigt --> aus den variablen entfernen
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
@@ -149,14 +150,6 @@ export class Game extends Scene {
   }
 
   private drawInstructions() {
-    this.add
-      .text(
-        this.offsetX + this.additionalOffsetX,
-        this.offsetY - 55,
-        `To connect Alexa, use the code: ${this.roomConfig.roomId}${this.ownPlayerNo}`,
-        defaultFont,
-      )
-      .setOrigin(0, 1);
     this.add
       .image(this.offsetX + this.additionalOffsetX + cellSize - 10, 900, 'circle-gesture-instruction')
       .setOrigin(1);

@@ -104,6 +104,7 @@ export class PointerAndGestureInputLogic
           xPx: pointer.x - (ship.shipContainerRef?.x ?? 0),
           yPx: pointer.y - (ship.shipContainerRef?.y ?? 0),
         };
+        gameRadio.sendMessage('Gesture "drag ship" was recognized');
       }
       return;
     }

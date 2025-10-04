@@ -68,6 +68,7 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
       selectedCoord.y === coord.y /* right pointerdown on crosshair: start dragging */
     ) {
       this.dragstart(pointer);
+      gameRadio.sendMessage('Gesture "drag crosshair" was recognized');
       return;
     }
     super.pointerdown(pointer); // right pointerdown, no crosshair: draw gesture
@@ -76,23 +77,11 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
   /** @override */
   protected pointermove(pointer: Phaser.Input.Pointer) {
     if (this.dragging) {
-      const pointermoveWithinBounds = (v: number, min: number, max: number) =>
-        v - min < 0 ? min : v - max > 0 ? max : v;
+      const pointermoveWithinBounds = (v: number, offset: number, size: number) =>
+        v - offset < 0 ? offset : v - offset - size > 0 ? offset + size : v;
       this.inputLogic.crosshairRef
-        .setX(
-          pointermoveWithinBounds(
-            pointer.x - cellSize / 2,
-            this.scene.offsetX,
-            this.scene.offsetX + (gridSize - 1) * cellSize,
-          ),
-        )
-        .setY(
-          pointermoveWithinBounds(
-            pointer.y - cellSize / 2,
-            this.scene.offsetY,
-            this.scene.offsetY + (gridSize - 1) * cellSize,
-          ),
-        ); // todo unschöne Lösung mit as Game
+        .setX(pointermoveWithinBounds(pointer.x - cellSize / 2, this.scene.offsetX, (gridSize - 1) * cellSize))
+        .setY(pointermoveWithinBounds(pointer.y - cellSize / 2, this.scene.offsetY, (gridSize - 1) * cellSize));
       this.dragmove(pointer);
       return;
     }
