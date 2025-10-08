@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { Grid } from '../../elements/Grid';
-import { Modality, PlayerConfig, PlayerNo, RoomConfig, ShipConfig } from '../../shared/models';
+import { GameData, GameOverData, Modality, PlayerNo } from '../../shared/models';
 import { socket, gameRadio, defaultFont, cellSize, gridSize } from '../../main';
 import { Ship } from '../../elements/Ship';
 import { KeyboardInputLogic } from './KeyboardInputLogic';
@@ -8,7 +8,6 @@ import { InputLogic } from './InputLogic';
 import { PointerAndGestureInputLogic } from './PointerAndGestureInputLogic';
 import { GestureRecognition } from '../../elements/Gestures';
 
-// todo raumnummer wird dann im game nicht mehr benötigt --> aus den variablen entfernen
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
@@ -18,10 +17,7 @@ export class Game extends Scene {
   opposingGrid: Grid;
   private gestureRecognition: GestureRecognition;
 
-  private ownPlayerNo: PlayerNo;
-  private roomConfig: RoomConfig;
-  private playerConfig: PlayerConfig;
-  private shipConfig: ShipConfig;
+  private gameData: GameData;
 
   offsetX = 200;
   private additionalOffsetX = 1010;
@@ -47,15 +43,12 @@ export class Game extends Scene {
     this.gestureRecognition = new GestureRecognition();
   }
 
-  create(args: { roomConfig: RoomConfig; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo; shipConfig: ShipConfig }) {
+  create(data: GameData) {
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
 
-    this.ownPlayerNo = args.ownPlayerNo;
-    this.roomConfig = args.roomConfig;
-    this.playerConfig = args.playerConfig;
-    this.shipConfig = args.shipConfig;
+    this.gameData = data;
 
     this.ownGrid.drawGrid(this.add, '→');
     this.opposingGrid.drawGrid(this.add, '←');
@@ -65,7 +58,7 @@ export class Game extends Scene {
     this.drawOwnShips();
 
     gameRadio.drawRadio(this.add);
-    gameRadio.sendMessage(`${this.playerConfig[args.playerConfig.firstTurn]} begins`);
+    gameRadio.sendMessage(`${this.gameData.playerNames[data.firstTurn]} begins`);
 
     this.inputLogic = new InputLogic(this);
     this.keyboardInputLogic = new KeyboardInputLogic(
@@ -97,30 +90,30 @@ export class Game extends Scene {
           [Modality.KEYBOARD]: 0x1c7b1c,
         }[args.modality];
         this.drawMove(xPx, yPx, args.hit, tint);
-        if (args.sunkenShip) {
+        if (args.sunken) {
           const shipCount = grid.shipCount.getShipCount();
-          shipCount[args.sunkenShip.size - 1]--;
+          shipCount[args.sunken.size - 1]--;
           grid.shipCount.updateShipCount(shipCount);
-          const attackedPlayer = this.playerConfig[((args.playerNo + 1) % 2) as PlayerNo];
+          const attackedPlayer = this.gameData.playerNames[((args.playerNo + 1) % 2) as PlayerNo];
           gameRadio.sendMessage(
-            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ${args.sunkenShip.name} (size ${args.sunkenShip.size}) was sunk`,
+            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ${args.sunken.name} (size ${args.sunken.size}) was sunk`,
           );
         }
-      })(args.playerNo === this.ownPlayerNo ? this.opposingGrid : this.ownGrid);
+      })(args.playerNo === this.gameData.playerNo ? this.opposingGrid : this.ownGrid);
     });
 
     socket.on('gameOver', (args) => {
       this.scene.start('GameOver', {
         winner: args.winner,
-        playerConfig: this.playerConfig,
-        ownPlayerNo: this.ownPlayerNo,
-      });
+        playerNames: this.gameData.playerNames,
+        playerNo: this.gameData.playerNo,
+      } satisfies GameOverData);
     });
   }
 
   private drawPlayerNames() {
     this.add
-      .text(this.offsetX + this.additionalOffsetX, this.offsetY - 100, `You: ${this.playerConfig[this.ownPlayerNo]}`, {
+      .text(this.offsetX + this.additionalOffsetX, this.offsetY - 100, `You: ${this.gameData.playerNames[this.gameData.playerNo]}`, {
         ...defaultFont,
         fontSize: 36,
       })
@@ -129,7 +122,7 @@ export class Game extends Scene {
       .text(
         this.offsetX,
         this.offsetY - 100,
-        `Your opponent: ${this.playerConfig[((this.ownPlayerNo + 1) % 2) as PlayerNo]}`,
+        `Your opponent: ${this.gameData.playerNames[((this.gameData.playerNo + 1) % 2) as PlayerNo]}`,
         { ...defaultFont, fontSize: 36 },
       )
       .setOrigin(0, 1);
@@ -145,8 +138,8 @@ export class Game extends Scene {
         this.add.text(1075 + 50, this.offsetY + 20 + i * 140, '', defaultFont),
       );
     }
-    this.opposingGrid.shipCount.updateShipCount(this.roomConfig.availableShips);
-    this.ownGrid.shipCount.updateShipCount(this.roomConfig.availableShips);
+    this.opposingGrid.shipCount.updateShipCount(this.gameData.roomConfig.availableShips);
+    this.ownGrid.shipCount.updateShipCount(this.gameData.roomConfig.availableShips);
   }
 
   private drawInstructions() {
@@ -187,7 +180,7 @@ export class Game extends Scene {
   }
 
   private drawOwnShips() {
-    this.shipConfig.forEach((s) => {
+    this.gameData.shipPlacement.forEach((s) => {
       const ship = new Ship(
         {
           name: s.name,

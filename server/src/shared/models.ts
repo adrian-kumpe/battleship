@@ -10,17 +10,16 @@ export enum Modality {
   'KEYBOARD',
 }
 
+export interface PlayerNames {
+  [PlayerNo.PLAYER1]: string;
+  [PlayerNo.PLAYER2]: string;  
+}
+
+/** Config for the two-player game room */
 export interface RoomConfig {
   roomId: string;
   gameBoardSize: number;
   availableShips: number[];
-}
-
-/** playerName of both players; playerNo who starts the game */
-export interface PlayerConfig {
-  [PlayerNo.PLAYER1]: string;
-  [PlayerNo.PLAYER2]: string;
-  firstTurn: PlayerNo;
 }
 
 export interface ShipDefinition {
@@ -28,7 +27,10 @@ export interface ShipDefinition {
   readonly size: number;
 }
 
-/** @constant */
+/**
+ * generic definitions for all available ships in the game
+ * @constant
+ */
 export const shipDefinitions: ShipDefinition[] = [
   { size: 1, name: 'destroyer' },
   { size: 2, name: 'cruiser' },
@@ -46,11 +48,13 @@ export interface Coord {
   y: number;
 }
 
-export type ShipConfig = (ShipDefinition & ShipInstance & Coord)[];
+/** list of ships placed on the game board */
+export type ShipPlacement = (ShipDefinition & ShipInstance & Coord)[];
 
+/** information if a ship was hit/sunken */
 export interface AttackResult {
   hit: boolean;
-  sunkenShip?: ShipDefinition & ShipInstance & Coord;
+  sunken?: ShipDefinition & ShipInstance & Coord;
 }
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -62,9 +66,10 @@ export interface ServerToClientEvents {
   notification: (args: { text: string }) => void;
   /**
    * starts the game when both players have emitted gameReady
-   * @param playerConfig w/ all player names and firstTurn
+   * @param playerNames
+   * @param firstTurn 
    */
-  gameStart: (args: { playerConfig: PlayerConfig }) => void;
+  gameStart: (args: { playerNames: PlayerNames, firstTurn: PlayerNo }) => void;
   /**
    * ends the game; a winner might have been determined
    * @param winner
@@ -72,9 +77,10 @@ export interface ServerToClientEvents {
   gameOver: (args: { winner?: PlayerNo }) => void;
   /**
    * informs all players when an attack was successfully placed
-   * @param AttackResult w/ hit and sunkenShip information (if available)
+   * @param AttackResult w/ information if a ship was hit/sunken (if available)
    * @param coord that was attacked
    * @param playerNo who placed the attack
+   * @param modality TODO
    */
   attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo; modality: Modality }) => void;
 }
@@ -101,10 +107,10 @@ export interface ClientToServerEvents {
     cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
   ) => void;
   /**
-   * commits shipConfig; if both players are ready, the server can emit gameStart
-   * @param shipConfig placement of the player's ships
+   * commits shipPlacement; if both players are ready, the server can emit gameStart
+   * @param shipPlacement placement of the player's ships
    */
-  gameReady: (args: { shipConfig: ShipConfig }, cb: (error?: string) => void) => void;
+  gameReady: (args: { shipPlacement: ShipPlacement }, cb: (error?: string) => void) => void;
   /**
    * places an attack
    * @param coord to attack
@@ -115,10 +121,33 @@ export interface ClientToServerEvents {
     args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number }; modality: Modality },
     cb: (error?: string) => void,
   ) => void;
-  /**
-   * attack placed by Alexa (voice control)
-   * @param coord to attack
-   */
-  alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: (error?: string) => void) => void;
+
   lock: (args: { locked: boolean }, cb: (error?: string) => void) => void;
+}
+
+/** data needed to start GameSetup scene */
+export interface GameSetupData {
+  roomConfig: RoomConfig; 
+  /** the own player number */
+  playerNo: PlayerNo;
+}
+
+/** data needed to start Game scene */
+export interface GameData {
+  roomConfig: RoomConfig; 
+  playerNames: PlayerNames; 
+  /** the own player number */
+  playerNo: PlayerNo; 
+  /** player number of the starting player */
+  firstTurn: PlayerNo; 
+  shipPlacement: ShipPlacement
+}
+
+/** data needed to start GameSetup */
+export interface GameOverData {
+  /** the winner's player number */
+  winner?: PlayerNo; 
+  playerNames: PlayerNames; 
+  /** the own player number */
+  playerNo: PlayerNo
 }

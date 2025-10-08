@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { defaultFont, gameRadio, socket } from '../main';
-import { PlayerNo, RoomConfig } from '../shared/models';
+import { GameSetupData, PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -74,7 +74,6 @@ export class MainMenu extends Scene {
       fixedWidth: 360,
     };
 
-    //todo gameboardsize entfernen
     this.newGameButton = this.add
       .text(775, 700, 'New Game', buttonConfig)
       .setOrigin(0.5)
@@ -82,11 +81,14 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'createRoom',
-          { roomConfig: { gameBoardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1' },
+          { roomConfig: { gameBoardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1Name' }, // Todo Name sollte eingegeben werden könnten
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               gameRadio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
-              this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER1 });
+              this.scene.start('GameSetup', { 
+                roomConfig: args.roomConfig, 
+                playerNo: PlayerNo.PLAYER1 
+              } satisfies GameSetupData);
             }
             if (error) {
               console.warn(error);
@@ -103,10 +105,13 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'joinRoom',
-          { roomId: roomnr.toString(), playerName: 'Player2' },
+          { roomId: roomnr.toString(), playerName: 'Player2Name' }, // Todo Name sollte eingegeben werden könnten
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
-              this.scene.start('GameSetup', { roomConfig: args.roomConfig, ownPlayerNo: PlayerNo.PLAYER2 });
+              this.scene.start('GameSetup', { 
+                roomConfig: args.roomConfig, 
+                playerNo: PlayerNo.PLAYER2 
+              } satisfies GameSetupData);
             }
             if (error) {
               console.warn(error);

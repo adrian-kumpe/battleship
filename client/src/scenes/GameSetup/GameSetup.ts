@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { cellSize, defaultFont, gameRadio, gridSize, socket } from '../../main';
-import { Coord, PlayerNo, RoomConfig, ShipConfig, shipDefinitions } from '../../shared/models';
+import { Coord, GameData, GameSetupData, ShipPlacement, shipDefinitions } from '../../shared/models';
 import { Grid } from '../../elements/Grid';
 import { Ship, ShipArray } from '../../elements/Ship';
 import { GestureCanvas, GestureRecognition } from '../../elements/Gestures';
@@ -12,8 +12,7 @@ export class GameSetup extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
 
-  private roomConfig: RoomConfig;
-  private ownPlayerNo: PlayerNo;
+  private gameSetupData: GameSetupData;
   offsetX = 200;
   additionalOffsetX = 420;
   offsetY = 250;
@@ -37,14 +36,13 @@ export class GameSetup extends Scene {
     });
   }
 
-  create(args: { roomConfig: RoomConfig; ownPlayerNo: PlayerNo }) {
+  create(data: GameSetupData) {
     this.input.setTopOnly(false);
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor(0xffffff);
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
 
-    this.roomConfig = args.roomConfig;
-    this.ownPlayerNo = args.ownPlayerNo;
+    this.gameSetupData = data;
 
     this.placingGrid.drawGrid(this.add, '→');
     this.drawShipParking();
@@ -56,11 +54,12 @@ export class GameSetup extends Scene {
     socket.on('gameStart', (args) => {
       gameRadio.sendMessage('All players ready, the game starts now');
       this.scene.start('Game', {
-        roomConfig: this.roomConfig,
-        playerConfig: args.playerConfig,
-        ownPlayerNo: this.ownPlayerNo,
-        shipConfig: this.getShipConfig(),
-      });
+        roomConfig: this.gameSetupData.roomConfig,
+        playerNames: args.playerNames,
+        playerNo: this.gameSetupData.playerNo,
+        firstTurn: args.firstTurn,
+        shipPlacement: this.getShipPlacement(),
+      } satisfies GameData);
     });
 
     this.inputLogic = new InputLogic(this);
@@ -116,25 +115,25 @@ export class GameSetup extends Scene {
       .setOrigin(0.5)
       .setInteractive()
       .on('pointerdown', () => {
-        const shipConfig = this.getShipConfig();
-        const error = this.checkShipConfigValid(shipConfig);
+        const shipPlacement = this.getShipPlacement();
+        const error = this.checkShipPlacementValid(shipPlacement);
         if (error) {
           console.warn(error);
           gameRadio.sendMessage('Error: ' + error);
         } else {
-          socket.emit('gameReady', { shipConfig: shipConfig }, (error?: string) => {
+          socket.emit('gameReady', { shipPlacement: shipPlacement }, (error?: string) => {
             if (error) {
               console.warn(error);
               gameRadio.sendMessage('Error: ' + error);
             }
           });
-          // todo hier muss ersichtlich sein, dass die shipconfig abgeschickt wurde
+          // todo hier muss ersichtlich sein, dass die shipplacement abgeschickt wurde
         }
       });
   }
 
   private drawShips() {
-    this.roomConfig.availableShips
+    this.gameSetupData.roomConfig.availableShips
       .map((v: number, i: number) => {
         return Array.from(Array(v)).map((_) => i + 1);
       })
@@ -159,7 +158,7 @@ export class GameSetup extends Scene {
     this.add.text(1300, this.offsetY, `Das ist nur ein Test`, defaultFont);
   }
 
-  private getShipConfig(): ShipConfig {
+  private getShipPlacement(): ShipPlacement {
     return this.shipArray.map((v) => {
       return {
         ...v.getShipMetaInformation(),
@@ -168,9 +167,9 @@ export class GameSetup extends Scene {
     });
   }
 
-  private checkShipConfigValid(shipConfig: ShipConfig): string | undefined {
+  private checkShipPlacementValid(shipPlacement: ShipPlacement): string | undefined {
     const allCoords: (Coord & { guarded: boolean })[] = [];
-    shipConfig.forEach((v) => {
+    shipPlacement.forEach((v) => {
       // push all coords where the ship is on or guards into allCoords
       const h = v.orientation === '↔️';
       for (let i = -1; i < 2; i++) {

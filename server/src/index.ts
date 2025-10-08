@@ -5,8 +5,7 @@ import {
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
-  ShipConfig,
-  ShipInstance,
+  ShipPlacement,
 } from './shared/models';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
@@ -91,27 +90,27 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  /** sets shipConfig of player; if both players are ready start the game */
-  socket.on('gameReady', (args: { shipConfig: ShipConfig }, cb) => {
+  /** sets shipPlacement of player; if both players are ready start the game */
+  socket.on('gameReady', (args: { shipPlacement: ShipPlacement }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
-    const error = undefined; // todo shipConfig müsste validiert werden
+    const error = undefined; // todo shipPlacement müsste validiert werden
     if (error || !room || !player) {
       console.warn(error ?? 'Internal error');
       return cb(error ?? 'Internal error');
     }
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
     io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} is ready to start` });
-    player.shipConfig = args.shipConfig;
+    player.shipPlacement = args.shipPlacement;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
       console.info(`[${room.roomConfig.roomId}] Player ${room.currentPlayer} begins`);
       io.to(room.roomConfig.roomId).emit('gameStart', {
-        playerConfig: {
+        playerNames: {
           [PlayerNo.PLAYER1]: room.player1.client.playerName,
           [PlayerNo.PLAYER2]: room.player2!.client.playerName,
-          firstTurn: room.currentPlayer,
         },
+        firstTurn: room.currentPlayer,
       });
     }
   });
@@ -175,23 +174,23 @@ io.on('connection', (socket: Socket) => {
   );
 
   /** player attacks using voice input */
-  socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
-    const room = roomList.getRoom(args.roomId);
-    const attackedPlayer = room?.getPlayerByPlayerNo(((args.playerNo + 1) % 2) as PlayerNo);
-    const error =
-      room?.checkGameStarted() ??
-      room?.checkPlayersTurn(args.playerNo) ??
-      room?.checkCoordValid(args.coord) ??
-      attackedPlayer?.checkCoordAvailable(args.coord) ??
-      checkLocked();
-    if (error || !room || !attackedPlayer) {
-      console.warn(error ?? 'Internal error');
-      return cb(error ?? 'Internal error');
-    }
-    console.info(`[${args.roomId}] Alexa connected`);
-    performAttack(room, args.playerNo, attackedPlayer, args.coord, Modality.VOICE);
-    cb();
-  });
+  // socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
+  //   const room = roomList.getRoom(args.roomId);
+  //   const attackedPlayer = room?.getPlayerByPlayerNo(((args.playerNo + 1) % 2) as PlayerNo);
+  //   const error =
+  //     room?.checkGameStarted() ??
+  //     room?.checkPlayersTurn(args.playerNo) ??
+  //     room?.checkCoordValid(args.coord) ??
+  //     attackedPlayer?.checkCoordAvailable(args.coord) ??
+  //     checkLocked();
+  //   if (error || !room || !attackedPlayer) {
+  //     console.warn(error ?? 'Internal error');
+  //     return cb(error ?? 'Internal error');
+  //   }
+  //   console.info(`[${args.roomId}] Alexa connected`);
+  //   performAttack(room, args.playerNo, attackedPlayer, args.coord, Modality.VOICE);
+  //   cb();
+  // });
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));

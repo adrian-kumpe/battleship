@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { PlayerConfig, PlayerNo } from '../shared/models';
+import { GameOverData } from '../shared/models';
 import { defaultFont, gameRadio } from '../main';
 
 export class GameOver extends Scene {
@@ -12,7 +12,7 @@ export class GameOver extends Scene {
     super('GameOver');
   }
 
-  create(data: { winner: PlayerNo; playerConfig: PlayerConfig; ownPlayerNo: PlayerNo }) {
+  create(data: GameOverData) {
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2);
     this.camera = this.cameras.main;
 
@@ -26,9 +26,9 @@ export class GameOver extends Scene {
     const winner_text =
       data.winner === undefined
         ? 'The opponent left the game'
-        : data.winner === data.ownPlayerNo
+        : data.winner === data.playerNo
           ? 'You won the game'
-          : data.playerConfig[data.winner] + ' won the game';
+          : data.playerNames[data.winner] + ' won the game';
 
     gameRadio.drawRadio(this.add);
     gameRadio.sendMessage(winner_text);
