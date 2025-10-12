@@ -159,25 +159,6 @@ io.on('connection', (socket: Socket) => {
       performAttack(room, playerNo, attackedPlayer, coord);
     },
   );
-
-  /** player attacks using voice input */
-  // socket.on('alexaAttack', (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb) => {
-  //   const room = roomList.getRoom(args.roomId);
-  //   const attackedPlayer = room?.getPlayerByPlayerNo(((args.playerNo + 1) % 2) as PlayerNo);
-  //   const error =
-  //     room?.checkGameStarted() ??
-  //     room?.checkPlayersTurn(args.playerNo) ??
-  //     room?.checkCoordValid(args.coord) ??
-  //     attackedPlayer?.checkCoordAvailable(args.coord) ??
-  //     checkLocked();
-  //   if (error || !room || !attackedPlayer) {
-  //     console.warn(error ?? 'Internal error');
-  //     return cb(error ?? 'Internal error');
-  //   }
-  //   console.info(`[${args.roomId}] Alexa connected`);
-  //   performAttack(room, args.playerNo, attackedPlayer, args.coord, Modality.VOICE);
-  //   cb();
-  // });
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
