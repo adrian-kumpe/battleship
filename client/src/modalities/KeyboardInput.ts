@@ -1,6 +1,6 @@
-import { cellSize } from '../main';
 import { Coord } from '../shared/models';
 import { Grid } from '../elements/Grid';
+import { layoutConfig } from '../main';
 
 /**
  * generic methods to handle keyboard inputs
@@ -35,7 +35,7 @@ export abstract class KeyboardInput<T extends Phaser.Scene> {
     const drawFocusedCell = (coord: { xPx: number; yPx: number }) => {
       if (!this.focusedCellRef) {
         this.focusedCellRef = this.scene.add
-          .rectangle(coord.xPx, coord.yPx, cellSize, cellSize)
+          .rectangle(coord.xPx, coord.yPx, layoutConfig.cellSize, layoutConfig.cellSize)
           .setOrigin(0)
           .setStrokeStyle(7, 0xff4500);
       } else {
@@ -52,12 +52,12 @@ export abstract class KeyboardInput<T extends Phaser.Scene> {
     }
     if (typeof p1 === 'number') {
       const { initialX, initialY } = {
-        initialX: this.offsetX + cellSize,
-        initialY: this.offsetY - cellSize,
+        initialX: this.offsetX + layoutConfig.cellSize,
+        initialY: this.offsetY - layoutConfig.cellSize,
       };
       drawFocusedCell({
-        xPx: (this.focusedCellRef?.x ?? initialX) + cellSize * p1,
-        yPx: (this.focusedCellRef?.y ?? initialY) + cellSize * (p2 ?? 0),
+        xPx: (this.focusedCellRef?.x ?? initialX) + layoutConfig.cellSize * p1,
+        yPx: (this.focusedCellRef?.y ?? initialY) + layoutConfig.cellSize * (p2 ?? 0),
       });
       return;
     }

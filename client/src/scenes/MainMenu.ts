@@ -81,13 +81,13 @@ export class MainMenu extends Scene {
       .on('pointerdown', () => {
         socket.emit(
           'createRoom',
-          { roomConfig: { gameBoardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1Name' }, // Todo Name sollte eingegeben werden könnten
+          { roomConfig: { boardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1Name' }, // Todo Name sollte eingegeben werden könnten
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
               gameRadio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
-              this.scene.start('GameSetup', { 
-                roomConfig: args.roomConfig, 
-                playerNo: PlayerNo.PLAYER1 
+              this.scene.start('GameSetup', {
+                roomConfig: args.roomConfig,
+                playerNo: PlayerNo.PLAYER1,
               } satisfies GameSetupData);
             }
             if (error) {
@@ -108,9 +108,9 @@ export class MainMenu extends Scene {
           { roomId: roomnr.toString(), playerName: 'Player2Name' }, // Todo Name sollte eingegeben werden könnten
           (args?: { roomConfig: RoomConfig }, error?: string) => {
             if (args) {
-              this.scene.start('GameSetup', { 
-                roomConfig: args.roomConfig, 
-                playerNo: PlayerNo.PLAYER2 
+              this.scene.start('GameSetup', {
+                roomConfig: args.roomConfig,
+                playerNo: PlayerNo.PLAYER2,
               } satisfies GameSetupData);
             }
             if (error) {

@@ -1,5 +1,5 @@
 import { InputLogicBase } from '../../modalities/InputLogicBase';
-import { cellSize, gameRadio, gridSize, socket } from '../../main';
+import { gameRadio, layoutConfig, socket } from '../../main';
 import { Coord, Modality } from '../../shared/models';
 import { Game } from './Game';
 
@@ -30,7 +30,10 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
     super(scene);
     const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(0, 0);
     const container = this.scene.add.container(xPx, yPx);
-    const frame = this.scene.add.rectangle(0, 0, cellSize, cellSize).setOrigin(0).setStrokeStyle(7, 0x00ff00);
+    const frame = this.scene.add
+      .rectangle(0, 0, layoutConfig.cellSize, layoutConfig.cellSize)
+      .setOrigin(0)
+      .setStrokeStyle(7, 0x00ff00);
     container.add(frame);
     const graphics = this.scene.add
       .graphics()
@@ -46,10 +49,10 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
       .fillStyle(0xffffff)
       .setAlpha(0)
       .fillRect(
-        this.scene.offsetX - cellSize,
-        this.scene.offsetY - cellSize,
-        cellSize * (gridSize + 2),
-        cellSize * (gridSize + 2),
+        layoutConfig.leftGridOffsetX - layoutConfig.cellSize,
+        layoutConfig.gridOffsetY - layoutConfig.cellSize,
+        layoutConfig.cellSize * (layoutConfig.gridSize + 2),
+        layoutConfig.cellSize * (layoutConfig.gridSize + 2),
       );
     const mask = maskShape.createGeometryMask();
     container.setMask(mask);
@@ -93,7 +96,8 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
     this.extensions.forEach((e) => e.selectCoordExt());
   })
   selectCoord(coord: Coord) {
-    const coordWithinGrid = coord && coord.x >= 0 && coord.x < gridSize && coord.y >= 0 && coord.y < gridSize;
+    const coordWithinGrid =
+      coord && coord.x >= 0 && coord.x < layoutConfig.gridSize && coord.y >= 0 && coord.y < layoutConfig.gridSize;
     if (coordWithinGrid) {
       this.selectedCoord = coord;
       const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(coord);

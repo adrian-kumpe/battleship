@@ -47,5 +47,10 @@ export const defaultFont: Phaser.Types.GameObjects.Text.TextStyle = {
   fontSize: 24,
 };
 
-export const gridSize = 8;
-export const cellSize = 70;
+export const layoutConfig = {
+  gridSize: 8,
+  cellSize: 70,
+  gridOffsetY: 250,
+  leftGridOffsetX: 340,
+  rightGridOffsetX: 1070,
+};

@@ -1,6 +1,6 @@
 import { GestureRecognition, Gestures } from '../../elements/Gestures';
 import { Grid } from '../../elements/Grid';
-import { cellSize, gameRadio, gridSize } from '../../main';
+import { gameRadio, layoutConfig } from '../../main';
 import { DraggablePointerAndGestureInput } from '../../modalities/PointerAndGestureInput';
 import { Coord } from '../../shared/models';
 import { Game } from './Game';
@@ -80,8 +80,20 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
       const pointermoveWithinBounds = (v: number, offset: number, size: number) =>
         v - offset < 0 ? offset : v - offset - size > 0 ? offset + size : v;
       this.inputLogic.crosshairRef
-        .setX(pointermoveWithinBounds(pointer.x - cellSize / 2, this.scene.offsetX, (gridSize - 1) * cellSize))
-        .setY(pointermoveWithinBounds(pointer.y - cellSize / 2, this.scene.offsetY, (gridSize - 1) * cellSize));
+        .setX(
+          pointermoveWithinBounds(
+            pointer.x - layoutConfig.cellSize / 2,
+            layoutConfig.leftGridOffsetX,
+            (layoutConfig.gridSize - 1) * layoutConfig.cellSize,
+          ),
+        )
+        .setY(
+          pointermoveWithinBounds(
+            pointer.y - layoutConfig.cellSize / 2,
+            layoutConfig.gridOffsetY,
+            (layoutConfig.gridSize - 1) * layoutConfig.cellSize,
+          ),
+        );
       this.dragmove(pointer);
       return;
     }

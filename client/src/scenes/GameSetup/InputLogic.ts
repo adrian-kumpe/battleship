@@ -1,8 +1,8 @@
 import { InputLogicBase } from '../../modalities/InputLogicBase';
 import { Ship } from '../../elements/Ship';
-import { cellSize } from '../../main';
 import { Coord } from '../../shared/models';
 import { GameSetup } from './GameSetup';
+import { layoutConfig } from '../../main';
 
 /**
  * methods all modalities need to include so InputLogic can call them
@@ -129,7 +129,7 @@ export class InputLogic extends InputLogicBase<GameSetup, IInputLogicExtension> 
     const drawFocusedCell = (coord: { xPx: number; yPx: number }) => {
       if (!this.selectedCoordRef) {
         this.selectedCoordRef = this.scene.add
-          .rectangle(coord.xPx, coord.yPx, cellSize, cellSize)
+          .rectangle(coord.xPx, coord.yPx, layoutConfig.cellSize, layoutConfig.cellSize)
           .setOrigin(0)
           .setStrokeStyle(7, 0x0000ff);
       } else {

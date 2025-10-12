@@ -28,7 +28,7 @@ export class BattleshipGameBoard {
 
   constructor(
     public client: Client,
-    private gameBoardSize: number,
+    private boardSize: number,
   ) {}
 
   public getPlayerReady(): boolean {
@@ -45,7 +45,7 @@ export class BattleshipGameBoard {
   public getRandomCoord(): Coord {
     let coord: Coord;
     do {
-      coord = { x: Math.floor(Math.random() * this.gameBoardSize), y: Math.floor(Math.random() * this.gameBoardSize) };
+      coord = { x: Math.floor(Math.random() * this.boardSize), y: Math.floor(Math.random() * this.boardSize) };
     } while (this.checkCoordAvailable(coord));
     return coord;
   }
@@ -53,8 +53,8 @@ export class BattleshipGameBoard {
   public getNextCoord(snakeMovement: { up: number; right: number }): Coord {
     const currentCoord = this.dirtyCoords.slice(-1)[0];
     return {
-      x: (currentCoord.x + this.gameBoardSize + snakeMovement.right) % this.gameBoardSize,
-      y: (currentCoord.y + this.gameBoardSize - snakeMovement.up) % this.gameBoardSize,
+      x: (currentCoord.x + this.boardSize + snakeMovement.right) % this.boardSize,
+      y: (currentCoord.y + this.boardSize - snakeMovement.up) % this.boardSize,
     };
   }
 

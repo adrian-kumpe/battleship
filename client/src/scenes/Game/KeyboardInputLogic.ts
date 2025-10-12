@@ -2,7 +2,7 @@ import { KeyboardInput } from '../../modalities/KeyboardInput';
 import { Grid } from '../../elements/Grid';
 import { Game } from './Game';
 import { IInputLogicExtension, InputLogic } from './InputLogic';
-import { gridSize } from '../../main';
+import { layoutConfig } from '../../main';
 
 /**
  * methods to interact w/ keyboard in Game
@@ -13,7 +13,8 @@ export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLog
   protected arrowKeyAction(shiftX: -1 | 0 | 1, shiftY: -1 | 0 | 1) {
     super.arrowKeyAction(shiftX, shiftY);
     const coord = this.getFocusCellCoord();
-    const coordWithinGrid = coord && coord.x >= 0 && coord.x < gridSize && coord.y >= 0 && coord.y < gridSize;
+    const coordWithinGrid =
+      coord && coord.x >= 0 && coord.x < layoutConfig.gridSize && coord.y >= 0 && coord.y < layoutConfig.gridSize;
     this.updateFocusCellVisibility(!coordWithinGrid || this.inputLogic.exclusiveInputInUse ? 1 : 0);
     if (coordWithinGrid && !this.inputLogic.exclusiveInputInUse) {
       this.inputLogic.selectCoord(coord);

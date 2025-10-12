@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { cellSize, defaultFont, gameRadio, gridSize, socket } from '../../main';
+import { defaultFont, gameRadio, layoutConfig, socket } from '../../main';
 import { Coord, GameData, GameSetupData, ShipPlacement, shipDefinitions } from '../../shared/models';
 import { Grid } from '../../elements/Grid';
 import { Ship, ShipArray } from '../../elements/Ship';
@@ -13,9 +13,6 @@ export class GameSetup extends Scene {
   background: Phaser.GameObjects.Image;
 
   private gameSetupData: GameSetupData;
-  offsetX = 200;
-  additionalOffsetX = 420;
-  offsetY = 250;
 
   placingGrid: Grid;
   gestureCanvas: GestureCanvas;
@@ -30,9 +27,9 @@ export class GameSetup extends Scene {
     super('GameSetup');
 
     this.placingGrid = new Grid({
-      gridOffsetX: this.offsetX + this.additionalOffsetX,
-      gridOffsetY: this.offsetY,
-      cellSize: cellSize,
+      gridOffsetX: layoutConfig.rightGridOffsetX,
+      gridOffsetY: layoutConfig.gridOffsetY,
+      cellSize: layoutConfig.cellSize,
     });
   }
 
@@ -70,16 +67,16 @@ export class GameSetup extends Scene {
       this.shipArray,
       this.placingGrid,
       this.gestureRecognition,
-      { x: this.offsetX, y: this.offsetY - cellSize },
-      (gridSize + 7) * cellSize,
-      (gridSize + 2) * cellSize,
+      { x: layoutConfig.leftGridOffsetX, y: layoutConfig.gridOffsetY - layoutConfig.cellSize },
+      (layoutConfig.gridSize + 7) * layoutConfig.cellSize,
+      (layoutConfig.gridSize + 2) * layoutConfig.cellSize,
     );
     this.inputLogic.registerExtension(this.pointerAndGestureInputLogic);
     this.keyboardInputLogic = new KeyboardInputLogic(
       this,
       this.placingGrid,
-      this.offsetX,
-      this.offsetY,
+      layoutConfig.leftGridOffsetX,
+      layoutConfig.gridOffsetY,
       this.inputLogic,
       this.shipArray,
     );
@@ -94,7 +91,12 @@ export class GameSetup extends Scene {
     for (let i = 0; i < 7; i++) {
       for (let j = 1; j < 5; j++) {
         this.add
-          .rectangle(this.offsetX + cellSize * j, this.offsetY + cellSize * i, cellSize, cellSize)
+          .rectangle(
+            layoutConfig.leftGridOffsetX + layoutConfig.cellSize * j,
+            layoutConfig.gridOffsetY + layoutConfig.cellSize * i,
+            layoutConfig.cellSize,
+            layoutConfig.cellSize,
+          )
           .setOrigin(0)
           .setStrokeStyle(4, 0xbbbbbb, 1);
       }
@@ -155,7 +157,8 @@ export class GameSetup extends Scene {
   }
 
   private drawInstructions() {
-    this.add.text(1300, this.offsetY, `Das ist nur ein Test`, defaultFont);
+    return; // todo soll erstmal nicht angezeigt werden
+    this.add.text(1300, layoutConfig.gridOffsetY, `Das ist nur ein Test`, defaultFont);
   }
 
   private getShipPlacement(): ShipPlacement {
@@ -181,7 +184,7 @@ export class GameSetup extends Scene {
       }
     });
     const allShipsWithinGrid = allCoords.every((c) => {
-      return c.guarded || (c.x >= 0 && c.x < gridSize && c.y >= 0 && c.y < gridSize);
+      return c.guarded || (c.x >= 0 && c.x < layoutConfig.gridSize && c.y >= 0 && c.y < layoutConfig.gridSize);
     });
     const shipCoords = allCoords.filter((c) => c.guarded === false);
     const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);

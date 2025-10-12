@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 import { Grid } from '../../elements/Grid';
 import { GameData, GameOverData, Modality, PlayerNo } from '../../shared/models';
-import { socket, gameRadio, defaultFont, cellSize, gridSize } from '../../main';
+import { socket, gameRadio, defaultFont, layoutConfig } from '../../main';
 import { Ship } from '../../elements/Ship';
 import { KeyboardInputLogic } from './KeyboardInputLogic';
 import { InputLogic } from './InputLogic';
@@ -19,10 +19,6 @@ export class Game extends Scene {
 
   private gameData: GameData;
 
-  offsetX = 200;
-  private additionalOffsetX = 1010;
-  offsetY = 250;
-
   inputLogic: InputLogic;
   keyboardInputLogic: KeyboardInputLogic;
   pointerAndGestureInputLogic: PointerAndGestureInputLogic;
@@ -31,14 +27,14 @@ export class Game extends Scene {
     super('Game');
 
     this.opposingGrid = new Grid({
-      gridOffsetX: this.offsetX,
-      gridOffsetY: this.offsetY,
-      cellSize: cellSize,
+      gridOffsetX: layoutConfig.leftGridOffsetX,
+      gridOffsetY: layoutConfig.gridOffsetY,
+      cellSize: layoutConfig.cellSize,
     });
     this.ownGrid = new Grid({
-      gridOffsetX: this.offsetX + this.additionalOffsetX,
-      gridOffsetY: this.offsetY,
-      cellSize: cellSize,
+      gridOffsetX: layoutConfig.rightGridOffsetX,
+      gridOffsetY: layoutConfig.gridOffsetY,
+      cellSize: layoutConfig.cellSize,
     });
     this.gestureRecognition = new GestureRecognition();
   }
@@ -64,16 +60,16 @@ export class Game extends Scene {
     this.keyboardInputLogic = new KeyboardInputLogic(
       this,
       this.opposingGrid,
-      this.offsetX,
-      this.offsetY,
+      layoutConfig.leftGridOffsetX,
+      layoutConfig.gridOffsetY,
       this.inputLogic,
     );
     this.inputLogic.registerExtension(this.keyboardInputLogic);
     this.pointerAndGestureInputLogic = new PointerAndGestureInputLogic(
       this,
-      { x: this.offsetX - cellSize, y: this.offsetY - cellSize },
-      (gridSize + 2) * cellSize,
-      (gridSize + 2) * cellSize,
+      { x: layoutConfig.leftGridOffsetX - layoutConfig.cellSize, y: layoutConfig.gridOffsetY - layoutConfig.cellSize },
+      (layoutConfig.gridSize + 2) * layoutConfig.cellSize,
+      (layoutConfig.gridSize + 2) * layoutConfig.cellSize,
       this.inputLogic,
       this.opposingGrid,
       this.gestureRecognition,
@@ -113,15 +109,20 @@ export class Game extends Scene {
 
   private drawPlayerNames() {
     this.add
-      .text(this.offsetX + this.additionalOffsetX, this.offsetY - 100, `You: ${this.gameData.playerNames[this.gameData.playerNo]}`, {
-        ...defaultFont,
-        fontSize: 36,
-      })
+      .text(
+        layoutConfig.rightGridOffsetX,
+        layoutConfig.gridOffsetY - 100,
+        `You: ${this.gameData.playerNames[this.gameData.playerNo]}`,
+        {
+          ...defaultFont,
+          fontSize: 36,
+        },
+      )
       .setOrigin(0, 1);
     this.add
       .text(
-        this.offsetX,
-        this.offsetY - 100,
+        layoutConfig.leftGridOffsetX,
+        layoutConfig.gridOffsetY - 100,
         `Your opponent: ${this.gameData.playerNames[((this.gameData.playerNo + 1) % 2) as PlayerNo]}`,
         { ...defaultFont, fontSize: 36 },
       )
@@ -129,13 +130,13 @@ export class Game extends Scene {
   }
 
   private drawShipCount() {
-    this.add.image(980 + 50, this.offsetY + 290, 'ships');
+    return; // todo soll erstmal nicht angezeigt werden
     for (let i = 0; i < 4; i++) {
       this.opposingGrid.shipCount.shipCountReference.push(
-        this.add.text(845 + 50, this.offsetY + 20 + i * 140, '', defaultFont),
+        this.add.text(845 + 50, layoutConfig.gridOffsetY + 20 + i * 140, '', defaultFont),
       );
       this.ownGrid.shipCount.shipCountReference.push(
-        this.add.text(1075 + 50, this.offsetY + 20 + i * 140, '', defaultFont),
+        this.add.text(1075 + 50, layoutConfig.gridOffsetY + 20 + i * 140, '', defaultFont),
       );
     }
     this.opposingGrid.shipCount.updateShipCount(this.gameData.roomConfig.availableShips);
@@ -143,15 +144,16 @@ export class Game extends Scene {
   }
 
   private drawInstructions() {
+    return; // todo soll erstmal nicht angezeigt werden
     this.add
-      .image(this.offsetX + this.additionalOffsetX + cellSize - 10, 900, 'circle-gesture-instruction')
+      .image(layoutConfig.rightGridOffsetX + layoutConfig.cellSize - 10, 900, 'circle-gesture-instruction')
       .setOrigin(1);
     this.add
-      .image(this.offsetX + this.additionalOffsetX + cellSize - 20, 975, 'arrow-gestures-instruction')
+      .image(layoutConfig.rightGridOffsetX + layoutConfig.cellSize - 20, 975, 'arrow-gestures-instruction')
       .setOrigin(1);
     this.add
       .text(
-        this.offsetX + this.additionalOffsetX + cellSize + 10,
+        layoutConfig.rightGridOffsetX + layoutConfig.cellSize + 10,
         880,
         'Attack randomly by drawing a circle',
         defaultFont,
@@ -159,7 +161,7 @@ export class Game extends Scene {
       .setOrigin(0, 1);
     this.add
       .text(
-        this.offsetX + this.additionalOffsetX + cellSize + 10,
+        layoutConfig.rightGridOffsetX + layoutConfig.cellSize + 10,
         936,
         'Use snake control by drawing arrows',
         defaultFont,
@@ -167,7 +169,7 @@ export class Game extends Scene {
       .setOrigin(0, 1);
     this.add
       .text(
-        this.offsetX + this.additionalOffsetX + cellSize + 10,
+        layoutConfig.rightGridOffsetX + layoutConfig.cellSize + 10,
         968,
         '(draw by right-clicking in the red box)',
         defaultFont,
@@ -176,7 +178,9 @@ export class Game extends Scene {
   }
 
   private drawMove(xPx: number, yPx: number, hit: boolean, tint: number) {
-    this.add.image(xPx + cellSize / 2, yPx + cellSize / 2, hit ? 'explosion' : 'dot').setTint(tint);
+    this.add
+      .image(xPx + layoutConfig.cellSize / 2, yPx + layoutConfig.cellSize / 2, hit ? 'explosion' : 'dot')
+      .setTint(tint);
   }
 
   private drawOwnShips() {

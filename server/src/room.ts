@@ -80,10 +80,7 @@ export class Room {
   }
 
   public checkCoordValid(coord: Coord): string | undefined {
-    return coord.x < 0 ||
-      coord.y < 0 ||
-      coord.x >= this.roomConfig.gameBoardSize ||
-      coord.y >= this.roomConfig.gameBoardSize
+    return coord.x < 0 || coord.y < 0 || coord.x >= this.roomConfig.boardSize || coord.y >= this.roomConfig.boardSize
       ? 'Coord is not valid'
       : undefined;
   }

@@ -1,4 +1,4 @@
-import { cellSize, defaultFont } from '../main';
+import { defaultFont, layoutConfig } from '../main';
 import { Coord, ShipDefinition, ShipInstance } from '../shared/models';
 
 export class Ship {
@@ -33,8 +33,8 @@ export class Ship {
    */
   getDefaultOriginShift(axis: '↔️' | '↕️') {
     return axis === this.shipMetaInformation.orientation
-      ? (this.shipMetaInformation.size * cellSize) / 2
-      : cellSize / 2;
+      ? (this.shipMetaInformation.size * layoutConfig.cellSize) / 2
+      : layoutConfig.cellSize / 2;
   }
 
   changeOrientation(orientation?: '↔️' | '↕️') {

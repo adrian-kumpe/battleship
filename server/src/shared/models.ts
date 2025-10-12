@@ -12,13 +12,13 @@ export enum Modality {
 
 export interface PlayerNames {
   [PlayerNo.PLAYER1]: string;
-  [PlayerNo.PLAYER2]: string;  
+  [PlayerNo.PLAYER2]: string;
 }
 
 /** Config for the two-player game room */
 export interface RoomConfig {
   roomId: string;
-  gameBoardSize: number;
+  boardSize: number;
   availableShips: number[];
 }
 
@@ -28,7 +28,7 @@ export interface ShipDefinition {
 }
 
 /**
- * generic definitions for all available ships in the game
+ * definition of all available ships in the game
  * @constant
  */
 export const shipDefinitions: ShipDefinition[] = [
@@ -67,9 +67,9 @@ export interface ServerToClientEvents {
   /**
    * starts the game when both players have emitted gameReady
    * @param playerNames
-   * @param firstTurn 
+   * @param firstTurn
    */
-  gameStart: (args: { playerNames: PlayerNames, firstTurn: PlayerNo }) => void;
+  gameStart: (args: { playerNames: PlayerNames; firstTurn: PlayerNo }) => void;
   /**
    * ends the game; a winner might have been determined
    * @param winner
@@ -127,27 +127,27 @@ export interface ClientToServerEvents {
 
 /** data needed to start GameSetup scene */
 export interface GameSetupData {
-  roomConfig: RoomConfig; 
+  roomConfig: RoomConfig;
   /** the own player number */
   playerNo: PlayerNo;
 }
 
 /** data needed to start Game scene */
 export interface GameData {
-  roomConfig: RoomConfig; 
-  playerNames: PlayerNames; 
+  roomConfig: RoomConfig;
+  playerNames: PlayerNames;
   /** the own player number */
-  playerNo: PlayerNo; 
+  playerNo: PlayerNo;
   /** player number of the starting player */
-  firstTurn: PlayerNo; 
-  shipPlacement: ShipPlacement
+  firstTurn: PlayerNo;
+  shipPlacement: ShipPlacement;
 }
 
 /** data needed to start GameSetup */
 export interface GameOverData {
   /** the winner's player number */
-  winner?: PlayerNo; 
-  playerNames: PlayerNames; 
+  winner?: PlayerNo;
+  playerNames: PlayerNames;
   /** the own player number */
-  playerNo: PlayerNo
+  playerNo: PlayerNo;
 }
