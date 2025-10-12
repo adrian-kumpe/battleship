@@ -1,7 +1,6 @@
 import {
   ClientToServerEvents,
   Coord,
-  Modality,
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
@@ -119,22 +118,13 @@ io.on('connection', (socket: Socket) => {
     lock = args.locked;
   });
 
-  const performAttack = (
-    room: Room,
-    playerNo: PlayerNo,
-    attackedPlayer: BattleshipGameBoard,
-    coord: Coord,
-    modality: Modality,
-  ) => {
+  const performAttack = (room: Room, playerNo: PlayerNo, attackedPlayer: BattleshipGameBoard, coord: Coord) => {
     const attackResult = attackedPlayer.placeAttack(coord);
     room.playerChange();
     console.info(
       `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
     );
-    io.to(room.roomConfig.roomId).emit(
-      'attack',
-      Object.assign(attackResult, { coord: coord, playerNo: playerNo, modality: modality }),
-    );
+    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
     if (attackedPlayer.getGameOver()) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
@@ -145,10 +135,7 @@ io.on('connection', (socket: Socket) => {
   /** player attacks */
   socket.on(
     'attack',
-    (
-      args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number }; modality: Modality },
-      cb,
-    ) => {
+    (args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } }, cb) => {
       const room = roomList.getRoomBySocketId(socket.id);
       const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
       const attackedPlayer = room?.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo);
@@ -169,7 +156,7 @@ io.on('connection', (socket: Socket) => {
         return cb(error ?? 'Internal error');
       }
       cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
-      performAttack(room, playerNo, attackedPlayer, coord, args.modality);
+      performAttack(room, playerNo, attackedPlayer, coord);
     },
   );
 

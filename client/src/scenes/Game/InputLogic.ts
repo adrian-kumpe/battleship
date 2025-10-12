@@ -1,6 +1,6 @@
 import { InputLogicBase } from '../../modalities/InputLogicBase';
 import { gameRadio, layoutConfig, socket } from '../../main';
-import { Coord, Modality } from '../../shared/models';
+import { Coord } from '../../shared/models';
 import { Game } from './Game';
 
 /**
@@ -68,13 +68,12 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
   })
   confirmAttack() {
     const coord = this.getSelectedCellCoord();
-    socket.emit('attack', { coord: coord, modality: Modality.GESTURE }, (error?: string) => {
+    socket.emit('attack', { coord: coord }, (error?: string) => {
       if (error) {
         console.warn(error);
         gameRadio.sendMessage('Error: ' + error);
       }
     });
-    // todo modality entfernen
   }
 
   /**

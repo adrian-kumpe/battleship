@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { Grid } from '../../elements/Grid';
-import { GameData, GameOverData, Modality, PlayerNo } from '../../shared/models';
+import { GameData, GameOverData, PlayerNo } from '../../shared/models';
 import { socket, gameRadio, defaultFont, layoutConfig } from '../../main';
 import { Ship } from '../../elements/Ship';
 import { KeyboardInputLogic } from './KeyboardInputLogic';
@@ -79,13 +79,7 @@ export class Game extends Scene {
     socket.on('attack', (args) => {
       ((grid: Grid) => {
         const { xPx, yPx } = grid.getGridCellToCoord(args.coord);
-        const tint = {
-          [Modality.POINT_AND_ClICK]: 0x000000,
-          [Modality.VOICE]: 0x0047ab,
-          [Modality.GESTURE]: 0xd2042d,
-          [Modality.KEYBOARD]: 0x1c7b1c,
-        }[args.modality];
-        this.drawMove(xPx, yPx, args.hit, tint);
+        this.drawMove(xPx, yPx, args.hit);
         if (args.sunken) {
           const shipCount = grid.shipCount.getShipCount();
           shipCount[args.sunken.size - 1]--;
@@ -177,10 +171,10 @@ export class Game extends Scene {
       .setOrigin(0, 1);
   }
 
-  private drawMove(xPx: number, yPx: number, hit: boolean, tint: number) {
+  private drawMove(xPx: number, yPx: number, hit: boolean) {
     this.add
       .image(xPx + layoutConfig.cellSize / 2, yPx + layoutConfig.cellSize / 2, hit ? 'explosion' : 'dot')
-      .setTint(tint);
+      .setTint(0x000000);
   }
 
   private drawOwnShips() {
