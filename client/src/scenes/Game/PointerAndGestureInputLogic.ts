@@ -33,7 +33,6 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
             Gestures.CIRCLE,
             () => {
               console.log('CIRCLE');
-              this.inputLogic.reload();
             },
           ],
         ]).get(gesture) || (() => {})
@@ -127,6 +126,4 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
   }
 
   selectCoordExt() {}
-
-  reloadExt() {}
 }

@@ -48,8 +48,7 @@ export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLog
             inputLogic.selectCoord(coord);
             inputLogic.confirmAttack();
           }
-        })
-        .on('keydown-R', () => inputLogic.reload());
+        });
     }
   }
 
@@ -59,6 +58,4 @@ export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLog
     this.focusCell(this.inputLogic.getSelectedCellCoord());
     this.updateFocusCellVisibility(0);
   }
-
-  reloadExt() {}
 }

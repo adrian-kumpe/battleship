@@ -10,15 +10,12 @@ import { Game } from './Game';
 export interface IInputLogicExtension {
   attackCoordExt(): void;
   selectCoordExt(): void;
-  reloadExt(): void;
 }
 
 /**
  * basic methods to interact in Game
  */
 export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
-  /** whether the player can attack (reloading is necessary) */
-  private oneInTheChamber = true;
   /** slot for the selected coord */
   selectedCoord: Coord = { x: 0, y: 0 };
   /** frame to display the selected coord */
@@ -70,19 +67,11 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
     this.extensions.forEach((e) => e.attackCoordExt());
   })
   confirmAttack() {
-    if (!this.oneInTheChamber) {
-      const error = 'You need to reload';
-      console.warn(error);
-      gameRadio.sendMessage('Error: ' + error);
-      return;
-    }
     const coord = this.getSelectedCellCoord();
     socket.emit('attack', { coord: coord, modality: Modality.GESTURE }, (error?: string) => {
       if (error) {
         console.warn(error);
         gameRadio.sendMessage('Error: ' + error);
-      } else {
-        this.oneInTheChamber = false;
       }
     });
     // todo modality entfernen
@@ -103,16 +92,5 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
       const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(coord);
       this.crosshairRef.setX(xPx).setY(yPx);
     }
-  }
-
-  /**
-   * reload after placing an attack
-   */
-  @InputLogic.callAfter(function (this: InputLogic) {
-    this.extensions.forEach((e) => e.reloadExt());
-  })
-  reload() {
-    console.log('reload!'); // todo das muss noch ins gui
-    this.oneInTheChamber = true;
   }
 }
