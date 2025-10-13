@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { defaultFont, gameRadio, socket } from '../main';
-import { GameSetupData, PlayerNo, RoomConfig } from '../shared/models';
+import { ErrorCode, ErrorMessage, GameSetupData, PlayerNo, RoomConfig } from '../shared/models';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -82,7 +82,7 @@ export class MainMenu extends Scene {
         socket.emit(
           'createRoom',
           { roomConfig: { boardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Player1Name' }, // Todo Name sollte eingegeben werden könnten
-          (args?: { roomConfig: RoomConfig }, error?: string) => {
+          (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
             if (args) {
               gameRadio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
               this.scene.start('GameSetup', {
@@ -91,8 +91,8 @@ export class MainMenu extends Scene {
               } satisfies GameSetupData);
             }
             if (error) {
-              console.warn(error);
-              gameRadio.sendMessage('Error: ' + error);
+              console.warn(ErrorMessage[error]);
+              gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
             }
           },
         );
@@ -106,7 +106,7 @@ export class MainMenu extends Scene {
         socket.emit(
           'joinRoom',
           { roomId: roomnr.toString(), playerName: 'Player2Name' }, // Todo Name sollte eingegeben werden könnten
-          (args?: { roomConfig: RoomConfig }, error?: string) => {
+          (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
             if (args) {
               this.scene.start('GameSetup', {
                 roomConfig: args.roomConfig,
@@ -114,8 +114,8 @@ export class MainMenu extends Scene {
               } satisfies GameSetupData);
             }
             if (error) {
-              console.warn(error);
-              gameRadio.sendMessage('Error: ' + error);
+              console.warn(ErrorMessage[error]);
+              gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
             }
           },
         );

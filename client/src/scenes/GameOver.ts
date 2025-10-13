@@ -25,7 +25,7 @@ export class GameOver extends Scene {
 
     const winner_text =
       data.winner === undefined
-        ? 'The opponent left the game'
+        ? 'You won because your opponent left the game'
         : data.winner === data.playerNo
           ? 'You won the game'
           : data.playerNames[data.winner] + ' won the game';

@@ -1,6 +1,6 @@
 import { InputLogicBase } from '../../modalities/InputLogicBase';
 import { gameRadio, layoutConfig, socket } from '../../main';
-import { Coord } from '../../shared/models';
+import { Coord, ErrorCode, ErrorMessage } from '../../shared/models';
 import { Game } from './Game';
 
 /**
@@ -68,10 +68,10 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
   })
   confirmAttack() {
     const coord = this.getSelectedCellCoord();
-    socket.emit('attack', { coord: coord }, (error?: string) => {
+    socket.emit('attack', { coord: coord }, (error?: ErrorCode) => {
       if (error) {
-        console.warn(error);
-        gameRadio.sendMessage('Error: ' + error);
+        console.warn(ErrorMessage[error]);
+        gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
       }
     });
   }

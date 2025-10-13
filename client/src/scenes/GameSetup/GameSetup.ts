@@ -1,6 +1,14 @@
 import { Scene } from 'phaser';
 import { defaultFont, gameRadio, layoutConfig, socket } from '../../main';
-import { Coord, GameData, GameSetupData, ShipPlacement, shipDefinitions } from '../../shared/models';
+import {
+  Coord,
+  ErrorCode,
+  ErrorMessage,
+  GameData,
+  GameSetupData,
+  ShipPlacement,
+  shipDefinitions,
+} from '../../shared/models';
 import { Grid } from '../../elements/Grid';
 import { Ship, ShipArray } from '../../elements/Ship';
 import { GestureCanvas, GestureRecognition } from '../../elements/Gestures';
@@ -102,9 +110,9 @@ export class GameSetup extends Scene {
 
   /**
    * checks whether the placement of the ships is valid (user side)
-   * @returns error message if placement is not valid
+   * @returns error code
    */
-  private checkShipPlacementValid(shipPlacement: ShipPlacement): string | undefined {
+  private checkShipPlacementValid(shipPlacement: ShipPlacement): ErrorCode | undefined {
     const allCoords: (Coord & { guarded: boolean })[] = [];
     shipPlacement.forEach((v) => {
       // push all coords where the ship is on or guards into allCoords
@@ -123,9 +131,9 @@ export class GameSetup extends Scene {
     const shipCoords = allCoords.filter((c) => c.guarded === false);
     const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);
     return !allShipsWithinGrid
-      ? 'Not all ships are within the grid'
+      ? ErrorCode.SHIP_OUT_OF_GRID
       : !noIllegalOverlaps
-        ? 'There are illegal overlaps of some ships'
+        ? ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS
         : undefined;
   }
 
@@ -163,15 +171,15 @@ export class GameSetup extends Scene {
       .setInteractive()
       .on('pointerdown', () => {
         const shipPlacement = this.getShipPlacement();
-        const error = this.checkShipPlacementValid(shipPlacement);
+        const error = this.checkShipPlacementValid(shipPlacement); // todo das kann eigentlich vollständig vom Server übernommen werden.
         if (error) {
-          console.warn(error);
-          gameRadio.sendMessage('Error: ' + error);
+          console.warn(ErrorMessage[error]);
+          gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
         } else {
-          socket.emit('gameReady', { shipPlacement: shipPlacement }, (error?: string) => {
+          socket.emit('gameReady', { shipPlacement: shipPlacement }, (error?: ErrorCode) => {
             if (error) {
-              console.warn(error);
-              gameRadio.sendMessage('Error: ' + error);
+              console.warn(ErrorMessage[error]);
+              gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
             }
           });
           // todo hier muss ersichtlich sein, dass die shipplacement abgeschickt wurde

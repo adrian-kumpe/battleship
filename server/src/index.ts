@@ -1,6 +1,8 @@
 import {
   ClientToServerEvents,
   Coord,
+  ErrorCode,
+  ErrorMessage,
   PlayerNo,
   RoomConfig,
   ServerToClientEvents,
@@ -66,8 +68,8 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoom(args.roomId);
     const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
     if (error || !room) {
-      console.warn(error ?? 'Internal error');
-      return cb(undefined, error ?? 'Internal error');
+      console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
+      return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
     console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
     room.player2 = new BattleshipGameBoard(client, room.roomConfig.boardSize);
@@ -95,8 +97,8 @@ io.on('connection', (socket: Socket) => {
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
     const error = undefined; // todo shipPlacement müsste validiert werden
     if (error || !room || !player) {
-      console.warn(error ?? 'Internal error');
-      return cb(error ?? 'Internal error');
+      console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
+      return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
     io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} is ready to start` });
@@ -149,11 +151,11 @@ io.on('connection', (socket: Socket) => {
         room?.checkGameStarted() ??
         room?.checkPlayersTurn(playerNo) ??
         room?.checkCoordValid(coord) ??
-        attackedPlayer?.checkCoordAvailable(coord) ??
-        checkLocked();
+        attackedPlayer?.checkCoordAvailable(coord);
+      // ?? checkLocked();
       if (error || !room || playerNo === undefined || !attackedPlayer) {
-        console.warn(error ?? 'Internal error');
-        return cb(error ?? 'Internal error');
+        console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
+        return cb(error ?? ErrorCode.INTERNAL_ERROR);
       }
       cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
       performAttack(room, playerNo, attackedPlayer, coord);
@@ -163,6 +165,6 @@ io.on('connection', (socket: Socket) => {
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
 
-function checkLocked(): string | undefined {
-  return lock ? 'The gesture Input is currently being used' : undefined;
-}
+// function checkLocked(): string | undefined {
+//   return lock ? 'The gesture Input is currently being used' : undefined;
+// }

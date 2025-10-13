@@ -5,9 +5,9 @@ export class Radio {
   private messageElementsConfig = [
     { offsetY: 942, alpha: 1 },
     { offsetY: 910, alpha: 1 },
-    { offsetY: 878, alpha: 0.7 },
-    { offsetY: 846, alpha: 0.6 },
-    { offsetY: 814, alpha: 0.5 },
+    { offsetY: 878, alpha: 2 / 3 },
+    { offsetY: 846, alpha: 1 / 2 },
+    { offsetY: 814, alpha: 1 / 3 },
   ];
   private messageElements: Phaser.GameObjects.Text[] = [];
 
@@ -27,7 +27,7 @@ export class Radio {
     this.sendMessage('Radio initialized');
   }
 
-  /** adds a message to the chat list */
+  /** adds a message to the chat */
   sendMessage(message: string) {
     this.chat.push({ date: new Date(), message: message });
     this.updateRadio();

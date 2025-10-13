@@ -1,4 +1,4 @@
-import { Coord, PlayerNo, RoomConfig } from './shared/models';
+import { Coord, ErrorCode, PlayerNo, RoomConfig } from './shared/models';
 import { BattleshipGameBoard } from './game';
 
 export class RoomList {
@@ -28,12 +28,12 @@ export class RoomList {
     return this.rooms.find((r) => r.player1.client.socketId === socketId || r.player2?.client.socketId === socketId);
   }
 
-  public checkClientAlreadyInRoom(socketId: string): string | undefined {
-    return this.getRoomBySocketId(socketId) !== undefined ? 'Client is already in a room' : undefined;
+  public checkClientAlreadyInRoom(socketId: string): ErrorCode | undefined {
+    return this.getRoomBySocketId(socketId) !== undefined ? ErrorCode.CLIENT_NOT_AVAILABLE : undefined;
   }
 
-  public checkRoomIdUnknown(roomId: string): string | undefined {
-    return this.getRoom(roomId) !== undefined ? undefined : 'Room does not exist';
+  public checkRoomIdUnknown(roomId: string): ErrorCode | undefined {
+    return this.getRoom(roomId) !== undefined ? undefined : ErrorCode.ROOM_NOT_FOUND;
   }
 }
 
@@ -71,17 +71,17 @@ export class Room {
     this.currentPlayer = ((this.currentPlayer + 1) % 2) as PlayerNo;
   }
 
-  public checkGameStarted(): string | undefined {
-    return this.getGameReady() ? undefined : 'Game has not started yet';
+  public checkGameStarted(): ErrorCode | undefined {
+    return this.getGameReady() ? undefined : ErrorCode.GAME_HASNT_STARTED;
   }
 
-  public checkPlayersTurn(playerNo?: PlayerNo): string | undefined {
-    return this.currentPlayer !== playerNo ? "It's not the player's turn" : undefined;
+  public checkPlayersTurn(playerNo?: PlayerNo): ErrorCode | undefined {
+    return this.currentPlayer !== playerNo ? ErrorCode.NOT_PLAYERS_TURN : undefined;
   }
 
-  public checkCoordValid(coord: Coord): string | undefined {
+  public checkCoordValid(coord: Coord): ErrorCode | undefined {
     return coord.x < 0 || coord.y < 0 || coord.x >= this.roomConfig.boardSize || coord.y >= this.roomConfig.boardSize
-      ? 'Coord is not valid'
+      ? ErrorCode.COORD_INVALID
       : undefined;
   }
 }

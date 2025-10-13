@@ -1,4 +1,4 @@
-import { AttackResult, Coord, ShipDefinition, ShipInstance, ShipPlacement } from './shared/models';
+import { AttackResult, Coord, ErrorCode, ShipDefinition, ShipInstance, ShipPlacement } from './shared/models';
 import { Client } from '.';
 
 export class BattleshipGameBoard {
@@ -72,7 +72,7 @@ export class BattleshipGameBoard {
     };
   }
 
-  public checkCoordAvailable(coord: Coord): string | undefined {
-    return this.dirtyCoords.some((c) => c.x === coord.x && c.y === coord.y) ? 'Coord already attacked' : undefined;
+  public checkCoordAvailable(coord: Coord): ErrorCode | undefined {
+    return this.dirtyCoords.some((c) => c.x === coord.x && c.y === coord.y) ? ErrorCode.COORD_NOT_AVAILABLE : undefined;
   }
 }

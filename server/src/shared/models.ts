@@ -49,6 +49,41 @@ export interface AttackResult {
   sunken?: ShipDefinition & ShipInstance & Coord;
 }
 
+/** error codes to use in client-server comunication */
+export enum ErrorCode {
+  /** generic internal error */
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  /** client is already in an other room */
+  CLIENT_NOT_AVAILABLE = 'CLIENT_NOT_AVAILABLE',
+  /** room w/ roomId wasnt found */
+  ROOM_NOT_FOUND = 'ROOM_NOT_FOUND',
+  /** game hasn't started yet */
+  GAME_HASNT_STARTED = 'GAME_HASNT_STARTED',
+  /** it's not the player's turn */
+  NOT_PLAYERS_TURN = 'NOT_PLAYERS_TURN',
+  /** coord is not part of the grid */
+  COORD_INVALID = 'COORD_INVALID',
+  /** coord was already attacked */
+  COORD_NOT_AVAILABLE = 'COORD_NOT_AVAILABLE',
+  /** ship is not (fully) on the grid */
+  SHIP_OUT_OF_GRID = 'SHIP_OUT_OF_GRID',
+  /** there are ships w/ illegal overlaps */
+  SHIP_WITH_ILLEGAL_OVERLAPS = 'SHIP_WITH_ILLEGAL_OVERLAPS',
+}
+
+/** textual description for error codes */
+export const ErrorMessage: Record<ErrorCode, string> = {
+  [ErrorCode.INTERNAL_ERROR]: 'Internal error',
+  [ErrorCode.CLIENT_NOT_AVAILABLE]: 'Client is already in a room',
+  [ErrorCode.ROOM_NOT_FOUND]: 'Room does not exist',
+  [ErrorCode.GAME_HASNT_STARTED]: 'Game has not started yet',
+  [ErrorCode.NOT_PLAYERS_TURN]: "It's not your turn",
+  [ErrorCode.COORD_INVALID]: 'Coord is not valid',
+  [ErrorCode.COORD_NOT_AVAILABLE]: 'Coord already attacked',
+  [ErrorCode.SHIP_OUT_OF_GRID]: 'Not all ships are within the grid',
+  [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'There are illegal overlaps of some ships',
+};
+
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
 export interface ServerToClientEvents {
   /**
@@ -85,7 +120,7 @@ export interface ClientToServerEvents {
    */
   createRoom: (
     args: { roomConfig: Omit<RoomConfig, 'roomId'>; playerName: string },
-    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
+    cb: (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => void,
   ) => void;
   /**
    * joins a game
@@ -95,13 +130,13 @@ export interface ClientToServerEvents {
    */
   joinRoom: (
     args: { roomId: string; playerName: string },
-    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
+    cb: (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => void,
   ) => void;
   /**
    * commits shipPlacement; if both players are ready, the server can emit gameStart
    * @param shipPlacement placement of the player's ships
    */
-  gameReady: (args: { shipPlacement: ShipPlacement }, cb: (error?: string) => void) => void;
+  gameReady: (args: { shipPlacement: ShipPlacement }, cb: (error?: ErrorCode) => void) => void;
   /**
    * places an attack
    * @param coord to attack
@@ -110,10 +145,10 @@ export interface ClientToServerEvents {
    */
   attack: (
     args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } },
-    cb: (error?: string) => void,
+    cb: (error?: ErrorCode) => void,
   ) => void;
 
-  lock: (args: { locked: boolean }, cb: (error?: string) => void) => void;
+  lock: (args: { locked: boolean }, cb: (error?: ErrorCode) => void) => void;
 }
 
 /** data needed to start GameSetup scene */
