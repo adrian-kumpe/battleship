@@ -53,7 +53,7 @@ export class Game extends Scene {
     this.drawInstructions();
     this.drawOwnShips();
 
-    gameRadio.drawRadio(this.add);
+    gameRadio.initializeRadio(this.add);
     gameRadio.sendMessage(`${this.gameData.playerNames[data.firstTurn]} begins`);
 
     this.inputLogic = new InputLogic(this);

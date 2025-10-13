@@ -121,7 +121,7 @@ export class MainMenu extends Scene {
         );
       });
 
-    gameRadio.drawRadio(this.add);
+    gameRadio.initializeRadio(this.add);
     gameRadio.sendMessage('Welcome to Battleship!');
   }
 }

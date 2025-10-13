@@ -30,7 +30,7 @@ export class GameOver extends Scene {
           ? 'You won the game'
           : data.playerNames[data.winner] + ' won the game';
 
-    gameRadio.drawRadio(this.add);
+    gameRadio.initializeRadio(this.add);
     gameRadio.sendMessage(winner_text);
 
     this.gameOverText = this.add
