@@ -1,14 +1,6 @@
 import { Scene } from 'phaser';
 import { defaultFont, gameRadio, layoutConfig, socket } from '../../main';
-import {
-  Coord,
-  ErrorCode,
-  ErrorMessage,
-  GameData,
-  GameSetupData,
-  ShipPlacement,
-  shipDefinitions,
-} from '../../shared/models';
+import { ErrorCode, ErrorMessage, GameData, GameSetupData, ShipPlacement, shipDefinitions } from '../../shared/models';
 import { Grid } from '../../elements/Grid';
 import { Ship, ShipArray } from '../../elements/Ship';
 import { GestureCanvas, GestureRecognition } from '../../elements/Gestures';
@@ -76,8 +68,8 @@ export class GameSetup extends Scene {
       this.placingGrid,
       this.gestureRecognition,
       { x: layoutConfig.leftGridOffsetX, y: layoutConfig.gridOffsetY - layoutConfig.cellSize },
-      (layoutConfig.gridSize + 7) * layoutConfig.cellSize,
-      (layoutConfig.gridSize + 2) * layoutConfig.cellSize,
+      (layoutConfig.boardSize + 7) * layoutConfig.cellSize,
+      (layoutConfig.boardSize + 2) * layoutConfig.cellSize,
     );
     this.inputLogic.registerExtension(this.pointerAndGestureInputLogic);
     this.keyboardInputLogic = new KeyboardInputLogic(
@@ -107,38 +99,6 @@ export class GameSetup extends Scene {
       };
     });
   }
-
-  /**
-   * checks whether the placement of the ships is valid (user side)
-   * @returns error code
-   */
-  private checkShipPlacementValid(shipPlacement: ShipPlacement): ErrorCode | undefined {
-    const allCoords: (Coord & { guarded: boolean })[] = [];
-    shipPlacement.forEach((v) => {
-      // push all coords where the ship is on or guards into allCoords
-      const h = v.orientation === '↔️';
-      for (let i = -1; i < 2; i++) {
-        allCoords.push({ x: h ? v.x - 1 : v.x + i, y: h ? v.y + i : v.y - 1, guarded: true });
-        for (let j = 0; j < v.size; j++) {
-          allCoords.push({ x: h ? v.x + j : v.x + i, y: h ? v.y + i : v.y + j, guarded: i !== 0 });
-        }
-        allCoords.push({ x: h ? v.x + v.size : v.x + i, y: h ? v.y + i : v.y + v.size, guarded: true });
-      }
-    });
-    const allShipsWithinGrid = allCoords.every((c) => {
-      return c.guarded || (c.x >= 0 && c.x < layoutConfig.gridSize && c.y >= 0 && c.y < layoutConfig.gridSize);
-    });
-    const shipCoords = allCoords.filter((c) => c.guarded === false);
-    const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);
-    return !allShipsWithinGrid
-      ? ErrorCode.SHIP_OUT_OF_GRID
-      : !noIllegalOverlaps
-        ? ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS
-        : undefined;
-  }
-
-  /** emits gameReady: sends the current placement to the server */
-  //private commitShipPlacement() {}
 
   private drawShipParking() {
     for (let i = 0; i < 7; i++) {
@@ -171,19 +131,13 @@ export class GameSetup extends Scene {
       .setInteractive()
       .on('pointerdown', () => {
         const shipPlacement = this.getShipPlacement();
-        const error = this.checkShipPlacementValid(shipPlacement); // todo das kann eigentlich vollständig vom Server übernommen werden.
-        if (error) {
-          console.warn(ErrorMessage[error]);
-          gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
-        } else {
-          socket.emit('gameReady', { shipPlacement: shipPlacement }, (error?: ErrorCode) => {
-            if (error) {
-              console.warn(ErrorMessage[error]);
-              gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
-            }
-          });
+        socket.emit('gameReady', { shipPlacement: shipPlacement }, (error?: ErrorCode) => {
+          if (error) {
+            console.warn(ErrorMessage[error]);
+            gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
+          }
           // todo hier muss ersichtlich sein, dass die shipplacement abgeschickt wurde
-        }
+        });
       });
   }
 

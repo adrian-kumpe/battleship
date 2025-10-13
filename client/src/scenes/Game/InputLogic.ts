@@ -48,8 +48,8 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
       .fillRect(
         layoutConfig.leftGridOffsetX - layoutConfig.cellSize,
         layoutConfig.gridOffsetY - layoutConfig.cellSize,
-        layoutConfig.cellSize * (layoutConfig.gridSize + 2),
-        layoutConfig.cellSize * (layoutConfig.gridSize + 2),
+        layoutConfig.cellSize * (layoutConfig.boardSize + 2),
+        layoutConfig.cellSize * (layoutConfig.boardSize + 2),
       );
     const mask = maskShape.createGeometryMask();
     container.setMask(mask);
@@ -85,7 +85,7 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
   })
   selectCoord(coord: Coord) {
     const coordWithinGrid =
-      coord && coord.x >= 0 && coord.x < layoutConfig.gridSize && coord.y >= 0 && coord.y < layoutConfig.gridSize;
+      coord && coord.x >= 0 && coord.x < layoutConfig.boardSize && coord.y >= 0 && coord.y < layoutConfig.boardSize;
     if (coordWithinGrid) {
       this.selectedCoord = coord;
       const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(coord);

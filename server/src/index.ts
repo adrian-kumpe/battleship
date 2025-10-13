@@ -95,7 +95,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('gameReady', (args: { shipPlacement: ShipPlacement }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player } = room?.getPlayerBySocketId(socket.id) ?? {};
-    const error = undefined; // todo shipPlacement müsste validiert werden
+    const error = room?.checkShipPlacementValid(args.shipPlacement);
     if (error || !room || !player) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
       return cb(error ?? ErrorCode.INTERNAL_ERROR);

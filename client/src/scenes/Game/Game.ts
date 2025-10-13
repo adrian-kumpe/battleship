@@ -68,8 +68,8 @@ export class Game extends Scene {
     this.pointerAndGestureInputLogic = new PointerAndGestureInputLogic(
       this,
       { x: layoutConfig.leftGridOffsetX - layoutConfig.cellSize, y: layoutConfig.gridOffsetY - layoutConfig.cellSize },
-      (layoutConfig.gridSize + 2) * layoutConfig.cellSize,
-      (layoutConfig.gridSize + 2) * layoutConfig.cellSize,
+      (layoutConfig.boardSize + 2) * layoutConfig.cellSize,
+      (layoutConfig.boardSize + 2) * layoutConfig.cellSize,
       this.inputLogic,
       this.opposingGrid,
       this.gestureRecognition,

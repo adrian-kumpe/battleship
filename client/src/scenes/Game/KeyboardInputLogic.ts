@@ -14,7 +14,7 @@ export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLog
     super.arrowKeyAction(shiftX, shiftY);
     const coord = this.getFocusCellCoord();
     const coordWithinGrid =
-      coord && coord.x >= 0 && coord.x < layoutConfig.gridSize && coord.y >= 0 && coord.y < layoutConfig.gridSize;
+      coord && coord.x >= 0 && coord.x < layoutConfig.boardSize && coord.y >= 0 && coord.y < layoutConfig.boardSize;
     this.updateFocusCellVisibility(!coordWithinGrid || this.inputLogic.exclusiveInputInUse ? 1 : 0);
     if (coordWithinGrid && !this.inputLogic.exclusiveInputInUse) {
       this.inputLogic.selectCoord(coord);

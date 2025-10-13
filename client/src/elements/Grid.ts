@@ -17,7 +17,7 @@ export class Grid {
   /** draw the grid into a given scene */
   drawGrid(add: Phaser.GameObjects.GameObjectFactory, legendPosition: '→' | '←') {
     // todo gridDrawData entfernen damit das kleiner wird?
-    for (let row = 0; row < layoutConfig.gridSize; row++) {
+    for (let row = 0; row < layoutConfig.boardSize; row++) {
       // draw horizontal legend (A-F)
       add.text(
         this.gridDrawData.gridOffsetX + 25 + this.gridDrawData.cellSize * row,
@@ -28,14 +28,14 @@ export class Grid {
       // draw vertical legend (1-8)
       add.text(
         legendPosition === '→'
-          ? this.gridDrawData.gridOffsetX + 15 + this.gridDrawData.cellSize * layoutConfig.gridSize
+          ? this.gridDrawData.gridOffsetX + 15 + this.gridDrawData.cellSize * layoutConfig.boardSize
           : this.gridDrawData.gridOffsetX - 30,
         this.gridDrawData.gridOffsetY + 20 + this.gridDrawData.cellSize * row,
         (row + 1).toString(),
         defaultFont,
       );
       // draw grid lines
-      for (let col = 0; col < layoutConfig.gridSize; col++) {
+      for (let col = 0; col < layoutConfig.boardSize; col++) {
         const x = this.gridDrawData.gridOffsetX + col * this.gridDrawData.cellSize;
         const y = this.gridDrawData.gridOffsetY + row * this.gridDrawData.cellSize;
         add

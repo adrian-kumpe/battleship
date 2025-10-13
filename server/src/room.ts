@@ -1,4 +1,4 @@
-import { Coord, ErrorCode, PlayerNo, RoomConfig } from './shared/models';
+import { Coord, ErrorCode, PlayerNo, RoomConfig, ShipPlacement } from './shared/models';
 import { BattleshipGameBoard } from './game';
 
 export class RoomList {
@@ -83,5 +83,31 @@ export class Room {
     return coord.x < 0 || coord.y < 0 || coord.x >= this.roomConfig.boardSize || coord.y >= this.roomConfig.boardSize
       ? ErrorCode.COORD_INVALID
       : undefined;
+  }
+
+  public checkShipPlacementValid(shipPlacement: ShipPlacement): ErrorCode | undefined {
+    const allCoords: (Coord & { guarded: boolean })[] = [];
+    shipPlacement.forEach((v) => {
+      // push all coords where the ship is on or guards into allCoords
+      const h = v.orientation === '↔️';
+      for (let i = -1; i < 2; i++) {
+        allCoords.push({ x: h ? v.x - 1 : v.x + i, y: h ? v.y + i : v.y - 1, guarded: true });
+        for (let j = 0; j < v.size; j++) {
+          allCoords.push({ x: h ? v.x + j : v.x + i, y: h ? v.y + i : v.y + j, guarded: i !== 0 });
+        }
+        allCoords.push({ x: h ? v.x + v.size : v.x + i, y: h ? v.y + i : v.y + v.size, guarded: true });
+      }
+    });
+    const allShipsWithinGrid = allCoords.every((c) => {
+      return c.guarded || (c.x >= 0 && c.x < this.roomConfig.boardSize && c.y >= 0 && c.y < this.roomConfig.boardSize);
+    });
+    const shipCoords = allCoords.filter((c) => c.guarded === false);
+    const noIllegalOverlaps = shipCoords.every((s) => allCoords.filter((a) => a.x === s.x && a.y === s.y).length <= 1);
+    if (!allShipsWithinGrid) {
+      return ErrorCode.SHIP_OUT_OF_GRID;
+    }
+    if (!noIllegalOverlaps) {
+      return ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS;
+    }
   }
 }

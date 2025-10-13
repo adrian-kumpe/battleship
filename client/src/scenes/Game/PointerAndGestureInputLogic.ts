@@ -83,14 +83,14 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
           pointermoveWithinBounds(
             pointer.x - layoutConfig.cellSize / 2,
             layoutConfig.leftGridOffsetX,
-            (layoutConfig.gridSize - 1) * layoutConfig.cellSize,
+            (layoutConfig.boardSize - 1) * layoutConfig.cellSize,
           ),
         )
         .setY(
           pointermoveWithinBounds(
             pointer.y - layoutConfig.cellSize / 2,
             layoutConfig.gridOffsetY,
-            (layoutConfig.gridSize - 1) * layoutConfig.cellSize,
+            (layoutConfig.boardSize - 1) * layoutConfig.cellSize,
           ),
         );
       this.dragmove(pointer);
