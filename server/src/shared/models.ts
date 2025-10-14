@@ -141,13 +141,8 @@ export interface ClientToServerEvents {
   /**
    * places an attack
    * @param coord to attack
-   * @param randomCoord flag defines whether a random coord should be used
-   * @param snakeMovement flag defines the next coord relative to the last
    */
-  attack: (
-    args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } },
-    cb: (error?: ErrorCode) => void,
-  ) => void;
+  attack: (args: { coord: Coord }, cb: (error?: ErrorCode) => void) => void;
   /**
    * player responds to an attack
    * @param AttackResult w/ information if a ship was hit/sunken (if available)

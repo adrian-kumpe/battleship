@@ -135,32 +135,23 @@ io.on('connection', (socket: Socket) => {
   };
 
   /** player attacks */
-  socket.on(
-    'attack',
-    (args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } }, cb) => {
-      const room = roomList.getRoomBySocketId(socket.id);
-      const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
-      const attackedPlayer = room?.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo);
-      const coord =
-        (args.randomCoord
-          ? attackedPlayer?.getRandomCoord()
-          : args.snakeMovement
-            ? attackedPlayer?.getNextCoord(args.snakeMovement)
-            : undefined) ?? args.coord;
-      const error =
-        room?.checkGameStarted() ??
-        room?.checkPlayersTurn(playerNo) ??
-        room?.checkCoordValid(coord) ??
-        attackedPlayer?.checkCoordAvailable(coord);
-      // ?? checkLocked();
-      if (error || !room || playerNo === undefined || !attackedPlayer) {
-        console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
-        return cb(error ?? ErrorCode.INTERNAL_ERROR);
-      }
-      cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
-      performAttack(room, playerNo, attackedPlayer, coord);
-    },
-  );
+  socket.on('attack', (args: { coord: Coord }, cb) => {
+    const room = roomList.getRoomBySocketId(socket.id);
+    const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
+    const attackedPlayer = room?.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo);
+    const error =
+      room?.checkGameStarted() ??
+      room?.checkPlayersTurn(playerNo) ??
+      room?.checkCoordValid(args.coord) ??
+      attackedPlayer?.checkCoordAvailable(args.coord);
+    // ?? checkLocked();
+    if (error || !room || playerNo === undefined || !attackedPlayer) {
+      console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
+      return cb(error ?? ErrorCode.INTERNAL_ERROR);
+    }
+    cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
+    performAttack(room, playerNo, attackedPlayer, args.coord);
+  });
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));

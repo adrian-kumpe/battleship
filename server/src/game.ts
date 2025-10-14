@@ -42,22 +42,6 @@ export class BattleshipGameBoard {
     );
   }
 
-  public getRandomCoord(): Coord {
-    let coord: Coord;
-    do {
-      coord = { x: Math.floor(Math.random() * this.boardSize), y: Math.floor(Math.random() * this.boardSize) };
-    } while (this.checkCoordAvailable(coord));
-    return coord;
-  }
-
-  public getNextCoord(snakeMovement: { up: number; right: number }): Coord {
-    const currentCoord = this.dirtyCoords.slice(-1)[0];
-    return {
-      x: (currentCoord.x + this.boardSize + snakeMovement.right) % this.boardSize,
-      y: (currentCoord.y + this.boardSize - snakeMovement.up) % this.boardSize,
-    };
-  }
-
   public placeAttack(coord: Coord): AttackResult {
     this.dirtyCoords.push(coord);
     for (const s of this._shipPlacement ?? []) {
