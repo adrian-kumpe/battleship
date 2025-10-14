@@ -99,9 +99,11 @@ export interface ServerToClientEvents {
   gameStart: (args: { playerNames: PlayerNames; firstTurn: PlayerNo }) => void;
   /**
    * ends the game; a winner might have been determined
+   * reaction to reportGameOver
    * @param winner
    */
   gameOver: (args: { winner?: PlayerNo }) => void;
+  // todo das soll manuell gemacht werden --> event wird nur gesendet, nachdem das ende reported wurde
   /**
    * informs all players when an attack was successfully placed
    * @param AttackResult w/ information if a ship was hit/sunken (if available)
@@ -154,6 +156,10 @@ export interface ClientToServerEvents {
    * @param coord to flag
    */
   flag: (args: Omit<AttackResult, 'sunken'> & { coord: Coord }, cb: (error?: ErrorCode) => void) => void;
+  /**
+   * player reports the end of the game
+   */
+  reportGameOver: (cb: (error?: ErrorCode) => void) => void;
 
   lock: (args: { locked: boolean }, cb: (error?: ErrorCode) => void) => void;
 }

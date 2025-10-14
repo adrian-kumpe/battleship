@@ -152,6 +152,12 @@ io.on('connection', (socket: Socket) => {
     cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
     performAttack(room, playerNo, attackedPlayer, args.coord);
   });
+
+  socket.on('respond', () => {});
+
+  socket.on('flag', () => {});
+
+  socket.on('reportGameOver', () => {});
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
