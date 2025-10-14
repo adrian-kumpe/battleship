@@ -109,6 +109,7 @@ export interface ServerToClientEvents {
    * @param playerNo who placed the attack
    */
   attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo }) => void;
+  // todo das soll manuell gemacht werden
 }
 
 /** client to server events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -147,6 +148,17 @@ export interface ClientToServerEvents {
     args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number } },
     cb: (error?: ErrorCode) => void,
   ) => void;
+  /**
+   * player responds to an attack
+   * @param AttackResult w/ information if a ship was hit/sunken (if available)
+   * @param coord that was attacked
+   */
+  respond: (args: AttackResult & { coord: Coord }, cb: (error?: ErrorCode) => void) => void;
+  /**
+   * player flags a coord as (not) hit
+   * @param coord to flag
+   */
+  flag: (args: Omit<AttackResult, 'sunken'> & { coord: Coord }, cb: (error?: ErrorCode) => void) => void;
 
   lock: (args: { locked: boolean }, cb: (error?: ErrorCode) => void) => void;
 }
