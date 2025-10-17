@@ -17,8 +17,8 @@ export class GameSetup extends Scene {
   placingGrid: Grid;
   gestureCanvas: GestureCanvas;
   private gestureRecognition: GestureRecognition;
-  private baseShipId = 1;
-  shipArray: ShipArray = new ShipArray();
+  private baseShipId: number;
+  shipArray: ShipArray;
   inputLogic: InputLogic;
   keyboardInputLogic: KeyboardInputLogic;
   pointerAndGestureInputLogic: PointerAndGestureInputLogic;
@@ -40,6 +40,8 @@ export class GameSetup extends Scene {
     this.add.image(0, 0, 'background').setOrigin(0).setAlpha(0.2, 0.3, 0, 0.1);
 
     this.gameSetupData = data;
+    this.shipArray = new ShipArray();
+    this.baseShipId = 1;
 
     this.placingGrid.drawGrid(this.add, '→');
     this.drawShipParking();

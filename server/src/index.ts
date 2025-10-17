@@ -67,10 +67,10 @@ io.on('connection', (socket: Socket) => {
   socket.on('joinRoom', (args: { roomId: string; playerName: string }, cb) => {
     const client: Client = { socketId: socket.id, playerName: args.playerName };
     const room = roomList.getRoom(args.roomId);
-    const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId);
+    const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId); //todo noch schauen ob der raum voll ist
     if (error || !room) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
-      return cb(error ?? ErrorCode.INTERNAL_ERROR);
+      return cb(undefined, error ?? ErrorCode.INTERNAL_ERROR);
     }
     console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
     room.player2 = new BattleshipGameBoard(client, room.roomConfig.boardSize);
