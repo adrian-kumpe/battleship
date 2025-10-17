@@ -10,6 +10,7 @@ import { Game } from './Game';
 export interface IInputLogicExtension {
   attackCoordExt(): void;
   selectCoordExt(): void;
+  flagCoordExt(): void;
 }
 
 /**
@@ -91,5 +92,19 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
       const { xPx, yPx } = this.scene.opposingGrid.getGridCellToCoord(coord);
       this.crosshairRef.setX(xPx).setY(yPx);
     }
+  }
+
+  /**
+   * flag a cell of the grid
+   * @param flag - whether a ship was hit or not
+   */
+  @InputLogic.callAfter(function (this: InputLogic) {
+    this.extensions.forEach((e) => e.flagCoordExt());
+  })
+  flagCoord() {
+    const coord = this.getSelectedCellCoord();
+    console.log('diese Koordinate wird geflagt');
+    console.log(coord);
+    // todo hier müsste die flag der coord durchrotiert werden
   }
 }

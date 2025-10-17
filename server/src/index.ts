@@ -1,4 +1,5 @@
 import {
+  AttackResult,
   ClientToServerEvents,
   Coord,
   ErrorCode,
@@ -120,20 +121,6 @@ io.on('connection', (socket: Socket) => {
     lock = args.locked;
   });
 
-  const performAttack = (room: Room, playerNo: PlayerNo, attackedPlayer: BattleshipGameBoard, coord: Coord) => {
-    const attackResult = attackedPlayer.placeAttack(coord);
-    room.playerChange();
-    console.info(
-      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
-    );
-    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
-    if (attackedPlayer.getGameOver()) {
-      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
-      roomList.deleteRoom(room.roomConfig.roomId);
-    }
-  };
-
   /** player attacks */
   socket.on('attack', (args: { coord: Coord }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
@@ -153,9 +140,29 @@ io.on('connection', (socket: Socket) => {
     performAttack(room, playerNo, attackedPlayer, args.coord);
   });
 
-  socket.on('respond', () => {});
+  const performAttack = (room: Room, playerNo: PlayerNo, attackedPlayer: BattleshipGameBoard, coord: Coord) => {
+    const attackResult = attackedPlayer.placeAttack(coord);
+    // todo evtl muss der spieler das ergebnis selbst reporten: ergebnis zwischenspeichern, ein lock setzen für den spieler
+    room.playerChange();
+    console.info(
+      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
+    );
+    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
+    if (attackedPlayer.getGameOver()) {
+      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
+      roomList.deleteRoom(room.roomConfig.roomId);
+    }
+  };
 
-  socket.on('flag', () => {});
+  socket.on('respond', (args: AttackResult & { coord: Coord }) => {
+    const room = roomList.getRoomBySocketId(socket.id);
+    const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
+    playerNo;
+    // hier muss überprüft werden, ob das attack result zum feld passt
+    // neuen fehler werfen
+    // evtl attack result an alle schicken
+  });
 
   socket.on('reportGameOver', () => {});
 });

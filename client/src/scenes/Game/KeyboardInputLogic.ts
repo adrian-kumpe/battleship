@@ -48,6 +48,13 @@ export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLog
             inputLogic.selectCoord(coord);
             inputLogic.confirmAttack();
           }
+        })
+        .on('keydown-F', () => {
+          const coord = this.getFocusCellCoord();
+          if (coord) {
+            inputLogic.selectCoord(coord);
+            inputLogic.flagCoord();
+          }
         });
     }
   }
@@ -58,4 +65,6 @@ export class KeyboardInputLogic extends KeyboardInput<Game> implements IInputLog
     this.focusCell(this.inputLogic.getSelectedCellCoord());
     this.updateFocusCellVisibility(0);
   }
+
+  flagCoordExt() {}
 }

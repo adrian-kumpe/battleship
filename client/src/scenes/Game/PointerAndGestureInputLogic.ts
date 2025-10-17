@@ -60,6 +60,13 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
       this.inputLogic.confirmAttack();
       return;
     }
+    // gestures soll es vorerst nicht geben, nur den richtsklick zum markieren nutzen
+    if (pointer.rightButtonDown()) {
+      this.inputLogic.selectCoord(coord);
+      this.inputLogic.flagCoord();
+      return;
+    }
+    return; // todo
     const selectedCoord = this.inputLogic.getSelectedCellCoord();
     if (
       pointer.rightButtonDown() &&
@@ -126,4 +133,6 @@ export class PointerAndGestureInputLogic extends DraggablePointerAndGestureInput
   }
 
   selectCoordExt() {}
+
+  flagCoordExt() {}
 }
