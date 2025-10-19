@@ -103,8 +103,6 @@ export class InputLogic extends InputLogicBase<Game, IInputLogicExtension> {
   })
   flagCoord() {
     const coord = this.getSelectedCellCoord();
-    console.log('diese Koordinate wird geflagt');
-    console.log(coord);
-    // todo hier müsste die flag der coord durchrotiert werden
+    this.scene.opposingGrid.drawUserFlag(coord, this.scene.add);
   }
 }

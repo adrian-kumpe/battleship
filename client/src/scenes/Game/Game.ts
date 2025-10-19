@@ -78,8 +78,7 @@ export class Game extends Scene {
 
     socket.on('attack', (args) => {
       ((grid: Grid) => {
-        const { xPx, yPx } = grid.getGridCellToCoord(args.coord);
-        this.drawMove(xPx, yPx, args.hit);
+        grid.drawResultMarker(args.coord, args.hit ? 'explosion' : 'dot', this.add);
         if (args.sunken) {
           const shipCount = grid.shipCount.getShipCount();
           shipCount[args.sunken.size - 1]--;
@@ -169,12 +168,6 @@ export class Game extends Scene {
         defaultFont,
       )
       .setOrigin(0, 1);
-  }
-
-  private drawMove(xPx: number, yPx: number, hit: boolean) {
-    this.add
-      .image(xPx + layoutConfig.cellSize / 2, yPx + layoutConfig.cellSize / 2, hit ? 'explosion' : 'dot')
-      .setTint(0x000000);
   }
 
   private drawOwnShips() {

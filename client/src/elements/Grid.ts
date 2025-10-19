@@ -9,9 +9,18 @@ interface GridDrawData {
 
 export class Grid {
   shipCount: ShipCountService;
+  /** holds all the flags the user made */
+  private userFlags: { state: number; objectRef?: Phaser.GameObjects.Text }[][];
 
   constructor(private gridDrawData: GridDrawData) {
     this.shipCount = new ShipCountService();
+    /** initiate userFlags */
+    this.userFlags = Array.from({ length: layoutConfig.boardSize }, () =>
+      Array.from({ length: layoutConfig.boardSize }, () => ({
+        state: 0,
+        objectRef: undefined,
+      })),
+    );
   }
 
   /** draw the grid into a given scene */
@@ -42,6 +51,32 @@ export class Grid {
           .rectangle(x, y, this.gridDrawData.cellSize, this.gridDrawData.cellSize)
           .setStrokeStyle(4, 0x000000)
           .setOrigin(0);
+      }
+    }
+  }
+
+  /** flag a coord w/ a given symbol from AttackResult */
+  drawResultMarker(xy: Coord, flag: 'explosion' | 'dot', add: Phaser.GameObjects.GameObjectFactory) {
+    const { xPx, yPx } = this.getGridCellToCoord(xy);
+    add.image(xPx + layoutConfig.cellSize / 2, yPx + layoutConfig.cellSize / 2, flag).setTint(0x000000);
+  }
+
+  /** flag a coord w/ a given symbol from the user */
+  drawUserFlag(xy: Coord, add: Phaser.GameObjects.GameObjectFactory) {
+    const state = ++this.userFlags[xy.x][xy.y].state % 3;
+    const { xPx, yPx } = this.getGridCellToCoord(xy);
+    const objectRef = this.userFlags[xy.x][xy.y].objectRef;
+    if (state === 0) {
+      if (objectRef) {
+        objectRef.destroy();
+        this.userFlags[xy.x][xy.y].objectRef = undefined;
+      }
+    } else {
+      const text = state === 1 ? 'Water' : 'Ship';
+      if (objectRef) {
+        objectRef.setText(text);
+      } else {
+        this.userFlags[xy.x][xy.y].objectRef = add.text(xPx, yPx, text).setColor('orange');
       }
     }
   }
