@@ -69,6 +69,8 @@ export enum ErrorCode {
   SHIP_OUT_OF_GRID = 'SHIP_OUT_OF_GRID',
   /** there are ships w/ illegal overlaps */
   SHIP_WITH_ILLEGAL_OVERLAPS = 'SHIP_WITH_ILLEGAL_OVERLAPS',
+  /** the responseLock  */
+  RESPONSE_LOCK_CLOSED = 'RESPONSE_LOCK_CLOSED',
 }
 
 /** textual description for error codes */
@@ -82,6 +84,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.COORD_NOT_AVAILABLE]: 'Coord already attacked',
   [ErrorCode.SHIP_OUT_OF_GRID]: 'Not all ships are within the grid',
   [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'There are illegal overlaps of some ships',
+  [ErrorCode.RESPONSE_LOCK_CLOSED]: 'Player needs to send a response',
 };
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -147,9 +150,8 @@ export interface ClientToServerEvents {
   /**
    * player responds to an attack
    * @param AttackResult w/ information if a ship was hit/sunken (if available)
-   * @param coord that was attacked
    */
-  respond: (args: AttackResult & { coord: Coord }, cb: (error?: ErrorCode) => void) => void;
+  respond: (args: AttackResult, cb: (error?: ErrorCode) => void) => void;
   /**
    * player reports the end of the game
    */

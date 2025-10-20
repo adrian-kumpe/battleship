@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { Grid } from '../../elements/Grid';
-import { GameData, GameOverData, PlayerNo } from '../../shared/models';
+import { ErrorCode, ErrorMessage, GameData, GameOverData, PlayerNo } from '../../shared/models';
 import { socket, gameRadio, defaultFont, layoutConfig } from '../../main';
 import { Ship } from '../../elements/Ship';
 import { KeyboardInputLogic } from './KeyboardInputLogic';
@@ -79,6 +79,15 @@ export class Game extends Scene {
     socket.on('attack', (args) => {
       ((grid: Grid) => {
         grid.drawResultMarker(args.coord, args.hit ? 'explosion' : 'dot', this.add);
+        // phaser client sends 'respond' event automatically, no response needed
+        if (args.playerNo !== this.gameData.playerNo) {
+          socket.emit('respond', { hit: args.hit, sunken: args.sunken }, (error?: ErrorCode) => {
+            if (error) {
+              console.warn(ErrorMessage[error]);
+              gameRadio.sendMessage('Error: ' + ErrorMessage[error]);
+            }
+          });
+        }
         if (args.sunken) {
           const shipCount = grid.shipCount.getShipCount();
           shipCount[args.sunken.size - 1]--;

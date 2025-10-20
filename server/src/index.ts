@@ -34,7 +34,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 });
 const roomList: RoomList = new RoomList();
 const PORT = process.env.PORT || 3000;
-let lock = false;
+let lock = false; // todo müsste das lock nicht pro raum sein?
 
 io.engine.on('connection_error', (err) => {
   console.warn(err.req); // the request object
@@ -130,41 +130,42 @@ io.on('connection', (socket: Socket) => {
       room?.checkGameStarted() ??
       room?.checkPlayersTurn(playerNo) ??
       room?.checkCoordValid(args.coord) ??
+      room?.checkResponseLock() ??
       attackedPlayer?.checkCoordAvailable(args.coord);
     // ?? checkLocked();
     if (error || !room || playerNo === undefined || !attackedPlayer) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
       return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
-    cb(); // todo das steht evtl an der falschen stelle // cb muss aufgerufen werden
-    performAttack(room, playerNo, attackedPlayer, args.coord);
-  });
-
-  const performAttack = (room: Room, playerNo: PlayerNo, attackedPlayer: BattleshipGameBoard, coord: Coord) => {
-    const attackResult = attackedPlayer.placeAttack(coord);
-    // todo evtl muss der spieler das ergebnis selbst reporten: ergebnis zwischenspeichern, ein lock setzen für den spieler
+    const attackResult = attackedPlayer.placeAttack(args.coord);
+    room.closeResponseLock(playerNo, attackResult);
     room.playerChange();
     console.info(
-      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + coord.x)}${coord.y + 1}`,
+      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
     );
-    io.to(room.roomConfig.roomId).emit('attack', Object.assign(attackResult, { coord: coord, playerNo: playerNo }));
+    io.to(room.roomConfig.roomId).emit(
+      'attack',
+      Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
+    );
     if (attackedPlayer.getGameOver()) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
       roomList.deleteRoom(room.roomConfig.roomId);
     }
-  };
+  });
 
-  socket.on('respond', (args: AttackResult & { coord: Coord }) => {
+  socket.on('respond', (args: AttackResult, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
-    playerNo;
-    // hier muss überprüft werden, ob das attack result zum feld passt
-    // neuen fehler werfen
-    // evtl attack result an alle schicken
+    if (!room || playerNo === undefined) {
+      console.warn(ErrorMessage[ErrorCode.INTERNAL_ERROR]);
+      return cb(ErrorCode.INTERNAL_ERROR);
+    }
+    room.releaseResponseLock(playerNo, args);
   });
 
   socket.on('reportGameOver', () => {});
+  // todo lock für gameover hinzufügen --> wenn gameover: warten bis gameover reported wird; für dne phaser clinet normal verschicken
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));

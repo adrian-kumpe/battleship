@@ -1,4 +1,4 @@
-import { Coord, ErrorCode, PlayerNo, RoomConfig, ShipPlacement } from './shared/models';
+import { AttackResult, Coord, ErrorCode, PlayerNo, RoomConfig, ShipPlacement } from './shared/models';
 import { BattleshipGameBoard } from './game';
 
 export class RoomList {
@@ -38,6 +38,7 @@ export class RoomList {
 }
 
 export class Room {
+  private responseLock?: { player: PlayerNo; result: AttackResult };
   public currentPlayer: PlayerNo;
   public roomConfig: RoomConfig;
   public player2?: BattleshipGameBoard;
@@ -71,6 +72,20 @@ export class Room {
     this.currentPlayer = ((this.currentPlayer + 1) % 2) as PlayerNo;
   }
 
+  private changeResponseLock(lock?: { player: PlayerNo; result: AttackResult }) {
+    this.responseLock = lock;
+  }
+
+  public closeResponseLock(player: PlayerNo, result: AttackResult) {
+    this.changeResponseLock({ player: player, result: result });
+  }
+
+  public releaseResponseLock(player: PlayerNo, result: AttackResult) {
+    if (this.responseLock && this.responseLock.player !== player && this.responseLock.result.hit === result.hit) {
+      this.changeResponseLock(undefined);
+    }
+  }
+
   public checkGameStarted(): ErrorCode | undefined {
     return this.getGameReady() ? undefined : ErrorCode.GAME_HASNT_STARTED;
   }
@@ -83,6 +98,10 @@ export class Room {
     return coord.x < 0 || coord.y < 0 || coord.x >= this.roomConfig.boardSize || coord.y >= this.roomConfig.boardSize
       ? ErrorCode.COORD_INVALID
       : undefined;
+  }
+
+  public checkResponseLock(): ErrorCode | undefined {
+    return this.responseLock ? ErrorCode.RESPONSE_LOCK_CLOSED : undefined;
   }
 
   public checkShipPlacementValid(shipPlacement: ShipPlacement): ErrorCode | undefined {
