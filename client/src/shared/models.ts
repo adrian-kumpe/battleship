@@ -69,8 +69,10 @@ export enum ErrorCode {
   SHIP_OUT_OF_GRID = 'SHIP_OUT_OF_GRID',
   /** there are ships w/ illegal overlaps */
   SHIP_WITH_ILLEGAL_OVERLAPS = 'SHIP_WITH_ILLEGAL_OVERLAPS',
-  /** the responseLock  */
+  /** the responseLock is locked; waiting for player to response after attack */
   RESPONSE_LOCK_CLOSED = 'RESPONSE_LOCK_CLOSED',
+  /** the gameOverLock is locked; waiting for player to response when gameOver */
+  GAME_OVER_LOCK_CLOSED = 'GAME_OVER_LOCK_CLOSED',
 }
 
 /** textual description for error codes */
@@ -85,6 +87,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.SHIP_OUT_OF_GRID]: 'Not all ships are within the grid',
   [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'There are illegal overlaps of some ships',
   [ErrorCode.RESPONSE_LOCK_CLOSED]: 'Player needs to send a response',
+  [ErrorCode.GAME_OVER_LOCK_CLOSED]: 'Player needs to alert game over',
 };
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -102,11 +105,9 @@ export interface ServerToClientEvents {
   gameStart: (args: { playerNames: PlayerNames; firstTurn: PlayerNo }) => void;
   /**
    * ends the game; a winner might have been determined
-   * reaction to reportGameOver
    * @param winner
    */
   gameOver: (args: { winner?: PlayerNo }) => void;
-  // todo das soll manuell gemacht werden --> event wird nur gesendet, nachdem das ende reported wurde
   /**
    * informs all players when an attack was successfully placed
    * @param AttackResult w/ information if a ship was hit/sunken (if available)
@@ -155,7 +156,7 @@ export interface ClientToServerEvents {
   /**
    * player reports the end of the game
    */
-  reportGameOver: (cb: (error?: ErrorCode) => void) => void;
+  reportGameOver: (args: { winner: PlayerNo }, cb: (error?: ErrorCode) => void) => void;
 }
 
 /** data needed to start GameSetup scene */

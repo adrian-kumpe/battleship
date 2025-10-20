@@ -1,5 +1,6 @@
 import { AttackResult, Coord, ErrorCode, PlayerNo, RoomConfig, ShipPlacement } from './shared/models';
 import { BattleshipGameBoard } from './game';
+import { Lock } from './lock';
 
 export class RoomList {
   private rooms: Room[] = [];
@@ -38,7 +39,8 @@ export class RoomList {
 }
 
 export class Room {
-  private responseLock?: { player: PlayerNo; result: AttackResult };
+  public responseLock: Lock<{ player: PlayerNo; result: AttackResult }>;
+  public gameOverLock: Lock<{ winner: PlayerNo }>;
   public currentPlayer: PlayerNo;
   public roomConfig: RoomConfig;
   public player2?: BattleshipGameBoard;
@@ -50,6 +52,11 @@ export class Room {
   ) {
     this.roomConfig = Object.assign(roomConfig, { roomId: newRoomId });
     this.currentPlayer = Math.random() < 0.5 ? PlayerNo.PLAYER1 : PlayerNo.PLAYER2;
+    this.responseLock = new Lock(
+      (a, b) => a.player === b.player && a.result.hit === b.result.hit && a.result.sunken === b.result.sunken,
+      ErrorCode.RESPONSE_LOCK_CLOSED,
+    );
+    this.gameOverLock = new Lock((a, b) => a.winner === b.winner, ErrorCode.GAME_OVER_LOCK_CLOSED);
   }
 
   public getPlayerBySocketId(socketId: string): { player: BattleshipGameBoard; playerNo: PlayerNo } | undefined {
@@ -72,20 +79,6 @@ export class Room {
     this.currentPlayer = ((this.currentPlayer + 1) % 2) as PlayerNo;
   }
 
-  private changeResponseLock(lock?: { player: PlayerNo; result: AttackResult }) {
-    this.responseLock = lock;
-  }
-
-  public closeResponseLock(player: PlayerNo, result: AttackResult) {
-    this.changeResponseLock({ player: player, result: result });
-  }
-
-  public releaseResponseLock(player: PlayerNo, result: AttackResult) {
-    if (this.responseLock && this.responseLock.player !== player && this.responseLock.result.hit === result.hit) {
-      this.changeResponseLock(undefined);
-    }
-  }
-
   public checkGameStarted(): ErrorCode | undefined {
     return this.getGameReady() ? undefined : ErrorCode.GAME_HASNT_STARTED;
   }
@@ -98,10 +91,6 @@ export class Room {
     return coord.x < 0 || coord.y < 0 || coord.x >= this.roomConfig.boardSize || coord.y >= this.roomConfig.boardSize
       ? ErrorCode.COORD_INVALID
       : undefined;
-  }
-
-  public checkResponseLock(): ErrorCode | undefined {
-    return this.responseLock ? ErrorCode.RESPONSE_LOCK_CLOSED : undefined;
   }
 
   public checkShipPlacementValid(shipPlacement: ShipPlacement): ErrorCode | undefined {

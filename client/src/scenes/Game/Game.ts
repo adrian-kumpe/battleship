@@ -79,7 +79,7 @@ export class Game extends Scene {
     socket.on('attack', (args) => {
       ((grid: Grid) => {
         grid.drawResultMarker(args.coord, args.hit ? 'explosion' : 'dot', this.add);
-        // phaser client sends 'respond' event automatically, no response needed
+        // phaser client sends 'respond' event automatically, no response by the player needed
         if (args.playerNo !== this.gameData.playerNo) {
           socket.emit('respond', { hit: args.hit, sunken: args.sunken }, (error?: ErrorCode) => {
             if (error) {

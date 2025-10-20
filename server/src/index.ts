@@ -125,14 +125,15 @@ io.on('connection', (socket: Socket) => {
       room?.checkGameStarted() ??
       room?.checkPlayersTurn(playerNo) ??
       room?.checkCoordValid(args.coord) ??
-      room?.checkResponseLock() ??
+      room?.responseLock.checkLocked() ??
+      room?.gameOverLock.checkLocked() ??
       attackedPlayer?.checkCoordAvailable(args.coord);
     if (error || !room || playerNo === undefined || !attackedPlayer) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
       return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
     const attackResult = attackedPlayer.placeAttack(args.coord);
-    room.closeResponseLock(playerNo, attackResult);
+    room.responseLock.closeLock({ player: (((playerNo ?? 0) + 1) % 2) as PlayerNo, result: attackResult });
     room.playerChange();
     console.info(
       `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
@@ -144,7 +145,10 @@ io.on('connection', (socket: Socket) => {
     if (attackedPlayer.getGameOver()) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
-      roomList.deleteRoom(room.roomConfig.roomId);
+      room.gameOverLock.closeLock({ winner: playerNo });
+      // roomList.deleteRoom(room.roomConfig.roomId); // todo deleteRoom wird eigentlich nicht gebraucht?
+      // problem: spielen zwei phaser clients, dann müsste der raum hier gelöscht werden undd as lock nicht gesetzt
+      // wenn das lock verwendet wird, dann darf der raum erst gelöscht werden, wenn reportGameOver ausgelöst wurde
     }
   });
 
@@ -155,11 +159,17 @@ io.on('connection', (socket: Socket) => {
       console.warn(ErrorMessage[ErrorCode.INTERNAL_ERROR]);
       return cb(ErrorCode.INTERNAL_ERROR);
     }
-    room.releaseResponseLock(playerNo, args);
+    room.responseLock.releaseLock({ player: playerNo, result: args });
   });
 
-  socket.on('reportGameOver', () => {});
-  // todo lock für gameover hinzufügen --> wenn gameover: warten bis gameover reported wird; für dne phaser clinet normal verschicken
+  socket.on('reportGameOver', (args: { winner: PlayerNo }, cb) => {
+    const room = roomList.getRoomBySocketId(socket.id);
+    if (!room) {
+      console.warn(ErrorMessage[ErrorCode.INTERNAL_ERROR]);
+      return cb(ErrorCode.INTERNAL_ERROR);
+    }
+    room.gameOverLock.releaseLock(args);
+  });
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
