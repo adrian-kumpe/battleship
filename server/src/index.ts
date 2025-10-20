@@ -34,7 +34,6 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 });
 const roomList: RoomList = new RoomList();
 const PORT = process.env.PORT || 3000;
-let lock = false; // todo müsste das lock nicht pro raum sein?
 
 io.engine.on('connection_error', (err) => {
   console.warn(err.req); // the request object
@@ -117,10 +116,6 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  socket.on('lock', (args: { locked: boolean }, cb) => {
-    lock = args.locked;
-  });
-
   /** player attacks */
   socket.on('attack', (args: { coord: Coord }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
@@ -132,7 +127,6 @@ io.on('connection', (socket: Socket) => {
       room?.checkCoordValid(args.coord) ??
       room?.checkResponseLock() ??
       attackedPlayer?.checkCoordAvailable(args.coord);
-    // ?? checkLocked();
     if (error || !room || playerNo === undefined || !attackedPlayer) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
       return cb(error ?? ErrorCode.INTERNAL_ERROR);
@@ -169,7 +163,3 @@ io.on('connection', (socket: Socket) => {
 });
 
 httpServer.listen(PORT, () => console.info(`Server running on port ${PORT}`));
-
-// function checkLocked(): string | undefined {
-//   return lock ? 'The gesture Input is currently being used' : undefined;
-// }

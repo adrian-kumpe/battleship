@@ -156,8 +156,6 @@ export interface ClientToServerEvents {
    * player reports the end of the game
    */
   reportGameOver: (cb: (error?: ErrorCode) => void) => void;
-
-  lock: (args: { locked: boolean }, cb: (error?: ErrorCode) => void) => void;
 }
 
 /** data needed to start GameSetup scene */
