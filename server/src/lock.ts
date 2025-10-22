@@ -16,10 +16,12 @@ export class Lock<T> {
   }
 
   /** release the lock by entering the correct object */
-  public releaseLock(l: T) {
+  public releaseLock(l: T): boolean {
     if (this.l && this.equals(this.l, l)) {
       this.l = undefined;
+      return true;
     }
+    return false;
   }
 
   /** get whether the lock is locked */

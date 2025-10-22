@@ -7,6 +7,9 @@ export interface PlayerNames {
   [PlayerNo.PLAYER2]: string;
 }
 
+/** mode whether the player reports hit ships and gameOver or the server */
+export type ReportMode = 'manualReporting' | 'autoReporting';
+
 /** Config for the two-player game room */
 export interface RoomConfig {
   roomId: string;
@@ -73,6 +76,8 @@ export enum ErrorCode {
   RESPONSE_LOCK_CLOSED = 'RESPONSE_LOCK_CLOSED',
   /** the gameOverLock is locked; waiting for player to response when gameOver */
   GAME_OVER_LOCK_CLOSED = 'GAME_OVER_LOCK_CLOSED',
+  /** a player disconnected from the game */
+  PLAYER_DISCONNECTED = 'PLAYER_DISCONNECTED',
 }
 
 /** textual description for error codes */
@@ -88,6 +93,7 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'There are illegal overlaps of some ships',
   [ErrorCode.RESPONSE_LOCK_CLOSED]: 'Player needs to send a response',
   [ErrorCode.GAME_OVER_LOCK_CLOSED]: 'Player needs to alert game over',
+  [ErrorCode.PLAYER_DISCONNECTED]: 'A player disconnected from the game',
 };
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -107,7 +113,7 @@ export interface ServerToClientEvents {
    * ends the game; a winner might have been determined
    * @param winner
    */
-  gameOver: (args: { winner?: PlayerNo }) => void;
+  gameOver: (args: { winner?: PlayerNo; error?: ErrorCode }) => void;
   /**
    * informs all players when an attack was successfully placed
    * @param AttackResult w/ information if a ship was hit/sunken (if available)
@@ -155,8 +161,9 @@ export interface ClientToServerEvents {
   respond: (args: AttackResult, cb: (error?: ErrorCode) => void) => void;
   /**
    * player reports the end of the game
+   * @param the winner's playerNo; if not provided the server assumes the reporting player won
    */
-  reportGameOver: (args: { winner: PlayerNo }, cb: (error?: ErrorCode) => void) => void;
+  reportGameOver: (args: { winner?: PlayerNo }, cb: (error?: ErrorCode) => void) => void;
 }
 
 /** data needed to start GameSetup scene */

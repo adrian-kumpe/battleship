@@ -5,6 +5,7 @@ import {
   ErrorCode,
   ErrorMessage,
   PlayerNo,
+  ReportMode,
   RoomConfig,
   ServerToClientEvents,
   ShipPlacement,
@@ -17,6 +18,7 @@ import { BattleshipGameBoard } from './game';
 export interface Client {
   socketId: string;
   playerName: string;
+  mode: ReportMode;
 }
 
 interface InterServerEvents {
@@ -47,7 +49,11 @@ io.on('connection', (socket: Socket) => {
 
   /** adds new room to the roomList */
   socket.on('createRoom', (args: { roomConfig: Omit<RoomConfig, 'roomId'>; playerName: string }, cb) => {
-    const client: Client = { socketId: socket.id, playerName: args.playerName };
+    const client: Client = {
+      socketId: socket.id,
+      playerName: args.playerName,
+      mode: socket.handshake.query.mode as ReportMode,
+    };
     const newRoomId = roomList.getNewRoomId();
     const room = new Room(args.roomConfig, newRoomId, new BattleshipGameBoard(client, args.roomConfig.boardSize));
     const error = roomList.checkClientAlreadyInRoom(socket.id);
@@ -64,7 +70,11 @@ io.on('connection', (socket: Socket) => {
 
   /** adds client to an existing room of the roomList */
   socket.on('joinRoom', (args: { roomId: string; playerName: string }, cb) => {
-    const client: Client = { socketId: socket.id, playerName: args.playerName };
+    const client: Client = {
+      socketId: socket.id,
+      playerName: args.playerName,
+      mode: socket.handshake.query.mode as ReportMode,
+    };
     const room = roomList.getRoom(args.roomId);
     const error = roomList.checkClientAlreadyInRoom(socket.id) ?? roomList.checkRoomIdUnknown(args.roomId); //todo noch schauen ob der raum voll ist
     if (error || !room) {
@@ -84,9 +94,8 @@ io.on('connection', (socket: Socket) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const { player, playerNo } = room?.getPlayerBySocketId(socket.id) ?? {};
     if (room && player && playerNo !== undefined) {
-      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} left the game, the room is closed`);
-      io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} left the game` });
-      io.to(room.roomConfig.roomId).emit('gameOver', {});
+      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} left the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { error: ErrorCode.PLAYER_DISCONNECTED });
       roomList.deleteRoom(room.roomConfig.roomId);
     }
   });
@@ -133,7 +142,9 @@ io.on('connection', (socket: Socket) => {
       return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
     const attackResult = attackedPlayer.placeAttack(args.coord);
-    room.responseLock.closeLock({ player: (((playerNo ?? 0) + 1) % 2) as PlayerNo, result: attackResult });
+    if (room.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo)?.client.mode === 'manualReporting') {
+      room.responseLock.closeLock({ player: (((playerNo ?? 0) + 1) % 2) as PlayerNo, result: attackResult });
+    }
     room.playerChange();
     console.info(
       `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
@@ -145,13 +156,13 @@ io.on('connection', (socket: Socket) => {
     if (attackedPlayer.getGameOver()) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
-      room.gameOverLock.closeLock({ winner: playerNo });
-      // roomList.deleteRoom(room.roomConfig.roomId); // todo deleteRoom wird eigentlich nicht gebraucht?
-      // problem: spielen zwei phaser clients, dann müsste der raum hier gelöscht werden undd as lock nicht gesetzt
-      // wenn das lock verwendet wird, dann darf der raum erst gelöscht werden, wenn reportGameOver ausgelöst wurde
+      if (room.getPlayerByPlayerNo(playerNo)?.client.mode === 'manualReporting') {
+        room.gameOverLock.closeLock({ winner: playerNo });
+      }
     }
   });
 
+  /** player responds to an attack */
   socket.on('respond', (args: AttackResult, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
@@ -162,13 +173,20 @@ io.on('connection', (socket: Socket) => {
     room.responseLock.releaseLock({ player: playerNo, result: args });
   });
 
-  socket.on('reportGameOver', (args: { winner: PlayerNo }, cb) => {
+  /** player (usually the winner) reports, that the game ended */
+  socket.on('reportGameOver', (args: { winner?: PlayerNo }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
-    if (!room) {
+    const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
+    if (!room || playerNo === undefined) {
       console.warn(ErrorMessage[ErrorCode.INTERNAL_ERROR]);
       return cb(ErrorCode.INTERNAL_ERROR);
     }
-    room.gameOverLock.releaseLock(args);
+    if (room.gameOverLock.releaseLock({ winner: args.winner ?? playerNo })) {
+      roomList.deleteRoom(room.roomConfig.roomId);
+      cb();
+      // todo hier müsste danach das gameover event ausgelös werden
+      // bzw der callback damit der raum geschlossen werden kann
+    }
   });
 });
 

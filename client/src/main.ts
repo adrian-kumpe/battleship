@@ -6,7 +6,7 @@ import { MainMenu } from './scenes/MainMenu';
 import { Preloader } from './scenes/Preloader';
 import { Game, Types } from 'phaser';
 import { io, Socket } from 'socket.io-client';
-import { ClientToServerEvents, ServerToClientEvents } from './shared/models';
+import { ClientToServerEvents, ServerToClientEvents, ReportMode } from './shared/models';
 import { Radio } from './elements/Radio';
 
 //  Find out more information about the Game Config at:
@@ -32,6 +32,9 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
   {
     transports: ['websocket'],
+    query: {
+      mode: 'autoReporting' as ReportMode,
+    },
   },
 );
 
