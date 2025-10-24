@@ -3,10 +3,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Statische Dateien aus dem dist-Ordner servieren
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Alle Anfragen auf die index.html umleiten
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
