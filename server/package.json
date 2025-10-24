@@ -18,7 +18,6 @@
   "description": "",
   "devDependencies": {
     "@types/node": "^20.19.19",
-    "prettier": "3.2.5",
     "typescript": "^5.9.3"
   },
   "dependencies": {
