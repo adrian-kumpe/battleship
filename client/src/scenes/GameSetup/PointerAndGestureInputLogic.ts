@@ -30,8 +30,8 @@ export class PointerAndGestureInputLogic
           : 0;
       };
       return {
-        xPx: this.dragCorrectionActive ? getOriginDragCorrection('↔️') : this.dragCorrection?.xPx ?? 0,
-        yPx: this.dragCorrectionActive ? getOriginDragCorrection('↕️') : this.dragCorrection?.yPx ?? 0,
+        xPx: this.dragCorrectionActive ? getOriginDragCorrection('↔️') : (this.dragCorrection?.xPx ?? 0),
+        yPx: this.dragCorrectionActive ? getOriginDragCorrection('↕️') : (this.dragCorrection?.yPx ?? 0),
       };
     }
     return { xPx: 0, yPx: 0 };
