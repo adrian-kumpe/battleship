@@ -1,3 +1,9 @@
+- Install the `git-hooks/pre-commit` Git Hook to ensure synchronization of `client/src/shared/models.ts`, `server/src/shared/models.ts` and `haptic-client/src/shared/models.ts`
+   - Needed because Heroku subdir buildback can't access a shared file in the root of the repository
+- client: https://battleship-client-d33f65950bf0.herokuapp.com/ 
+- haptic-client: https://battleship-haptic-client-09adcce9058a.herokuapp.com/ 
+
+
 # Exercise Multimodal User Interfaces (MBO)
 
 This game was created as part of the exercise of [Multimodal User Interfaces](https://tu-dresden.de/ing/informatik/ai/mci/studium/lehrveranstaltungen/multimodale-benutzungsoberflaechen).
