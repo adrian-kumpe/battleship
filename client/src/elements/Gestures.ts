@@ -1,4 +1,79 @@
+import { gameRadio } from '../main';
 import { Coord } from '../shared/models';
+
+export class GestureCanvas {
+  private inputCanvasRef?: Phaser.GameObjects.Rectangle;
+
+  constructor(
+    private gestureRecognition: GestureRecognition,
+    private gestureActions: Map<Gestures, () => void>,
+  ) {}
+
+  getInputCanvasRef(): Phaser.GameObjects.Rectangle | undefined {
+    return this.inputCanvasRef;
+  }
+
+  public drawGestureCanvas(scene: Phaser.Scene, coord: Coord, width: number, height: number) {
+    const canvas = scene.add
+      .rectangle(coord.x, coord.y, width, height)
+      .setOrigin(0)
+      .setStrokeStyle(4, 0xd2042d, 0.2)
+      .setInteractive();
+    // todo der stroke style sollte immer alpha 1 haben, damit die ecken nicht überdeckt sind
+    const pencil = scene.add.image(coord.x + width - 30, coord.y + height - 30, 'pencil').setAlpha(0.2);
+    let drawing = false;
+    let gestureCoords: Coord[];
+    let graphics: Phaser.GameObjects.Graphics | undefined;
+    let lastPosition: Phaser.Math.Vector2 | undefined;
+
+    canvas.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.rightButtonDown()) {
+        drawing = true;
+        gestureCoords = [];
+        canvas.setStrokeStyle(4, 0xd2042d, 1);
+        pencil.setAlpha(1);
+        lastPosition = pointer.position.clone();
+        graphics = scene.add.graphics();
+      }
+    });
+    canvas.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (drawing && graphics && lastPosition) {
+        scene.children.bringToTop(canvas);
+        graphics
+          .lineStyle(6, 0xd2042d, 1)
+          .beginPath()
+          .moveTo(lastPosition.x, lastPosition.y)
+          .lineTo(pointer.position.x, pointer.position.y)
+          .strokePath()
+          .closePath();
+        lastPosition = pointer.position.clone();
+        gestureCoords.push({ x: Math.round(lastPosition.x), y: Math.round(lastPosition.y) });
+      }
+    });
+    const stopDrawing = () => {
+      if (drawing && graphics) {
+        scene.children.sendToBack(canvas);
+        drawing = false;
+        canvas.setStrokeStyle(4, 0xd2042d, 0.2);
+        pencil.setAlpha(0.2);
+        graphics.destroy();
+        const { gesture, d } = this.gestureRecognition.getGesture(gestureCoords);
+        if (d > 1000) {
+          gameRadio.sendMessage("Gesture couldn't be recognized with sufficient certainty");
+        } else {
+          gameRadio.sendMessage(`Gesture "${this.gestureRecognition.getGestureName(gesture)}" was recognized`);
+          const action = this.gestureActions.get(gesture);
+          if (action) {
+            action();
+          }
+        }
+      }
+    };
+    canvas.on('pointerup', stopDrawing);
+    canvas.on('pointerout', stopDrawing);
+    this.inputCanvasRef = canvas;
+  }
+}
 
 export enum Gestures {
   'CIRCLE',
@@ -43,6 +118,10 @@ export class GestureRecognition {
       // coords: [{x: 0,y: 0},{x: 3,y: 1},{x: 5,y: 3},{x: 5,y: 4},{x: 5,y: 4},{x: 11,y: 7},{x: 12,y: 10},{x: 12,y: 10},{x: 13,y: 10},{x: 23,y: 16},{x: 23,y: 17},{x: 26,y: 19},{x: 39,y: 26},{x: 40,y: 27},{x: 41,y: 27},{x: 43,y: 27},{x: 51,y: 33},{x: 53,y: 33},{x: 55,y: 34},{x: 57,y: 37},{x: 57,y: 37},{x: 59,y: 38},{x: 64,y: 42},{x: 68,y: 43},{x: 68,y: 44},{x: 70,y: 44},{x: 72,y: 46},{x: 73,y: 46},{x: 74,y: 47},{x: 76,y: 47},{x: 80,y: 50},{x: 80,y: 50},{x: 82,y: 52},{x: 83,y: 52},{x: 84,y: 53},{x: 84,y: 54},{x: 86,y: 54},{x: 86,y: 54},{x: 87,y: 54},{x: 87,y: 56},{x: 90,y: 56},{x: 90,y: 57},{x: 91,y: 57},{x: 91,y: 57},{x: 91,y: 59},{x: 93,y: 59},{x: 93,y: 60},{x: 94,y: 60},{x: 95,y: 60},{x: 95,y: 62},{x: 97,y: 62},{x: 97,y: 62},{x: 97,y: 62},{x: 97,y: 63},{x: 99,y: 63},{x: 100,y: 64},{x: 100,y: 66},{x: 100,y: 68},{x: 99,y: 68},{x: 99,y: 68},{x: 97,y: 68},{x: 97,y: 69},{x: 94,y: 70},{x: 93,y: 72},{x: 91,y: 72},{x: 91,y: 73},{x: 84,y: 76},{x: 83,y: 77},{x: 73,y: 80},{x: 68,y: 83},{x: 64,y: 85},{x: 57,y: 86},{x: 55,y: 86},{x: 55,y: 87},{x: 47,y: 89},{x: 46,y: 89},{x: 46,y: 89},{x: 43,y: 90},{x: 41,y: 90},{x: 38,y: 91},{x: 34,y: 91},{x: 34,y: 91},{x: 33,y: 91},{x: 32,y: 93},{x: 30,y: 93},{x: 29,y: 93},{x: 29,y: 95},{x: 27,y: 95},{x: 23,y: 95},{x: 23,y: 95},{x: 22,y: 96},{x: 20,y: 96},{x: 19,y: 96},{x: 19,y: 96},{x: 17,y: 96},{x: 17,y: 96},{x: 16,y: 96},{x: 12,y: 96},{x: 12,y: 97},{x: 11,y: 97},{x: 9,y: 97},{x: 7,y: 97},{x: 6,y: 97},{x: 6,y: 97},{x: 5,y: 99},{x: 3,y: 99},{x: 2,y: 99},{x: 0,y: 99},{x: 0,y: 99},{x: 0,y: 100}],
     },
   ];
+
+  constructor() {
+    // this.gestureTemplate = this.gestureTemplate.filter((v) => acceptingGestures.includes(v.gesture)); //todo funktioniert das
+  }
 
   public getGesture(gestureCoords: Coord[]): { gesture: Gestures; d: number } {
     const result: { gesture: Gestures; d: number }[] = [];
@@ -105,7 +184,7 @@ export class GestureRecognition {
 /**
  * @see {@link https://github.com/GordonLesti/dynamic-time-warping/issues/4 source of code}
  */
-export default class DynamicTimeWarping {
+class DynamicTimeWarping {
   private ser1: any;
   private ser2: any;
   private distFunc: any;

@@ -1,7 +1,7 @@
 {
-  "name": "battleship",
-  "version": "1.2.0",
-  "main": "src/main.js",
+  "name": "battleship-haptic-client",
+  "version": "1.0.0",
+  "main": "dist/index.js",
   "scripts": {
     "build": "webpack --config webpack/config.prod.js",
     "dev": "webpack-dev-server --config webpack/config.dev.js --open",
@@ -10,32 +10,25 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/adrikum/battleship.git",
-    "directory": "client"
+    "directory": "haptic-client"
   },
   "author": "",
-  "license": "MIT",
+  "license": "ISC",
   "homepage": "https://github.com/adrikum/battleship#readme",
   "description": "",
   "devDependencies": {
-    "@babel/core": "^7.28.4",
-    "@babel/preset-env": "^7.28.3",
-    "babel-loader": "^9.2.1",
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^12.0.2",
-    "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.6.4",
-    "raw-loader": "^4.0.2",
-    "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.4",
     "typescript": "^5.9.3",
     "webpack": "^5.102.0",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.2.2",
-    "webpack-merge": "^5.10.0"
+    "webpack-dev-server": "^5.2.2"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
     "express": "^4.21.2",
-    "phaser": "^3.90.0",
     "socket.io-client": "^4.8.1"
   }
 }

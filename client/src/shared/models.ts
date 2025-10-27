@@ -2,45 +2,40 @@ export enum PlayerNo {
   'PLAYER1',
   'PLAYER2',
 }
-
-export enum Modality {
-  'POINT_AND_ClICK',
-  'GESTURE',
-  'VOICE',
-  'KEYBOARD',
+export interface PlayerNames {
+  [PlayerNo.PLAYER1]: string;
+  [PlayerNo.PLAYER2]: string;
 }
 
+/** mode whether the player reports hit ships and gameOver or the server */
+export type ReportMode = 'manualReporting' | 'autoReporting';
+
+/** Config for the two-player game room */
 export interface RoomConfig {
   roomId: string;
-  gameBoardSize: number;
+  boardSize: number;
   availableShips: number[];
 }
 
-/** playerName of both players; playerNo who starts the game */
-export interface PlayerConfig {
-  [PlayerNo.PLAYER1]: string;
-  [PlayerNo.PLAYER2]: string;
-  firstTurn: PlayerNo;
+export interface ShipDefinition {
+  readonly name: string;
+  readonly size: number;
 }
 
-export interface Ship {
-  name: string;
-  size: number;
-}
-
-/** @constant */
-export const shipDefinitions: Ship[] = [
-  { size: 1, name: 'escort' },
-  { size: 2, name: 'destroyer' },
-  { size: 3, name: 'cruiser' },
-  { size: 4, name: 'battleship' },
-  // { size: 5, name: 'aircraft-carrier' },
+/**
+ * definition of all available ships in the game
+ * @constant
+ */
+export const shipDefinitions: ShipDefinition[] = [
+  { size: 1, name: 'destroyer' },
+  { size: 2, name: 'cruiser' },
+  { size: 3, name: 'battleship' },
+  { size: 4, name: 'aircraft carrier' },
 ];
 
-export interface ShipMetaInformation {
-  ship: Ship;
-  shipId: number;
-  orientation?: '↔️' | '↕️';
+export interface ShipInstance {
+  readonly shipId: number;
+  orientation: '↔️' | '↕️';
 }
 
 export interface Coord {
@@ -48,10 +43,58 @@ export interface Coord {
   y: number;
 }
 
+/** list of ships placed on the game board */
+export type ShipPlacement = (ShipDefinition & ShipInstance & Coord)[];
+
+/** information if a ship was hit/sunken */
 export interface AttackResult {
   hit: boolean;
-  sunkenShip?: ShipMetaInformation & Coord;
+  sunken?: ShipDefinition & ShipInstance & Coord;
 }
+
+/** error codes to use in client-server comunication */
+export enum ErrorCode {
+  /** generic internal error */
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  /** client is already in an other room */
+  CLIENT_NOT_AVAILABLE = 'CLIENT_NOT_AVAILABLE',
+  /** room w/ roomId wasnt found */
+  ROOM_NOT_FOUND = 'ROOM_NOT_FOUND',
+  /** game hasn't started yet */
+  GAME_HASNT_STARTED = 'GAME_HASNT_STARTED',
+  /** it's not the player's turn */
+  NOT_PLAYERS_TURN = 'NOT_PLAYERS_TURN',
+  /** coord is not part of the grid */
+  COORD_INVALID = 'COORD_INVALID',
+  /** coord was already attacked */
+  COORD_NOT_AVAILABLE = 'COORD_NOT_AVAILABLE',
+  /** ship is not (fully) on the grid */
+  SHIP_OUT_OF_GRID = 'SHIP_OUT_OF_GRID',
+  /** there are ships w/ illegal overlaps */
+  SHIP_WITH_ILLEGAL_OVERLAPS = 'SHIP_WITH_ILLEGAL_OVERLAPS',
+  /** the responseLock is locked; waiting for player to response after attack */
+  RESPONSE_LOCK_CLOSED = 'RESPONSE_LOCK_CLOSED',
+  /** the gameOverLock is locked; waiting for player to response when gameOver */
+  GAME_OVER_LOCK_CLOSED = 'GAME_OVER_LOCK_CLOSED',
+  /** a player disconnected from the game */
+  PLAYER_DISCONNECTED = 'PLAYER_DISCONNECTED',
+}
+
+/** textual description for error codes */
+export const ErrorMessage: Record<ErrorCode, string> = {
+  [ErrorCode.INTERNAL_ERROR]: 'Internal error',
+  [ErrorCode.CLIENT_NOT_AVAILABLE]: 'Client is already in a room',
+  [ErrorCode.ROOM_NOT_FOUND]: 'Room does not exist',
+  [ErrorCode.GAME_HASNT_STARTED]: 'Game has not started yet',
+  [ErrorCode.NOT_PLAYERS_TURN]: "It's not your turn",
+  [ErrorCode.COORD_INVALID]: 'Coord is not valid',
+  [ErrorCode.COORD_NOT_AVAILABLE]: 'Coord already attacked',
+  [ErrorCode.SHIP_OUT_OF_GRID]: 'Not all ships are within the grid',
+  [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'There are illegal overlaps of some ships',
+  [ErrorCode.RESPONSE_LOCK_CLOSED]: 'Player needs to send a response',
+  [ErrorCode.GAME_OVER_LOCK_CLOSED]: 'Player needs to alert game over',
+  [ErrorCode.PLAYER_DISCONNECTED]: 'A player disconnected from the game',
+};
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
 export interface ServerToClientEvents {
@@ -62,21 +105,22 @@ export interface ServerToClientEvents {
   notification: (args: { text: string }) => void;
   /**
    * starts the game when both players have emitted gameReady
-   * @param playerConfig w/ all player names and firstTurn
+   * @param playerNames
+   * @param firstTurn
    */
-  gameStart: (args: { playerConfig: PlayerConfig }) => void;
+  gameStart: (args: { playerNames: PlayerNames; firstTurn: PlayerNo }) => void;
   /**
    * ends the game; a winner might have been determined
    * @param winner
    */
-  gameOver: (args: { winner?: PlayerNo }) => void;
+  gameOver: (args: { winner?: PlayerNo; error?: ErrorCode }) => void;
   /**
    * informs all players when an attack was successfully placed
-   * @param AttackResult w/ hit and sunkenShip information (if available)
+   * @param AttackResult w/ information if a ship was hit/sunken (if available)
    * @param coord that was attacked
    * @param playerNo who placed the attack
    */
-  attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo; modality: Modality }) => void;
+  attack: (args: AttackResult & { coord: Coord; playerNo: PlayerNo }) => void;
 }
 
 /** client to server events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -88,7 +132,7 @@ export interface ClientToServerEvents {
    */
   createRoom: (
     args: { roomConfig: Omit<RoomConfig, 'roomId'>; playerName: string },
-    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
+    cb: (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => void,
   ) => void;
   /**
    * joins a game
@@ -98,27 +142,53 @@ export interface ClientToServerEvents {
    */
   joinRoom: (
     args: { roomId: string; playerName: string },
-    cb: (args?: { roomConfig: RoomConfig }, error?: string) => void,
+    cb: (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => void,
   ) => void;
   /**
-   * commits shipConfig; if both players are ready, the server can emit gameStart
-   * @param shipConfig placement of the player's ships
+   * commits shipPlacement; if both players are ready, the server can emit gameStart
+   * @param shipPlacement placement of the player's ships
    */
-  gameReady: (args: { shipConfig: (ShipMetaInformation & Coord)[] }, cb: (error?: string) => void) => void;
+  gameReady: (args: { shipPlacement: ShipPlacement }, cb: (error?: ErrorCode) => void) => void;
   /**
    * places an attack
    * @param coord to attack
-   * @param randomCoord flag defines whether a random coord should be used
-   * @param snakeMovement flag defines the next coord relative to the last
    */
-  attack: (
-    args: { coord: Coord; randomCoord?: boolean; snakeMovement?: { up: number; right: number }; modality: Modality },
-    cb: (error?: string) => void,
-  ) => void;
+  attack: (args: { coord: Coord }, cb: (error?: ErrorCode) => void) => void;
   /**
-   * attack placed by Alexa (voice control)
-   * @param coord to attack
+   * player responds to an attack
+   * @param AttackResult w/ information if a ship was hit/sunken (if available)
    */
-  alexaAttack: (args: { roomId: string; playerNo: PlayerNo; coord: Coord }, cb: (error?: string) => void) => void;
-  lock: (args: { locked: boolean }, cb: (error?: string) => void) => void;
+  respond: (args: AttackResult, cb: (error?: ErrorCode) => void) => void;
+  /**
+   * player reports the end of the game
+   * @param the winner's playerNo; if not provided the server assumes the reporting player won
+   */
+  reportGameOver: (args: { winner?: PlayerNo }, cb: (error?: ErrorCode) => void) => void;
+}
+
+/** data needed to start GameSetup scene */
+export interface GameSetupData {
+  roomConfig: RoomConfig;
+  /** the own player number */
+  playerNo: PlayerNo;
+}
+
+/** data needed to start Game scene */
+export interface GameData {
+  roomConfig: RoomConfig;
+  playerNames: PlayerNames;
+  /** the own player number */
+  playerNo: PlayerNo;
+  /** player number of the starting player */
+  firstTurn: PlayerNo;
+  shipPlacement: ShipPlacement;
+}
+
+/** data needed to start GameSetup */
+export interface GameOverData {
+  /** the winner's player number */
+  winner?: PlayerNo;
+  playerNames: PlayerNames;
+  /** the own player number */
+  playerNo: PlayerNo;
 }

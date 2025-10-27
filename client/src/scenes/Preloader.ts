@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { layoutConfig } from '../main';
 
 export class Preloader extends Scene {
   constructor() {
@@ -33,8 +34,15 @@ export class Preloader extends Scene {
     this.load.image('logo', 'logo.png');
     this.load.svg('captain', 'captain.svg', { width: 100, height: 100 });
 
+    // for GameSetup
+    for (let i = 1; i < 5; i++) {
+      this.load.svg(`ship${i}`, `ship-size-${i}.svg`, {
+        width: layoutConfig.cellSize * i,
+        height: layoutConfig.cellSize,
+      });
+    }
+
     // for Game scene
-    this.load.svg('ships', 'ships.svg', { width: 200, height: 800 });
     this.load.image('explosion', 'explosion.png'); // 60x60
     this.load.image('dot', 'dot.png'); // 12x12
     this.load.svg('pencil', 'pencil.svg', { width: 40, height: 40 });
