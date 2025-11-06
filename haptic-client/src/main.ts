@@ -1,4 +1,6 @@
 import { DrawingUtils, FilesetResolver, GestureRecognizer, GestureRecognizerResult } from '@mediapipe/tasks-vision';
+import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
+import { io, Socket } from 'socket.io-client';
 
 const demosSection = document.getElementById('demos');
 let gestureRecognizer: GestureRecognizer;
@@ -7,6 +9,17 @@ let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
 const videoHeight = '360px';
 const videoWidth = '480px';
+
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+  'http://localhost:3000',
+  // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  {
+    transports: ['websocket'],
+    query: {
+      mode: 'manualReporting' as ReportMode,
+    },
+  },
+);
 
 type RunningMode = 'IMAGE' | 'VIDEO';
 
