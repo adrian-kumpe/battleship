@@ -1,14 +1,18 @@
 import { DrawingUtils, FilesetResolver, GestureRecognizer, GestureRecognizerResult } from '@mediapipe/tasks-vision';
 import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
 import { io, Socket } from 'socket.io-client';
+import cvModule from '@techstark/opencv-js';
 
-const demosSection = document.getElementById('demos');
+let cv: cvModule.CV;
+const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
+// const outputCtx2 = outputCanvas2.getContext('2d');
+// -
 let gestureRecognizer: GestureRecognizer;
 let runningMode = 'IMAGE';
 let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
-const videoHeight = '360px';
-const videoWidth = '480px';
+const videoHeight = 360;
+const videoWidth = 480;
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   'http://localhost:3000',
@@ -20,6 +24,43 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
     },
   },
 );
+
+async function getOpenCv() {
+  let cv;
+  if (cvModule instanceof Promise) {
+    cv = await cvModule;
+  } else {
+    await new Promise<void>((resolve) => {
+      cvModule.onRuntimeInitialized = () => resolve();
+    });
+    cv = cvModule;
+  }
+  return { cv };
+}
+
+const initOpenCV = async () => {
+  cv = (await getOpenCv()).cv;
+  console.log('OpenCV.js is ready!');
+  // You can now use OpenCV functions here
+  console.log(cv.getBuildInformation());
+  video.addEventListener('play', setupOpenCVForVideo);
+};
+initOpenCV();
+
+let cap: cvModule.VideoCapture;
+let src: cvModule.Mat;
+let gray: cvModule.Mat;
+
+function setupOpenCVForVideo(): void {
+  cap = new cv.VideoCapture(video);
+  src = new cv.Mat(videoHeight, videoWidth, cv.CV_8UC4);
+  gray = new cv.Mat(videoHeight, videoWidth, cv.CV_8UC1);
+
+  outputCanvas2.width = videoWidth;
+  outputCanvas2.height = videoHeight;
+}
+
+// --------------------
 
 type RunningMode = 'IMAGE' | 'VIDEO';
 
@@ -38,14 +79,14 @@ const createGestureRecognizer = async () => {
     },
     runningMode: runningMode as RunningMode,
   });
-  demosSection?.classList.remove('invisible');
 };
 createGestureRecognizer();
 
-const video = <HTMLVideoElement>document.getElementById('webcam');
-const canvasElement = <HTMLCanvasElement>document.getElementById('output_canvas');
-const canvasCtx = <CanvasRenderingContext2D>canvasElement.getContext('2d');
-const gestureOutput = <HTMLParagraphElement>document.getElementById('gesture_output');
+const video = document.getElementById('webcam') as HTMLVideoElement;
+console.log(video);
+const canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
+const canvasCtx = canvasElement.getContext('2d') as CanvasRenderingContext2D;
+const gestureOutput = document.getElementById('gesture_output') as HTMLParagraphElement;
 
 // Check if webcam access is supported.
 function hasGetUserMedia() {
@@ -61,10 +102,15 @@ if (hasGetUserMedia()) {
   console.warn('getUserMedia() is not supported by your browser');
 }
 
-// Enable the live webcam view and start detection.
+/** init cam when mediapipe and opencv are ready */
 function enableCam() {
   if (!gestureRecognizer) {
     alert('Please wait for gestureRecognizer to load');
+    return;
+  }
+
+  if (!cv) {
+    alert('todo');
     return;
   }
 
@@ -91,7 +137,7 @@ function enableCam() {
 let lastVideoTime = -1;
 let results: GestureRecognizerResult | undefined = undefined;
 async function predictWebcam() {
-  const webcamElement = <HTMLVideoElement>document.getElementById('webcam');
+  const webcamElement = document.getElementById('webcam') as HTMLVideoElement;
   // Now let's start detecting the stream.
   if (runningMode === 'IMAGE') {
     runningMode = 'VIDEO';
@@ -107,10 +153,10 @@ async function predictWebcam() {
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
   const drawingUtils = new DrawingUtils(canvasCtx);
 
-  canvasElement.style.height = videoHeight;
-  webcamElement.style.height = videoHeight;
-  canvasElement.style.width = videoWidth;
-  webcamElement.style.width = videoWidth;
+  canvasElement.style.height = videoHeight + 'px';
+  webcamElement.style.height = videoHeight + 'px';
+  canvasElement.style.width = videoWidth + 'px';
+  webcamElement.style.width = videoWidth + 'px';
 
   if (results && results.landmarks) {
     for (const landmarks of results.landmarks) {
@@ -127,7 +173,7 @@ async function predictWebcam() {
   canvasCtx.restore();
   if (results && results.gestures.length > 0) {
     gestureOutput.style.display = 'block';
-    gestureOutput.style.width = videoWidth;
+    gestureOutput.style.width = videoWidth + 'px';
     const categoryName = results.gestures[0][0].categoryName;
     const categoryScore = parseFloat('' + results.gestures[0][0].score * 100).toFixed(2);
     const handedness = results.handednesses[0][0].displayName;
@@ -135,6 +181,19 @@ async function predictWebcam() {
   } else {
     gestureOutput.style.display = 'none';
   }
+
+  // todo das muss woanders hin
+  if (cv && cap && src && gray) {
+    // 1) Aktuelles Video-Frame holen
+    cap.read(src);
+
+    // 2) Beispiel: Graustufen
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+    // 3) In Canvas anzeigen
+    cv.imshow(outputCanvas2, gray);
+  }
+
   // Call this function again to keep predicting when the browser is ready.
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
