@@ -3,10 +3,15 @@ import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared
 import { io, Socket } from 'socket.io-client';
 import cvModule from '@techstark/opencv-js';
 
+type RunningMode = 'IMAGE' | 'VIDEO';
+
+// grid recognition
+const MINIMAL_POSSIBLE_AREA = 120000; // anpassen nach Bedarf
+const DEBUG = false;
 let cv: cvModule.CV;
 const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
-// const outputCtx2 = outputCanvas2.getContext('2d');
-// -
+
+// gesture recognition
 let gestureRecognizer: GestureRecognizer;
 let runningMode = 'IMAGE';
 let enableWebcamButton: HTMLButtonElement;
@@ -60,10 +65,6 @@ function setupOpenCVForVideo(): void {
   outputCanvas2.height = videoHeight;
 }
 
-// --------------------
-
-type RunningMode = 'IMAGE' | 'VIDEO';
-
 // Before we can use HandLandmarker class we must wait for it to finish
 // loading. Machine Learning models can be large and take a moment to
 // get everything needed to run.
@@ -96,7 +97,7 @@ function hasGetUserMedia() {
 // If webcam supported, add event listener to button for when user
 // wants to activate it.
 if (hasGetUserMedia()) {
-  enableWebcamButton = <HTMLButtonElement>document.getElementById('webcamButton');
+  enableWebcamButton = document.getElementById('webcamButton') as HTMLButtonElement;
   enableWebcamButton.addEventListener('click', enableCam);
 } else {
   console.warn('getUserMedia() is not supported by your browser');
@@ -134,9 +135,76 @@ function enableCam() {
   });
 }
 
+function getMaxContour(image: cvModule.Mat): { contour: cvModule.Mat | null; area: number } {
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+
+  cv.findContours(image, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+  let maxArea = 0;
+  let maxContour: cvModule.Mat | null = null;
+
+  for (let i = 0; i < contours.size(); i++) {
+    const cnt = contours.get(i);
+
+    const perimeter = cv.arcLength(cnt, true);
+    const approx = new cv.Mat();
+    cv.approxPolyDP(cnt, approx, 0.1 * perimeter, true);
+
+    const moments = cv.moments(approx, false);
+    const area = moments.m00;
+
+    if (approx.rows === 4 && area > maxArea) {
+      maxArea = area;
+      maxContour = approx.clone(); // wichtig: nicht ref übernehmen
+    }
+
+    approx.delete();
+  }
+
+  hierarchy.delete();
+  contours.delete();
+
+  return { contour: maxContour, area: maxArea };
+}
+
+function expandContourSearch(gray: cvModule.Mat): { contour: cvModule.Mat | null; area: number } {
+  let { contour, area } = getMaxContour(gray);
+
+  const MAX_DILATE_ITERATIONS = 3;
+  const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+
+  let dilateIterations = 0;
+
+  // Arbeitsspeicher-Temp-Mat
+  const temp = new cv.Mat();
+
+  while (area < MINIMAL_POSSIBLE_AREA && dilateIterations < MAX_DILATE_ITERATIONS) {
+    dilateIterations++;
+
+    // temp = dilate(gray)
+    cv.dilate(gray, temp, kernel, new cv.Point(-1, -1), 1, cv.BORDER_CONSTANT);
+
+    // jetzt wirklich überschreiben: gray ← temp, aber ohne delete
+    temp.copyTo(gray);
+
+    const result = getMaxContour(gray);
+    contour = result.contour;
+    area = result.area;
+
+    if (DEBUG) console.log(`Dilate step ${dilateIterations}, area = ${area}`);
+  }
+
+  temp.delete();
+  kernel.delete();
+
+  return { contour, area };
+}
+
 let lastVideoTime = -1;
 let results: GestureRecognizerResult | undefined = undefined;
 async function predictWebcam() {
+  console.log('Camera resolution:', video.videoWidth, 'x', video.videoHeight);
   const webcamElement = document.getElementById('webcam') as HTMLVideoElement;
   // Now let's start detecting the stream.
   if (runningMode === 'IMAGE') {
@@ -184,13 +252,20 @@ async function predictWebcam() {
 
   // todo das muss woanders hin
   if (cv && cap && src && gray) {
-    // 1) Aktuelles Video-Frame holen
     cap.read(src);
-
-    // 2) Beispiel: Graustufen
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
+    cv.Canny(gray, gray, 60, 140);
 
-    // 3) In Canvas anzeigen
+    const { contour, area } = expandContourSearch(gray);
+
+    if (contour && area > MINIMAL_POSSIBLE_AREA) {
+      const vec = new cv.MatVector();
+      vec.push_back(contour);
+      cv.drawContours(gray, vec, -1, new cv.Scalar(255, 0, 0, 255), cv.FILLED);
+      vec.delete();
+    }
+
     cv.imshow(outputCanvas2, gray);
   }
 
