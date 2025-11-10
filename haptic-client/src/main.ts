@@ -6,10 +6,12 @@ import cvModule from '@techstark/opencv-js';
 type RunningMode = 'IMAGE' | 'VIDEO';
 
 // grid recognition
-const MINIMAL_POSSIBLE_AREA = 120000; // anpassen nach Bedarf
-const DEBUG = false;
+const MINIMAL_POSSIBLE_AREA = 80000; // anpassen nach Bedarf
+const MAX_POSSIBLE_AREA_RATIO = 0.9; // maximal 90% des Bildes
+const DEBUG = true;
 let cv: cvModule.CV;
 const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
+const outputCanvas3 = document.getElementById('output_canvas3') as HTMLCanvasElement;
 
 // gesture recognition
 let gestureRecognizer: GestureRecognizer;
@@ -63,6 +65,11 @@ function setupOpenCVForVideo(): void {
 
   outputCanvas2.width = videoWidth;
   outputCanvas2.height = videoHeight;
+
+  if (outputCanvas3) {
+    outputCanvas3.width = videoWidth;
+    outputCanvas3.height = videoHeight;
+  }
 }
 
 // Before we can use HandLandmarker class we must wait for it to finish
@@ -139,24 +146,46 @@ function getMaxContour(image: cvModule.Mat): { contour: cvModule.Mat | null; are
   const contours = new cv.MatVector();
   const hierarchy = new cv.Mat();
 
-  cv.findContours(image, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+  cv.findContours(image, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   let maxArea = 0;
   let maxContour: cvModule.Mat | null = null;
+  const imageArea = image.rows * image.cols;
+  const maxAllowedArea = imageArea * MAX_POSSIBLE_AREA_RATIO;
 
   for (let i = 0; i < contours.size(); i++) {
     const cnt = contours.get(i);
+    const area = cv.contourArea(cnt);
+
+    // Überspringe zu kleine oder zu große Konturen
+    if (area < MINIMAL_POSSIBLE_AREA || area > maxAllowedArea) {
+      continue;
+    }
 
     const perimeter = cv.arcLength(cnt, true);
     const approx = new cv.Mat();
-    cv.approxPolyDP(cnt, approx, 0.1 * perimeter, true);
 
-    const moments = cv.moments(approx, false);
-    const area = moments.m00;
+    // Adaptiver Epsilon-Wert für bessere Approximation
+    const epsilon = 0.02 * perimeter;
+    cv.approxPolyDP(cnt, approx, epsilon, true);
 
-    if (approx.rows === 4 && area > maxArea) {
-      maxArea = area;
-      maxContour = approx.clone(); // wichtig: nicht ref übernehmen
+    // Prüfe ob es ein Viereck ist
+    if (approx.rows === 4) {
+      // Zusätzliche Validierung: Prüfe ob es konvex ist
+      if (cv.isContourConvex(approx)) {
+        // Berechne Aspekt-Ratio um zu schmale/breite Formen auszuschließen
+        const rect = cv.boundingRect(approx);
+        const aspectRatio = rect.width / rect.height;
+
+        // Gitter sollte nicht zu extrem rechteckig sein (zwischen 0.3 und 3.0)
+        if (aspectRatio > 0.3 && aspectRatio < 3.0) {
+          if (area > maxArea) {
+            maxArea = area;
+            if (maxContour) maxContour.delete();
+            maxContour = approx.clone();
+          }
+        }
+      }
     }
 
     approx.delete();
@@ -171,8 +200,8 @@ function getMaxContour(image: cvModule.Mat): { contour: cvModule.Mat | null; are
 function expandContourSearch(gray: cvModule.Mat): { contour: cvModule.Mat | null; area: number } {
   let { contour, area } = getMaxContour(gray);
 
-  const MAX_DILATE_ITERATIONS = 3;
-  const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+  const MAX_DILATE_ITERATIONS = 5;
+  const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
 
   let dilateIterations = 0;
 
@@ -189,7 +218,10 @@ function expandContourSearch(gray: cvModule.Mat): { contour: cvModule.Mat | null
     temp.copyTo(gray);
 
     const result = getMaxContour(gray);
-    contour = result.contour;
+    if (result.contour) {
+      if (contour) contour.delete();
+      contour = result.contour;
+    }
     area = result.area;
 
     if (DEBUG) console.log(`Dilate step ${dilateIterations}, area = ${area}`);
@@ -199,6 +231,128 @@ function expandContourSearch(gray: cvModule.Mat): { contour: cvModule.Mat | null
   kernel.delete();
 
   return { contour, area };
+}
+
+/**
+ * Verbesserte Bildvorverarbeitung für robuste Kantenerkennung
+ */
+function preprocessImage(src: cvModule.Mat): cvModule.Mat {
+  const gray = new cv.Mat();
+  const blurred = new cv.Mat();
+  const edges = new cv.Mat();
+  const dilated = new cv.Mat();
+  const morphed = new cv.Mat();
+
+  // 1. Zu Graustufen konvertieren
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+  // 2. Bilaterale Filter für Rauschunterdrückung bei Kantenerhaltung
+  cv.bilateralFilter(gray, blurred, 9, 75, 75);
+
+  // 3. Adaptive Schwellwertbildung für besseren Kontrast
+  const thresh = new cv.Mat();
+  cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+
+  // 4. Morphologische Operationen um Lücken zu schließen
+  const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+  cv.morphologyEx(thresh, morphed, cv.MORPH_CLOSE, kernel);
+
+  // 5. Canny Edge Detection mit optimierten Parametern
+  cv.Canny(morphed, edges, 50, 150, 3, false);
+
+  // 6. Leichte Dilatation um Lücken in Kanten zu schließen
+  const dilateKernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 2));
+  cv.dilate(edges, dilated, dilateKernel);
+
+  // Cleanup
+  gray.delete();
+  blurred.delete();
+  edges.delete();
+  thresh.delete();
+  morphed.delete();
+  kernel.delete();
+  dilateKernel.delete();
+
+  return dilated;
+}
+
+/**
+ * Sortiert 4 Eckpunkte in der Reihenfolge: top-left, top-right, bottom-right, bottom-left
+ */
+function orderPoints(pts: number[][]): number[][] {
+  // Summe: top-left hat kleinste, bottom-right hat größte
+  const sums = pts.map((p) => p[0] + p[1]);
+  const topLeft = pts[sums.indexOf(Math.min(...sums))];
+  const bottomRight = pts[sums.indexOf(Math.max(...sums))];
+
+  // Differenz: top-right hat kleinste (x-y), bottom-left hat größte
+  const diffs = pts.map((p) => p[0] - p[1]);
+  const topRight = pts[diffs.indexOf(Math.min(...diffs))];
+  const bottomLeft = pts[diffs.indexOf(Math.max(...diffs))];
+
+  return [topLeft, topRight, bottomRight, bottomLeft];
+}
+
+/**
+ * Wendet eine perspektivische Transformation an, um das Gitter zu croppen und zu begradigen
+ */
+function warpPerspective(src: cvModule.Mat, contour: cvModule.Mat): cvModule.Mat | null {
+  if (contour.rows !== 4) {
+    return null;
+  }
+
+  // Extrahiere die 4 Eckpunkte aus der Kontur
+  const points: number[][] = [];
+  for (let i = 0; i < 4; i++) {
+    points.push([contour.data32S[i * 2], contour.data32S[i * 2 + 1]]);
+  }
+
+  // Sortiere Punkte in korrekter Reihenfolge
+  const ordered = orderPoints(points);
+
+  // Berechne Breite und Höhe des Zielbildes
+  const widthA = Math.hypot(ordered[2][0] - ordered[3][0], ordered[2][1] - ordered[3][1]);
+  const widthB = Math.hypot(ordered[1][0] - ordered[0][0], ordered[1][1] - ordered[0][1]);
+  const maxWidth = Math.max(widthA, widthB);
+
+  const heightA = Math.hypot(ordered[1][0] - ordered[2][0], ordered[1][1] - ordered[2][1]);
+  const heightB = Math.hypot(ordered[0][0] - ordered[3][0], ordered[0][1] - ordered[3][1]);
+  const maxHeight = Math.max(heightA, heightB);
+
+  // Ziel-Punkte für das begradiate Bild
+  const dst = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    0,
+    0,
+    maxWidth - 1,
+    0,
+    maxWidth - 1,
+    maxHeight - 1,
+    0,
+    maxHeight - 1,
+  ]);
+
+  const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, ordered.flat());
+
+  // Berechne Perspektivtransformation
+  const M = cv.getPerspectiveTransform(srcPts, dst);
+  const warped = new cv.Mat();
+
+  cv.warpPerspective(
+    src,
+    warped,
+    M,
+    new cv.Size(maxWidth, maxHeight),
+    cv.INTER_LINEAR,
+    cv.BORDER_CONSTANT,
+    new cv.Scalar(0, 0, 0, 255),
+  );
+
+  // Cleanup
+  srcPts.delete();
+  dst.delete();
+  M.delete();
+
+  return warped;
 }
 
 let lastVideoTime = -1;
@@ -250,23 +404,61 @@ async function predictWebcam() {
     gestureOutput.style.display = 'none';
   }
 
-  // todo das muss woanders hin
+  // Grid-Erkennung mit verbesserter Kantenerkennung
   if (cv && cap && src && gray) {
     cap.read(src);
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
-    cv.Canny(gray, gray, 60, 140);
 
-    const { contour, area } = expandContourSearch(gray);
+    // Verwende die verbesserte Vorverarbeitung
+    const processed = preprocessImage(src);
+
+    const { contour, area } = expandContourSearch(processed);
+
+    // Visualisierung der Kantenerkennung
+    const edgesVis = processed.clone();
+    cv.cvtColor(edgesVis, edgesVis, cv.COLOR_GRAY2RGBA);
 
     if (contour && area > MINIMAL_POSSIBLE_AREA) {
+      if (DEBUG) console.log(`Grid gefunden! Area: ${area}`);
+
+      // Zeichne die erkannte Kontur in Grün
       const vec = new cv.MatVector();
       vec.push_back(contour);
-      cv.drawContours(gray, vec, -1, new cv.Scalar(255, 0, 0, 255), cv.FILLED);
+      cv.drawContours(edgesVis, vec, -1, new cv.Scalar(0, 255, 0, 255), 3);
+
+      // Zeichne Eckpunkte in Rot mit Nummerierung
+      for (let i = 0; i < 4; i++) {
+        const x = contour.data32S[i * 2];
+        const y = contour.data32S[i * 2 + 1];
+        cv.circle(edgesVis, new cv.Point(x, y), 8, new cv.Scalar(255, 0, 0, 255), -1);
+        // Füge Text für Punkt-Nummer hinzu
+        cv.putText(
+          edgesVis,
+          `${i}`,
+          new cv.Point(x + 10, y - 10),
+          cv.FONT_HERSHEY_SIMPLEX,
+          0.6,
+          new cv.Scalar(255, 255, 0, 255),
+          2,
+        );
+      }
+
       vec.delete();
+
+      // Wende perspektivische Transformation an, um das Gitter zu croppen
+      const warped = warpPerspective(src, contour);
+
+      if (warped && outputCanvas3) {
+        // Zeige das gecroppte und begradiate Gitter
+        cv.imshow(outputCanvas3, warped);
+        warped.delete();
+      }
+    } else {
+      if (DEBUG && area > 0) console.log(`Kein Grid gefunden. Area: ${area}`);
     }
 
-    cv.imshow(outputCanvas2, gray);
+    cv.imshow(outputCanvas2, edgesVis);
+    edgesVis.delete();
+    processed.delete();
   }
 
   // Call this function again to keep predicting when the browser is ready.
