@@ -115,40 +115,20 @@ export class GridRecognition {
     const gray = new this.cv.Mat();
     const blurred = new this.cv.Mat();
     const edges = new this.cv.Mat();
-    const dilated = new this.cv.Mat();
-    const morphed = new this.cv.Mat();
 
-    // 1. Zu Graustufen konvertieren
+    // 1. Graustufen
     this.cv.cvtColor(src, gray, this.cv.COLOR_RGBA2GRAY);
 
-    // 2. Bilaterale Filter für Rauschunterdrückung
-    this.cv.bilateralFilter(gray, blurred, 9, 75, 75);
+    // 2. Gaussian Blur (bilateral ist unnötig teuer + unruhig)
+    this.cv.GaussianBlur(gray, blurred, new this.cv.Size(5, 5), 0);
 
-    // 3. Adaptive Schwellwertbildung
-    const thresh = new this.cv.Mat();
-    this.cv.adaptiveThreshold(blurred, thresh, 255, this.cv.ADAPTIVE_THRESH_GAUSSIAN_C, this.cv.THRESH_BINARY, 11, 2);
+    // 3. Canny
+    this.cv.Canny(blurred, edges, 80, 160);
 
-    // 4. Morphologische Operationen
-    const kernel = this.cv.getStructuringElement(this.cv.MORPH_RECT, new this.cv.Size(3, 3));
-    this.cv.morphologyEx(thresh, morphed, this.cv.MORPH_CLOSE, kernel);
-
-    // 5. Canny Edge Detection
-    this.cv.Canny(morphed, edges, 50, 150, 3, false);
-
-    // 6. Leichte Dilatation
-    const dilateKernel = this.cv.getStructuringElement(this.cv.MORPH_RECT, new this.cv.Size(2, 2));
-    this.cv.dilate(edges, dilated, dilateKernel);
-
-    // Cleanup
     gray.delete();
     blurred.delete();
-    edges.delete();
-    thresh.delete();
-    morphed.delete();
-    kernel.delete();
-    dilateKernel.delete();
 
-    return dilated;
+    return edges;
   }
 
   private getMaxContour(image: cvModule.Mat): { contour: cvModule.Mat | null; area: number } {
