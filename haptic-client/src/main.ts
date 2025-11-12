@@ -2,6 +2,7 @@ import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared
 import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
 import { GridRecognition } from './recognition/GridRecognition';
+import { ArucoRecognition } from './recognition/ArucoRecognition';
 
 /**
  * desired video resolution width
@@ -18,6 +19,8 @@ const VIDEO_HEIGHT = 480;
 const gestureRecognition = new GestureRecognition();
 /** grid recognition and cropping w/ OpenCV.js */
 const gridRecognition = new GridRecognition();
+/** ArUco marker recognition w/ js-aruco2 */
+const arucoRecognition = new ArucoRecognition(VIDEO_WIDTH, VIDEO_HEIGHT);
 
 // UI-Elemente
 const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
@@ -88,6 +91,9 @@ async function predictWebcam() {
   if (gestureRecognition.isReady()) {
     await gestureRecognition.processFrame(video, canvasElement, gestureOutput);
   }
+
+  arucoRecognition.processFrame(video, canvasElement);
+
   if (gridRecognition.isReady()) {
     gridRecognition.processFrame(outputCanvas2, outputCanvas3);
   }
