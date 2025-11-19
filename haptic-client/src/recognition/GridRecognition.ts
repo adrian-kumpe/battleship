@@ -50,6 +50,48 @@ export class GridRecognition {
     return !!this.cv && !!this.cap && !!this.src && !!this.gray;
   }
 
+  /** enhance video image for aruco marker detection */
+  prepareForArucoDetection(outputCanvas: HTMLCanvasElement): void {
+    if (!this.cv || !this.cap || !this.src) {
+      return;
+    }
+
+    this.cap.read(this.src);
+
+    const gray = new this.cv.Mat();
+    const enhanced = new this.cv.Mat();
+
+    try {
+      // 1) Graustufen
+      this.cv.cvtColor(this.src, gray, this.cv.COLOR_RGBA2GRAY);
+
+      // 2) Leichte Glättung
+      // this.cv.GaussianBlur(gray, gray, new this.cv.Size(3, 3), 0);
+
+      // 3) CLAHE (vor allem bei schlechten Lichtverhältnissen sinnvoll)
+      const clahe = new this.cv.CLAHE(2.0, new this.cv.Size(8, 8));
+      clahe.apply(gray, enhanced);
+
+      // 4) Adaptive Threshold (nur wenn Erkennung schlecht ist!)
+      // this.cv.adaptiveThreshold(
+      //   enhanced,
+      //   enhanced,
+      //   255,
+      //   this.cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+      //   this.cv.THRESH_BINARY,
+      //   11,
+      //   2,
+      // );
+
+      this.cv.imshow(outputCanvas, enhanced);
+
+      clahe.delete();
+    } finally {
+      gray.delete();
+      enhanced.delete();
+    }
+  }
+
   processFrame(outputCanvas2: HTMLCanvasElement, outputCanvas3: HTMLCanvasElement | null): void {
     if (!this.cv || !this.cap || !this.src || !this.gray) {
       return;
@@ -205,7 +247,7 @@ export class GridRecognition {
       }
       area = result.area;
 
-      if (DEBUG) console.log(`Dilate step ${dilateIterations}, area = ${area}`);
+      // if (DEBUG) console.log(`Dilate step ${dilateIterations}, area = ${area}`);
     }
 
     temp.delete();

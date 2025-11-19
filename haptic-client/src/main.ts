@@ -20,9 +20,9 @@ const gestureRecognition = new GestureRecognition();
 /** grid recognition and cropping w/ OpenCV.js */
 const gridRecognition = new GridRecognition();
 /** ArUco marker recognition w/ js-aruco2 */
-const arucoRecognition = new ArucoRecognition(VIDEO_WIDTH, VIDEO_HEIGHT);
+const arucoRecognition = new ArucoRecognition();
 
-// UI-Elemente
+const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
 const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
 const outputCanvas3 = document.getElementById('output_canvas3') as HTMLCanvasElement;
 
@@ -82,8 +82,8 @@ function enableCam() {
   });
   video.addEventListener('loadedmetadata', () => {
     gridRecognition.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
-    canvasElement.width = outputCanvas2.width = outputCanvas3.width = VIDEO_WIDTH;
-    canvasElement.height = outputCanvas2.height = outputCanvas3.height = VIDEO_HEIGHT;
+    canvasElement.width = outputCanvas2.width = outputCanvas3.width = prepareForArucoDetection.width = VIDEO_WIDTH;
+    canvasElement.height = outputCanvas2.height = outputCanvas3.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
   });
 }
 
@@ -92,7 +92,17 @@ async function predictWebcam() {
     await gestureRecognition.processFrame(video, canvasElement, gestureOutput);
   }
 
-  arucoRecognition.processFrame(video, canvasElement);
+  if (gridRecognition.isReady()) {
+    gridRecognition.prepareForArucoDetection(prepareForArucoDetection);
+
+    const markers = arucoRecognition.processFrame(prepareForArucoDetection);
+
+    const leftGridMarkerIds = [3, 4, 6, 9];
+    const leftGridVisible = leftGridMarkerIds.every((e) => markers.map(({ id }) => id).indexOf(e) !== -1);
+    if (leftGridVisible) {
+      console.log('linkes grid wurde gefunden');
+    }
+  }
 
   if (gridRecognition.isReady()) {
     gridRecognition.processFrame(outputCanvas2, outputCanvas3);

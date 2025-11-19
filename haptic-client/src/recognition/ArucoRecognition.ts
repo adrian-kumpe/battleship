@@ -1,54 +1,37 @@
+import { Marker } from 'js-aruco2';
+
 const AR = require('js-aruco2');
 
 export class ArucoRecognition {
   private detector: any;
-  private tempCanvas: HTMLCanvasElement;
-  private tempCtx: CanvasRenderingContext2D;
 
-  constructor(width: number, height: number) {
-    this.detector = new AR.AR.Detector();
-
-    // Erstelle das temporäre Canvas einmal beim Initialisieren
-    // mit den richtigen Dimensionen
-    this.tempCanvas = document.createElement('canvas');
-    this.tempCanvas.width = width;
-    this.tempCanvas.height = height;
-
-    const ctx = this.tempCanvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Could not create 2D context for temporary canvas');
-    }
-    this.tempCtx = ctx;
+  constructor() {
+    this.detector = new AR.AR.Detector({
+      dictionaryName: 'ARUCO_MIP_36h12',
+      maxHammingDistance: 5,
+    });
   }
 
-  /**
-   * Detects ArUco markers in the video frame and draws them on the canvas
-   * @param video - The video element to process
-   * @param canvas - The canvas to draw the markers on
-   */
-  processFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement): void {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return;
+  /** detects aruco markers in the given HTML canvas */
+  processFrame(preparedCanvas: HTMLCanvasElement): Marker[] {
+    const preparedCtx = preparedCanvas.getContext('2d');
+    if (!preparedCtx) {
+      return [];
     }
 
-    // Zeichne aktuelles Video-Frame auf das wiederverwendbare temporäre Canvas
-    // Das ist nötig, weil js-aruco2 ImageData braucht, das nur von einem Canvas kommt
-    this.tempCtx.drawImage(video, 0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    const width = preparedCanvas.width;
+    const height = preparedCanvas.height;
 
-    // Hole ImageData für die Marker-Erkennung
-    const imageData = this.tempCtx.getImageData(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+    // Hole ImageData aus dem bereits vorbereiteten Canvas
+    const imageData = preparedCtx.getImageData(0, 0, width, height);
 
     // Erkenne Marker
     const markers = this.detector.detect(imageData);
 
-    // Debug: Log marker count
-    if (markers.length > 0) {
-      console.log(`Detected ${markers.length} marker(s):`, markers);
-    }
+    // Zeichne Marker auf das Ziel-Canvas
+    this.drawMarkers(preparedCtx, markers);
 
-    // Zeichne Marker auf das Haupt-Canvas
-    this.drawMarkers(ctx, markers);
+    return markers ?? [];
   }
 
   /**
