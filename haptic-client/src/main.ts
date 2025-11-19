@@ -88,25 +88,71 @@ function enableCam() {
 }
 
 async function predictWebcam() {
-  if (gestureRecognition.isReady()) {
-    await gestureRecognition.processFrame(video, canvasElement, gestureOutput);
+  if (!gestureRecognition.isReady() || !gridRecognition.isReady()) {
+    return;
   }
 
-  if (gridRecognition.isReady()) {
-    gridRecognition.prepareForArucoDetection(prepareForArucoDetection);
+  await gestureRecognition.processFrame(video, canvasElement, gestureOutput);
 
-    const markers = arucoRecognition.processFrame(prepareForArucoDetection);
+  gridRecognition.prepareForArucoDetection(prepareForArucoDetection);
 
-    const leftGridMarkerIds = [3, 4, 6, 9];
-    const leftGridVisible = leftGridMarkerIds.every((e) => markers.map(({ id }) => id).indexOf(e) !== -1);
-    if (leftGridVisible) {
-      console.log('linkes grid wurde gefunden');
-    }
+  const markers = arucoRecognition.processFrame(prepareForArucoDetection);
+
+  const leftGridMarkerIds = [3, 4, 6, 9];
+  const leftGrid = markers.filter((m) => leftGridMarkerIds.includes(m.id));
+  if (leftGrid.length === 4) {
+    console.log('linkes grid wurde gefunden');
+
+    const leftGridCenter = {
+      x:
+        leftGrid.reduce((sum, m) => {
+          const markerCenterX = m.corners.reduce((s, c) => s + c.x, 0) / m.corners.length;
+          return sum + markerCenterX;
+        }, 0) / leftGrid.length,
+      y:
+        leftGrid.reduce((sum, m) => {
+          const markerCenterY = m.corners.reduce((s, c) => s + c.y, 0) / m.corners.length;
+          return sum + markerCenterY;
+        }, 0) / leftGrid.length,
+    };
+
+    const leftGridCorners: { x: number; y: number }[] = leftGrid.map((m) => {
+      switch (m.id) {
+        case 3:
+        case 4: {
+          // corner closest to the center of leftGrid
+          let closestCorner = m.corners[0];
+          let minDistance = Math.hypot(closestCorner.x - leftGridCenter.x, closestCorner.y - leftGridCenter.y);
+          for (let i = 1; i < m.corners.length; i++) {
+            const distance = Math.hypot(m.corners[i].x - leftGridCenter.x, m.corners[i].y - leftGridCenter.y);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestCorner = m.corners[i];
+            }
+          }
+          return { x: closestCorner.x, y: closestCorner.y };
+        }
+        case 6:
+        case 9: {
+          // corner second-closest to the center of leftGrid
+          const distances = m.corners.map((corner, index) => ({
+            corner,
+            index,
+            distance: Math.hypot(corner.x - leftGridCenter.x, corner.y - leftGridCenter.y),
+          }));
+          distances.sort((a, b) => a.distance - b.distance);
+          const secondClosest = distances[1].corner;
+          return { x: secondClosest.x, y: secondClosest.y };
+        }
+        default:
+          return { x: 0, y: 0 };
+      }
+    });
+    console.log(leftGridCorners);
   }
 
-  if (gridRecognition.isReady()) {
-    gridRecognition.processFrame(outputCanvas2, outputCanvas3);
-  }
+  gridRecognition.processFrame(outputCanvas2, outputCanvas3);
+
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
   }
