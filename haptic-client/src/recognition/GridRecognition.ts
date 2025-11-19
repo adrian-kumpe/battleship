@@ -327,4 +327,49 @@ export class GridRecognition {
 
     return warped;
   }
+
+  /** crop video w/ given corners and display outputCanvas */
+  cropGridFromCorners(outputCanvas: HTMLCanvasElement, corners: { x: number; y: number }[], size: number = 400): void {
+    if (!this.cv || !this.src) {
+      throw new Error('OpenCV not initialized or video source not ready');
+    }
+
+    if (corners.length !== 4) {
+      throw new Error('Exactly 4 corners are required');
+    }
+
+    // Sortiere die Ecken in der richtigen Reihenfolge (top-left, top-right, bottom-right, bottom-left)
+    const points = corners.map((c) => [c.x, c.y]);
+    const ordered = this.orderPoints(points);
+
+    // Source-Punkte aus den geordneten Ecken
+    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
+
+    // Destination-Punkte für quadratisches Bild
+    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, size - 1, 0, size - 1, size - 1, 0, size - 1]);
+
+    // Berechne Perspektivtransformation
+    const M = this.cv.getPerspectiveTransform(srcPts, dst);
+    const warped = new this.cv.Mat();
+
+    // Wende Perspektivtransformation an
+    this.cv.warpPerspective(
+      this.src,
+      warped,
+      M,
+      new this.cv.Size(size, size),
+      this.cv.INTER_LINEAR,
+      this.cv.BORDER_CONSTANT,
+      new this.cv.Scalar(0, 0, 0, 255),
+    );
+
+    // Zeige das Ergebnis auf dem Canvas
+    this.cv.imshow(outputCanvas, warped);
+
+    // Cleanup
+    srcPts.delete();
+    dst.delete();
+    M.delete();
+    warped.delete();
+  }
 }

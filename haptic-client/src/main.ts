@@ -23,6 +23,7 @@ const gridRecognition = new GridRecognition();
 const arucoRecognition = new ArucoRecognition();
 
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
+const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
 const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
 const outputCanvas3 = document.getElementById('output_canvas3') as HTMLCanvasElement;
 
@@ -84,6 +85,7 @@ function enableCam() {
     gridRecognition.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
     canvasElement.width = outputCanvas2.width = outputCanvas3.width = prepareForArucoDetection.width = VIDEO_WIDTH;
     canvasElement.height = outputCanvas2.height = outputCanvas3.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
+    croppedLeftGrid.width = croppedLeftGrid.height = 400;
   });
 }
 
@@ -101,8 +103,6 @@ async function predictWebcam() {
   const leftGridMarkerIds = [3, 4, 6, 9];
   const leftGrid = markers.filter((m) => leftGridMarkerIds.includes(m.id));
   if (leftGrid.length === 4) {
-    console.log('linkes grid wurde gefunden');
-
     const leftGridCenter = {
       x:
         leftGrid.reduce((sum, m) => {
@@ -148,10 +148,12 @@ async function predictWebcam() {
           return { x: 0, y: 0 };
       }
     });
-    console.log(leftGridCorners);
+
+    // Croppe und transformiere das linke Grid
+    gridRecognition.cropGridFromCorners(croppedLeftGrid, leftGridCorners, 400);
   }
 
-  gridRecognition.processFrame(outputCanvas2, outputCanvas3);
+  // gridRecognition.processFrame(outputCanvas2, outputCanvas3);
 
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
