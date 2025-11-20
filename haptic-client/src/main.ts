@@ -11,12 +11,12 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
  * desired video resolution width
  * @constant
  */
-const VIDEO_WIDTH = 640;
+const VIDEO_WIDTH = 1440;
 /**
  * desired video resolution height
  * @constant
  */
-const VIDEO_HEIGHT = 480;
+const VIDEO_HEIGHT = 1080;
 
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition();
@@ -60,7 +60,7 @@ function hasGetUserMedia() {
 // If webcam supported, add event listener to button for when user
 // wants to activate it.
 if (hasGetUserMedia()) {
-  enableWebcamButton = document.getElementById('webcamButton') as HTMLButtonElement;
+  enableWebcamButton = document.getElementById('enableCamera') as HTMLButtonElement;
   enableWebcamButton.addEventListener('click', enableCam);
 } else {
   console.warn('getUserMedia() is not supported by your browser');

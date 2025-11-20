@@ -12,26 +12,65 @@
         Lorem ipsum dolor sit amet consectetur adipisicing elit. Ullam illo quam praesentium repellat deleniti impedit,
         error veniam blanditiis sed laboriosam ipsa aliquid vero, accusantium maxime nam eligendi culpa iste assumenda?
       </p>
-      <div>
-        <button id="webcamButton">ENABLE WEBCAM</button>
-      </div>
-      <div class="row">
-        <figure class="col-4">
-          <div class="ratio ratio-4x3 bg-warning rounded overflow-hidden">
-            <video id="webcam" class="d-block w-100 h-100" autoplay playsinline></video>
-            <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0"></canvas>
+      <div class="row g-2">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-header">Aktionen</div>
+            <ul class="list-group list-group-flush">
+              <button id="enableCamera" class="list-group-item list-group-item-action list-group-item-danger">
+                Kamera aktivieren
+              </button>
+              <li class="list-group-item">A second item</li>
+              <li class="list-group-item">A third item</li>
+            </ul>
           </div>
-          <figcaption class="figure-caption">Video der Webcam mit markierten Händen</figcaption>
-        </figure>
-        <figure class="col-4">
-          <div class="ratio ratio-4x3 bg-warning rounded overflow-hidden">
-            <canvas id="prepareForArucoDetection" class="d-block w-100"></canvas>
+        </div>
+        <div class="col-5">
+          <div class="card">
+            <div class="card-header">Video mit Gestenerkennung</div>
+            <div class="ratio ratio-4x3 bg-warning">
+              <video id="webcam" class="d-block w-100 h-100" autoplay playsinline></video>
+              <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0"></canvas>
+            </div>
+            <div class="card-body">
+              <p class="card-text">Video der Webcam mit markierten Händen</p>
+            </div>
           </div>
-          <figcaption class="figure-caption">Erkennung von ArUco Markern in aufbereitetem Bild</figcaption>
-        </figure>
+        </div>
+        <div class="col-5">
+          <div class="card">
+            <div class="card-header">Canvas zur Erkennung von ArUco Markern</div>
+            <div class="ratio ratio-4x3 bg-warning">
+              <canvas id="prepareForArucoDetection" class="d-block w-100"></canvas>
+            </div>
+            <div class="card-body">
+              <p class="card-text">Erkennung von ArUco Markern in aufbereitetem Bild</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="card">
+            <div class="card-header">Spielfeld links</div>
+            <div class="ratio ratio-1x1 bg-warning">
+              <canvas id="croppedLeftGrid" class="d-block w-100"></canvas>
+            </div>
+            <div class="card-body">
+              <p class="card-text">Der zugeschnittene linke Teil des Spielfelds</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="card">
+            <div class="card-header">Spielfeld rechts</div>
+            <div class="ratio ratio-1x1 bg-warning">
+              <canvas id="croppedRightGrid" class="d-block w-100"></canvas>
+            </div>
+            <div class="card-body">
+              <p class="card-text">Der zugeschnittene rechts Teil des Spielfelds</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <canvas id="croppedLeftGrid"></canvas>
-      <canvas id="croppedRightGrid"></canvas>
       <p id="gesture_output" class="output"></p>
     </div>
   </body>
