@@ -4,6 +4,8 @@ import { GestureRecognition } from './recognition/GestureRecognition';
 import { GridRecognition } from './recognition/GridRecognition';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
 import { Marker } from 'js-aruco2';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 /**
  * desired video resolution width
@@ -26,8 +28,6 @@ const arucoRecognition = new ArucoRecognition();
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
 const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
 const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
-const outputCanvas2 = document.getElementById('output_canvas2') as HTMLCanvasElement;
-const outputCanvas3 = document.getElementById('output_canvas3') as HTMLCanvasElement;
 
 let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
@@ -49,7 +49,7 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 })();
 
 const video = document.getElementById('webcam') as HTMLVideoElement;
-const canvasElement = document.getElementById('output_canvas') as HTMLCanvasElement;
+const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
 const gestureOutput = document.getElementById('gesture_output') as HTMLParagraphElement;
 
 // Check if webcam access is supported.
@@ -85,8 +85,8 @@ function enableCam() {
   });
   video.addEventListener('loadedmetadata', () => {
     gridRecognition.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
-    canvasElement.width = outputCanvas2.width = outputCanvas3.width = prepareForArucoDetection.width = VIDEO_WIDTH;
-    canvasElement.height = outputCanvas2.height = outputCanvas3.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
+    recognizedGestures.width = prepareForArucoDetection.width = VIDEO_WIDTH;
+    recognizedGestures.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
     croppedLeftGrid.width = croppedLeftGrid.height = croppedRightGrid.height = croppedRightGrid.width = 400;
   });
 }
@@ -124,7 +124,7 @@ async function predictWebcam() {
     return;
   }
 
-  await gestureRecognition.processFrame(video, canvasElement, gestureOutput);
+  await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
 
   gridRecognition.prepareForArucoDetection(prepareForArucoDetection);
 
@@ -139,8 +139,6 @@ async function predictWebcam() {
   };
   cropGrids([3, 4, 6, 9], croppedLeftGrid);
   cropGrids([0, 5, 7, 8], croppedRightGrid);
-
-  // gridRecognition.processFrame(outputCanvas2, outputCanvas3);
 
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);

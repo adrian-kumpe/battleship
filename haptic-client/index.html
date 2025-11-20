@@ -1,24 +1,38 @@
-
-  <h2>Demo: Webcam continuous hand gesture detection</h2>
-  <p>Use your hand to make gestures in front of the camera to get gesture classification. </br>Click <b>enable webcam</b> below and grant access to the webcam if prompted.</p>
-
-  <div id="liveView" class="videoView">
-    <button id="webcamButton" class="mdc-button mdc-button--raised">
-      <span class="mdc-button__ripple"></span>
-      <span class="mdc-button__label">ENABLE WEBCAM</span>
-    </button>
-    <div style="position: relative;">
-      <video id="webcam" autoplay playsinline></video>
-      <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
-      <canvas class="output_canvas" id="output_canvas2" style="position: absolute;"></canvas>
-      <canvas id="prepareForArucoDetection" style="position: absolute;"></canvas>
-      <canvas id="croppedLeftGrid" style="position: absolute;"></canvas>
-      <canvas id="croppedRightGrid" style="position: absolute;"></canvas>
-      <p id='gesture_output' class="output">
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Haptisches Schiffe Versenken</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Haptisches Schiffe Versenken</h1>
+      <p>
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Ullam illo quam praesentium repellat deleniti impedit,
+        error veniam blanditiis sed laboriosam ipsa aliquid vero, accusantium maxime nam eligendi culpa iste assumenda?
+      </p>
+      <div>
+        <button id="webcamButton">ENABLE WEBCAM</button>
+      </div>
+      <div class="row">
+        <figure class="col-4">
+          <div class="ratio ratio-4x3 bg-warning rounded overflow-hidden">
+            <video id="webcam" class="d-block w-100 h-100" autoplay playsinline></video>
+            <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0"></canvas>
+          </div>
+          <figcaption class="figure-caption">Video der Webcam mit markierten Händen</figcaption>
+        </figure>
+        <figure class="col-4">
+          <div class="ratio ratio-4x3 bg-warning rounded overflow-hidden">
+            <canvas id="prepareForArucoDetection" class="d-block w-100"></canvas>
+          </div>
+          <figcaption class="figure-caption">Erkennung von ArUco Markern in aufbereitetem Bild</figcaption>
+        </figure>
+      </div>
+      <canvas id="croppedLeftGrid"></canvas>
+      <canvas id="croppedRightGrid"></canvas>
+      <p id="gesture_output" class="output"></p>
     </div>
-    <div style="margin-top: 20px;">
-      <h3>Gecropptes Gitter:</h3>
-      <canvas class="output_canvas" id="output_canvas3" width="480" height="360" style="border: 2px solid #00ff00;"></canvas>
-    </div>
-  </div>
-</section>
+  </body>
+</html>
