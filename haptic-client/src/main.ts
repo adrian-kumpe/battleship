@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
 import { ImageTransformation } from './recognition/ImageTransformation';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
-import { Marker } from 'js-aruco2';
+import { getMiddleCorners } from './utils';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
@@ -20,8 +20,8 @@ const VIDEO_HEIGHT = 1080;
 
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition();
-/** grid recognition and cropping w/ OpenCV.js */
-const gridRecognition = new ImageTransformation();
+/** image transformation and cropping w/ OpenCV.js */
+const imageTransformation = new ImageTransformation();
 /** ArUco marker recognition w/ js-aruco2 */
 const arucoRecognition = new ArucoRecognition();
 
@@ -44,7 +44,7 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 );
 
 (async () => {
-  await gridRecognition.initialize();
+  await imageTransformation.initialize();
   await gestureRecognition.initialize();
 })();
 
@@ -65,6 +65,7 @@ if (hasGetUserMedia()) {
 } else {
   console.warn('getUserMedia() is not supported by your browser');
 }
+document.getElementById('useDemo')?.addEventListener('click', useDemo);
 
 function enableCam() {
   enableWebcamButton.innerText = (webcamRunning = !webcamRunning) ? 'DISABLE PREDICTIONS' : 'ENABLE PREDICTIONS';
@@ -78,55 +79,51 @@ function enableCam() {
   };
 
   navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
-    video.width = VIDEO_WIDTH;
-    video.height = VIDEO_HEIGHT;
-    video.srcObject = stream;
-    video.addEventListener('loadeddata', predictWebcam);
+    activateVideoStream(stream);
   });
+  setupRecognition();
+}
+
+function useDemo() {
+  webcamRunning = true;
+  const img = new Image();
+  img.src = '/sample1440x1080.png';
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1440;
+    canvas.height = 1080;
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const stream = canvas.captureStream(30);
+    activateVideoStream(stream);
+  };
+  setupRecognition();
+}
+
+function setupRecognition() {
   video.addEventListener('loadedmetadata', () => {
-    gridRecognition.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
+    imageTransformation.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
     recognizedGestures.width = prepareForArucoDetection.width = VIDEO_WIDTH;
     recognizedGestures.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
     croppedLeftGrid.width = croppedLeftGrid.height = croppedRightGrid.height = croppedRightGrid.width = 400;
   });
 }
 
-function getMiddleCorners(grid: Marker[]): { x: number; y: number }[] {
-  const leftGridCenter = {
-    x:
-      grid.reduce((sum, m) => {
-        const markerCenterX = m.corners.reduce((s, c) => s + c.x, 0) / m.corners.length;
-        return sum + markerCenterX;
-      }, 0) / 4,
-    y:
-      grid.reduce((sum, m) => {
-        const markerCenterY = m.corners.reduce((s, c) => s + c.y, 0) / m.corners.length;
-        return sum + markerCenterY;
-      }, 0) / 4,
-  };
-  return grid.map((m) => {
-    // corner closest to the center of leftGrid
-    let closestCorner = m.corners[0];
-    let minDistance = Math.hypot(closestCorner.x - leftGridCenter.x, closestCorner.y - leftGridCenter.y);
-    for (let i = 1; i < m.corners.length; i++) {
-      const distance = Math.hypot(m.corners[i].x - leftGridCenter.x, m.corners[i].y - leftGridCenter.y);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestCorner = m.corners[i];
-      }
-    }
-    return { x: closestCorner.x, y: closestCorner.y };
-  });
+function activateVideoStream(stream: MediaStream) {
+  video.srcObject = stream;
+  video.width = VIDEO_WIDTH;
+  video.height = VIDEO_HEIGHT;
+  video.addEventListener('loadeddata', predictWebcam);
 }
 
 async function predictWebcam() {
-  if (!gestureRecognition.isReady() || !gridRecognition.isReady()) {
+  if (!gestureRecognition.isReady() || !imageTransformation.isReady()) {
     return;
   }
 
   await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
 
-  gridRecognition.prepareForArucoDetection(prepareForArucoDetection);
+  imageTransformation.prepareForArucoDetection(prepareForArucoDetection);
 
   const markers = arucoRecognition.processFrame(prepareForArucoDetection);
 
@@ -134,7 +131,7 @@ async function predictWebcam() {
     const grid = markers.filter((m) => markerIds.includes(m.id));
     if (grid.length === 4) {
       const gridCorners = getMiddleCorners(grid);
-      gridRecognition.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
+      imageTransformation.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
     }
   };
   cropGrids([3, 4, 6, 9], croppedLeftGrid);
