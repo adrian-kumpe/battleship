@@ -1,7 +1,7 @@
 import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
 import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
-import { GridRecognition } from './recognition/GridRecognition';
+import { ImageTransformation } from './recognition/ImageTransformation';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
 import { Marker } from 'js-aruco2';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -21,7 +21,7 @@ const VIDEO_HEIGHT = 1080;
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition();
 /** grid recognition and cropping w/ OpenCV.js */
-const gridRecognition = new GridRecognition();
+const gridRecognition = new ImageTransformation();
 /** ArUco marker recognition w/ js-aruco2 */
 const arucoRecognition = new ArucoRecognition();
 

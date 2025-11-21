@@ -4,7 +4,7 @@ const MINIMAL_POSSIBLE_AREA = 80000;
 const MAX_POSSIBLE_AREA_RATIO = 0.9;
 const DEBUG = true;
 
-export class GridRecognition {
+export class ImageTransformation {
   private cv: cvModule.CV | null = null;
   private cap: cvModule.VideoCapture | null = null;
   private src: cvModule.Mat | null = null;
