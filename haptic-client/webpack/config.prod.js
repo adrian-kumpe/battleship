@@ -13,6 +13,11 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.js'],
+    fallback: {
+      fs: false,
+      path: false,
+      crypto: false,
+    },
   },
   devtool: false,
   module: {
@@ -21,6 +26,10 @@ module.exports = {
         test: /\.tsx?$/,
         exclude: /node_modules/,
         loader: 'ts-loader',
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
       },
     ],
   },

@@ -12,6 +12,11 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.js'],
+    fallback: {
+      fs: false,
+      path: false,
+      crypto: false,
+    },
   },
   module: {
     rules: [
@@ -19,6 +24,10 @@ module.exports = {
         test: /\.tsx?$/,
         exclude: /node_modules/,
         loader: 'ts-loader',
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
       },
     ],
   },
@@ -28,4 +37,11 @@ module.exports = {
       template: './index.html',
     }),
   ],
+  devServer: {
+    static: {
+      directory: path.join(__dirname, '..', 'public'),
+    },
+    compress: true,
+    port: 8080,
+  },
 };

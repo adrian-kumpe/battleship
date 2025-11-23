@@ -1,38 +1,46 @@
-import { DrawingUtils, FilesetResolver, GestureRecognizer, GestureRecognizerResult } from '@mediapipe/tasks-vision';
+import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
+import { io, Socket } from 'socket.io-client';
+import { GestureRecognition } from './recognition/GestureRecognition';
+import { ImageTransformation } from './recognition/ImageTransformation';
+import { ArucoRecognition } from './recognition/ArucoRecognition';
+import { getMiddleCorners } from './utils';
+import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
-const demosSection = document.getElementById('demos');
-let gestureRecognizer: GestureRecognizer;
-let runningMode = 'IMAGE';
+/** gesture recognition w/ MediaPipe */
+const gestureRecognition = new GestureRecognition();
+/** image transformation and cropping w/ OpenCV.js */
+const imageTransformation = new ImageTransformation();
+/** ArUco marker recognition w/ js-aruco2 */
+const arucoRecognition = new ArucoRecognition();
+
+const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
+const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
+const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
+
 let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
-const videoHeight = '360px';
-const videoWidth = '480px';
 
-type RunningMode = 'IMAGE' | 'VIDEO';
-
-// Before we can use HandLandmarker class we must wait for it to finish
-// loading. Machine Learning models can be large and take a moment to
-// get everything needed to run.
-const createGestureRecognizer = async () => {
-  const vision = await FilesetResolver.forVisionTasks(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
-  );
-  gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
-      delegate: 'GPU',
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+  'http://localhost:3000',
+  // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  {
+    transports: ['websocket'],
+    query: {
+      mode: 'manualReporting' as ReportMode,
     },
-    runningMode: runningMode as RunningMode,
-  });
-  demosSection?.classList.remove('invisible');
-};
-createGestureRecognizer();
+  },
+);
 
-const video = <HTMLVideoElement>document.getElementById('webcam');
-const canvasElement = <HTMLCanvasElement>document.getElementById('output_canvas');
-const canvasCtx = <CanvasRenderingContext2D>canvasElement.getContext('2d');
-const gestureOutput = <HTMLParagraphElement>document.getElementById('gesture_output');
+(async () => {
+  await imageTransformation.initialize();
+  await gestureRecognition.initialize();
+})();
+
+const video = document.getElementById('webcam') as HTMLVideoElement;
+const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
+const gestureOutput = document.getElementById('gesture_output') as HTMLParagraphElement;
 
 // Check if webcam access is supported.
 function hasGetUserMedia() {
@@ -42,87 +50,89 @@ function hasGetUserMedia() {
 // If webcam supported, add event listener to button for when user
 // wants to activate it.
 if (hasGetUserMedia()) {
-  enableWebcamButton = <HTMLButtonElement>document.getElementById('webcamButton');
+  enableWebcamButton = document.getElementById('enableCamera') as HTMLButtonElement;
   enableWebcamButton.addEventListener('click', enableCam);
 } else {
   console.warn('getUserMedia() is not supported by your browser');
 }
+document.getElementById('useDemo')?.addEventListener('click', useDemo);
 
-// Enable the live webcam view and start detection.
 function enableCam() {
-  if (!gestureRecognizer) {
-    alert('Please wait for gestureRecognizer to load');
-    return;
-  }
+  enableWebcamButton.innerText = (webcamRunning = !webcamRunning) ? 'DISABLE PREDICTIONS' : 'ENABLE PREDICTIONS';
 
-  if (webcamRunning === true) {
-    webcamRunning = false;
-    enableWebcamButton.innerText = 'ENABLE PREDICTIONS';
-  } else {
-    webcamRunning = true;
-    enableWebcamButton.innerText = 'DISABLE PREDICTIONS';
-  }
-
-  // getUsermedia parameters.
   const constraints = {
-    video: true,
+    video: {
+      width: { ideal: VIDEO_WIDTH },
+      height: { ideal: VIDEO_HEIGHT },
+      frameRate: { ideal: 30, max: 30 },
+    },
   };
 
-  // Activate the webcam stream.
-  navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-    video.srcObject = stream;
-    video.addEventListener('loadeddata', predictWebcam);
+  navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+    activateVideoStream(stream);
+  });
+  setupRecognition();
+}
+
+function useDemo() {
+  webcamRunning = true;
+  const img = new Image();
+  img.src = '/sample1440x1080.png';
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1440;
+    canvas.height = 1080;
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const stream = canvas.captureStream(30);
+    activateVideoStream(stream);
+  };
+  setupRecognition();
+}
+
+function setupRecognition() {
+  video.addEventListener('loadedmetadata', () => {
+    imageTransformation.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
+    recognizedGestures.width = prepareForArucoDetection.width = VIDEO_WIDTH;
+    recognizedGestures.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
+    croppedLeftGrid.width = croppedLeftGrid.height = croppedRightGrid.height = croppedRightGrid.width = 400;
   });
 }
 
-let lastVideoTime = -1;
-let results: GestureRecognizerResult | undefined = undefined;
+function activateVideoStream(stream: MediaStream) {
+  video.srcObject = stream;
+  video.width = VIDEO_WIDTH;
+  video.height = VIDEO_HEIGHT;
+  video.addEventListener('loadeddata', predictWebcam);
+}
+
 async function predictWebcam() {
-  const webcamElement = <HTMLVideoElement>document.getElementById('webcam');
-  // Now let's start detecting the stream.
-  if (runningMode === 'IMAGE') {
-    runningMode = 'VIDEO';
-    await gestureRecognizer.setOptions({ runningMode: 'VIDEO' });
-  }
-  let nowInMs = Date.now();
-  if (video.currentTime !== lastVideoTime) {
-    lastVideoTime = video.currentTime;
-    results = gestureRecognizer.recognizeForVideo(video, nowInMs);
+  if (!gestureRecognition.isReady() || !imageTransformation.isReady()) {
+    return;
   }
 
-  canvasCtx.save();
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-  const drawingUtils = new DrawingUtils(canvasCtx);
+  await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
 
-  canvasElement.style.height = videoHeight;
-  webcamElement.style.height = videoHeight;
-  canvasElement.style.width = videoWidth;
-  webcamElement.style.width = videoWidth;
+  imageTransformation.prepareForArucoDetection(prepareForArucoDetection);
 
-  if (results && results.landmarks) {
-    for (const landmarks of results.landmarks) {
-      drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, {
-        color: '#00FF00',
-        lineWidth: 5,
-      });
-      drawingUtils.drawLandmarks(landmarks, {
-        color: '#FF0000',
-        lineWidth: 2,
-      });
+  const markers = arucoRecognition.processFrame(prepareForArucoDetection);
+
+  const cropGrids = (gridMarkers: MarkerConfig[], croppedGridCanvas: HTMLCanvasElement) => {
+    const grid = markers.filter((m) => gridMarkers.some((s) => s.id === m.id));
+    if (grid.length === 4) {
+      const gridCorners = getMiddleCorners(grid);
+      imageTransformation.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
     }
-  }
-  canvasCtx.restore();
-  if (results && results.gestures.length > 0) {
-    gestureOutput.style.display = 'block';
-    gestureOutput.style.width = videoWidth;
-    const categoryName = results.gestures[0][0].categoryName;
-    const categoryScore = parseFloat('' + results.gestures[0][0].score * 100).toFixed(2);
-    const handedness = results.handednesses[0][0].displayName;
-    gestureOutput.innerText = `GestureRecognizer: ${categoryName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
-  } else {
-    gestureOutput.style.display = 'none';
-  }
-  // Call this function again to keep predicting when the browser is ready.
+  };
+  cropGrids(
+    AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID),
+    croppedLeftGrid,
+  );
+  cropGrids(
+    AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID),
+    croppedRightGrid,
+  );
+
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
   }
