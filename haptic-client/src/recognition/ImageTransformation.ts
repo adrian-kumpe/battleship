@@ -1,4 +1,6 @@
 import cvModule from '@techstark/opencv-js';
+import { Corner } from 'js-aruco2';
+import { Coord } from '../shared/models';
 
 export class ImageTransformation {
   private cv: cvModule.CV | null = null;
@@ -98,6 +100,21 @@ export class ImageTransformation {
     return [topLeft, topRight, bottomRight, bottomLeft];
   }
 
+  /** get the perspective transform of a given square */
+  private getM(ordered: number[][], size: number) {
+    if (!this.cv) {
+      throw new Error();
+    }
+    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
+    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, size - 1, 0, size - 1, size - 1, 0, size - 1]);
+    const M = this.cv.getPerspectiveTransform(srcPts, dst);
+
+    srcPts.delete();
+    dst.delete();
+
+    return M;
+  }
+
   /** crop video w/ given corners and display outputCanvas */
   cropGridFromCorners(outputCanvas: HTMLCanvasElement, corners: { x: number; y: number }[], size: number = 400): void {
     if (!this.cv || !this.src || corners.length !== 4) {
@@ -106,15 +123,7 @@ export class ImageTransformation {
 
     const points = corners.map((c) => [c.x, c.y]);
     const ordered = this.orderPoints(points);
-
-    // Source-Punkte aus den geordneten Ecken
-    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
-
-    // Destination-Punkte für quadratisches Bild
-    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, size - 1, 0, size - 1, size - 1, 0, size - 1]);
-
-    // Berechne Perspektivtransformation
-    const M = this.cv.getPerspectiveTransform(srcPts, dst);
+    const M = this.getM(ordered, size);
     const warped = new this.cv.Mat();
 
     // Wende Perspektivtransformation an
@@ -130,9 +139,35 @@ export class ImageTransformation {
 
     this.cv.imshow(outputCanvas, warped);
 
-    srcPts.delete();
-    dst.delete();
     M.delete();
     warped.delete();
+  }
+
+  /**
+   * Calculate the grid Coords of a px coordinate using perspective transform
+   * @param coord - the px Coord from the video frame
+   * @param corners - the Corners of the grid in the video frame
+   * @returns the Coord
+   */
+  videoPxToGridCoord(coord: Coord, corners: Corner[]): Coord {
+    if (!this.cv || corners.length !== 4) {
+      return { x: -1, y: -1 };
+    }
+
+    const points = corners.map((c) => [c.x, c.y]);
+    const ordered = this.orderPoints(points);
+    const M = this.getM(ordered, 1); // 1 = normed square 0..1
+    const srcPoint = this.cv.matFromArray(1, 1, this.cv.CV_32FC2, [coord.x, coord.y]);
+    const dstPoint = new this.cv.Mat();
+    this.cv.perspectiveTransform(srcPoint, dstPoint, M);
+
+    const x = dstPoint.data32F[0];
+    const y = dstPoint.data32F[1];
+
+    srcPoint.delete();
+    dstPoint.delete();
+    M.delete();
+
+    return { x: Math.floor(x * 8), y: Math.floor(y * 8) };
   }
 }
