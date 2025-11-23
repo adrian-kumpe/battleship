@@ -1,11 +1,11 @@
-import { Marker } from 'js-aruco2';
+import { Corner, Marker } from 'js-aruco2';
 
 /**
  * Calculates the closest Corners of Markers to the total center of the grid
  * @param grid - array of four Markers
  * @returns array of four Corners being the Corners of grid
  */
-export function getMiddleCorners(grid: Marker[]): { x: number; y: number }[] {
+export function getMiddleCorners(grid: Marker[]): Corner[] {
   if (grid.length !== 4) {
     console.warn('The grid should consist of exactly four Markers!');
   }
