@@ -2,7 +2,7 @@ import cvModule from '@techstark/opencv-js';
 import { Corner } from 'js-aruco2';
 import { Coord } from '../shared/models';
 
-export class ImageTransformation {
+export class ImageProcessor {
   private cv: cvModule.CV | null = null;
   private cap: cvModule.VideoCapture | null = null;
   private src: cvModule.Mat | null = null;

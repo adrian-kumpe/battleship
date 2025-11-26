@@ -4,7 +4,8 @@ export enum MARKER_ROLE {
   'CORNER_RIGHT_GRID',
   'HIT',
   'MISS',
-  'SHIP',
+  'SHIP1',
+  'SHIP2',
 }
 
 /** Config information of an marker */
@@ -18,14 +19,18 @@ export interface MarkerConfig {
  * @constant
  */
 export const AVAILABLE_MARKERS: MarkerConfig[] = [
-  { id: 0, role: MARKER_ROLE.CORNER_RIGHT_GRID },
+  { id: 0, role: MARKER_ROLE.CORNER_LEFT_GRID },
+  { id: 1, role: MARKER_ROLE.CORNER_LEFT_GRID },
+  { id: 2, role: MARKER_ROLE.CORNER_LEFT_GRID },
   { id: 3, role: MARKER_ROLE.CORNER_LEFT_GRID },
-  { id: 4, role: MARKER_ROLE.CORNER_LEFT_GRID },
+  { id: 4, role: MARKER_ROLE.CORNER_RIGHT_GRID },
   { id: 5, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 6, role: MARKER_ROLE.CORNER_LEFT_GRID },
+  { id: 6, role: MARKER_ROLE.CORNER_RIGHT_GRID },
   { id: 7, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 8, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 9, role: MARKER_ROLE.CORNER_LEFT_GRID },
+  { id: 8, role: MARKER_ROLE.SHIP1 },
+  { id: 9, role: MARKER_ROLE.SHIP1 },
+  { id: 10, role: MARKER_ROLE.SHIP2 },
+  { id: 11, role: MARKER_ROLE.SHIP2 },
 ];
 
 /**

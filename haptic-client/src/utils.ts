@@ -28,3 +28,8 @@ export function getMiddleCorners(grid: Marker[]): Corner[] {
     return { x: corners[0].x, y: corners[0].y };
   });
 }
+
+export function deleteDuplicateMarkers(markers: Marker[]): Marker[] {
+  // todo hammingDistance
+  return markers.filter((item, index, self) => index === self.findIndex((t) => t.id === item.id));
+}

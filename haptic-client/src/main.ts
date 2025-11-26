@@ -1,9 +1,9 @@
 import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
 import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
-import { ImageTransformation } from './recognition/ImageTransformation';
+import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
-import { getMiddleCorners } from './utils';
+import { getMiddleCorners, deleteDuplicateMarkers } from './utils';
 import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
@@ -11,7 +11,7 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition();
 /** image transformation and cropping w/ OpenCV.js */
-const imageTransformation = new ImageTransformation();
+const imageProcessor = new ImageProcessor();
 /** ArUco marker recognition w/ js-aruco2 */
 const arucoRecognition = new ArucoRecognition();
 
@@ -34,7 +34,7 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 );
 
 (async () => {
-  await imageTransformation.initialize();
+  await imageProcessor.initialize();
   await gestureRecognition.initialize();
 })();
 
@@ -92,7 +92,7 @@ function useDemo() {
 
 function setupRecognition() {
   video.addEventListener('loadedmetadata', () => {
-    imageTransformation.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
+    imageProcessor.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
     recognizedGestures.width = prepareForArucoDetection.width = VIDEO_WIDTH;
     recognizedGestures.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
     croppedLeftGrid.width = croppedLeftGrid.height = croppedRightGrid.height = croppedRightGrid.width = 400;
@@ -107,31 +107,44 @@ function activateVideoStream(stream: MediaStream) {
 }
 
 async function predictWebcam() {
-  if (!gestureRecognition.isReady() || !imageTransformation.isReady()) {
+  if (!gestureRecognition.isReady() || !imageProcessor.isReady()) {
     return;
   }
 
   await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
 
-  imageTransformation.prepareForArucoDetection(prepareForArucoDetection);
+  imageProcessor.prepareForArucoDetection(prepareForArucoDetection);
 
-  const markers = arucoRecognition.processFrame(prepareForArucoDetection);
+  const markers = deleteDuplicateMarkers(arucoRecognition.processFrame(prepareForArucoDetection));
+  const markersLeftGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
+  const markersRightGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
 
   const cropGrids = (gridMarkers: MarkerConfig[], croppedGridCanvas: HTMLCanvasElement) => {
     const grid = markers.filter((m) => gridMarkers.some((s) => s.id === m.id));
     if (grid.length === 4) {
       const gridCorners = getMiddleCorners(grid);
-      imageTransformation.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
+      imageProcessor.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
+
+      //test
+
+      const ship1 = markers.filter((m) =>
+        AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.SHIP1).some((s) => s.id === m.id),
+      );
+      ship1.forEach((s) => {
+        console.log(
+          imageProcessor.videoPxToGridCoord(
+            {
+              x: (s.corners[0].x + s.corners[1].x + s.corners[2].x + s.corners[3].x) / 4,
+              y: (s.corners[0].y + s.corners[1].y + s.corners[2].y + s.corners[3].y) / 4,
+            },
+            gridCorners,
+          ),
+        );
+      });
     }
   };
-  cropGrids(
-    AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID),
-    croppedLeftGrid,
-  );
-  cropGrids(
-    AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID),
-    croppedRightGrid,
-  );
+  cropGrids(markersLeftGrid, croppedLeftGrid);
+  cropGrids(markersRightGrid, croppedRightGrid);
 
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
