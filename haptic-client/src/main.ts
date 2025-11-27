@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
 import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
-import { getMiddleCorners, deleteDuplicateMarkers } from './utils';
+import { getMiddleCorners } from './utils';
 import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
@@ -21,6 +21,7 @@ const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanv
 
 let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
+let frameCounter: number = 0;
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   'http://localhost:3000',
@@ -111,11 +112,14 @@ async function predictWebcam() {
     return;
   }
 
+  frameCounter++;
+
   await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
 
-  imageProcessor.prepareForArucoDetection(prepareForArucoDetection);
+  imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
 
-  const markers = deleteDuplicateMarkers(arucoRecognition.processFrame(prepareForArucoDetection));
+  const markers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
+
   const markersLeftGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
   const markersRightGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
 
@@ -125,22 +129,20 @@ async function predictWebcam() {
       const gridCorners = getMiddleCorners(grid);
       imageProcessor.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
 
-      //test
-
-      const ship1 = markers.filter((m) =>
-        AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.SHIP1).some((s) => s.id === m.id),
-      );
-      ship1.forEach((s) => {
-        console.log(
-          imageProcessor.videoPxToGridCoord(
-            {
-              x: (s.corners[0].x + s.corners[1].x + s.corners[2].x + s.corners[3].x) / 4,
-              y: (s.corners[0].y + s.corners[1].y + s.corners[2].y + s.corners[3].y) / 4,
-            },
-            gridCorners,
-          ),
-        );
-      });
+      // const ship1 = markers.filter((m) =>
+      //   AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.SHIP1).some((s) => s.id === m.id),
+      // );
+      // ship1.forEach((s) => {
+      //   console.log(
+      //     imageProcessor.videoPxToGridCoord(
+      //       {
+      //         x: (s.corners[0].x + s.corners[1].x + s.corners[2].x + s.corners[3].x) / 4,
+      //         y: (s.corners[0].y + s.corners[1].y + s.corners[2].y + s.corners[3].y) / 4,
+      //       },
+      //       gridCorners,
+      //     ),
+      //   );
+      // });
     }
   };
   cropGrids(markersLeftGrid, croppedLeftGrid);

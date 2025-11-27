@@ -47,7 +47,7 @@ export class ImageProcessor {
   }
 
   /** enhance video image for aruco marker detection */
-  prepareForArucoDetection(outputCanvas: HTMLCanvasElement): void {
+  prepareForArucoDetection(outputCanvas: HTMLCanvasElement, frameCounter: number): void {
     if (!this.cv || !this.cap || !this.src) {
       return;
     }
@@ -58,26 +58,29 @@ export class ImageProcessor {
     const enhanced = new this.cv.Mat();
 
     try {
-      // 1) Graustufen
+      // grayscale
       this.cv.cvtColor(this.src, gray, this.cv.COLOR_RGBA2GRAY);
 
-      // 2) Leichte Glättung
-      // this.cv.GaussianBlur(gray, gray, new this.cv.Size(3, 3), 0);
+      // slight smoothing
+      this.cv.medianBlur(gray, gray, 3);
 
-      // 3) CLAHE (vor allem bei schlechten Lichtverhältnissen sinnvoll)
-      const clahe = new this.cv.CLAHE(2.0, new this.cv.Size(8, 8));
+      // CLAHE with varying clipLimit based on frameCounter
+      const clipLimit = 2.0 + Math.sin(frameCounter * 0.3) * 2.0;
+      const clahe = new this.cv.CLAHE(clipLimit, new this.cv.Size(8, 8));
       clahe.apply(gray, enhanced);
 
-      // 4) Adaptive Threshold (nur wenn Erkennung schlecht ist!)
-      // this.cv.adaptiveThreshold(
-      //   enhanced,
-      //   enhanced,
-      //   255,
-      //   this.cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-      //   this.cv.THRESH_BINARY,
-      //   11,
-      //   2,
-      // );
+      // gamma correctur based on frameCounter
+      const gamma = 1.0 + Math.sin(frameCounter * 0.25) * 0.15; // 0.85–1.15
+      const lookUpTable = new this.cv.Mat(1, 256, this.cv.CV_8U);
+      for (let i = 0; i < 256; i++) {
+        lookUpTable.data[i] = Math.min(255, Math.max(0, 255 * Math.pow(i / 255, gamma)));
+      }
+      this.cv.LUT(enhanced, lookUpTable, enhanced);
+      lookUpTable.delete();
+
+      // adaptive threshold based on frameCounter
+      // const C = 2 + Math.sin(frameCounter * 0.3) * 1;
+      // this.cv.adaptiveThreshold(enhanced, enhanced, 255, this.cv.ADAPTIVE_THRESH_GAUSSIAN_C, this.cv.THRESH_BINARY, 11, C);
 
       this.cv.imshow(outputCanvas, enhanced);
 

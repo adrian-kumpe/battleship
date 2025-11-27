@@ -44,3 +44,15 @@ export const VIDEO_WIDTH = 1440;
  * @constant
  */
 export const VIDEO_HEIGHT = 1080;
+
+/**
+ * threshold to detect movement of grid markers
+ * @constant
+ */
+export const POSITION_CHANGE_THRESHOLD = 10;
+
+/**
+ * delete old markers from cache
+ * @constant
+ */
+export const MAX_FRAMES_WITHOUT_DETECTION = 25;

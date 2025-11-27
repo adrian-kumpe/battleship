@@ -1,4 +1,20 @@
 import { Corner, Marker } from 'js-aruco2';
+import { Coord } from './shared/models';
+
+/**
+ * Calculates the center of a marker
+ * @param marker
+ * @returns center Coord
+ */
+export function getMarkerCenter(marker: Marker): Coord {
+  return marker.corners.reduce(
+    (acc, c, i, arr) => ({
+      x: acc.x + c.x / arr.length,
+      y: acc.y + c.y / arr.length,
+    }),
+    { x: 0, y: 0 },
+  );
+}
 
 /**
  * Calculates the closest Corners of Markers to the total center of the grid
@@ -29,7 +45,7 @@ export function getMiddleCorners(grid: Marker[]): Corner[] {
   });
 }
 
-export function deleteDuplicateMarkers(markers: Marker[]): Marker[] {
-  // todo hammingDistance
-  return markers.filter((item, index, self) => index === self.findIndex((t) => t.id === item.id));
-}
+// export function deleteDuplicateMarkers(markers: Marker[]): Marker[] {
+//   // todo hammingDistance
+//   return markers.filter((item, index, self) => index === self.findIndex((t) => t.id === item.id));
+// }
