@@ -7,6 +7,12 @@ import { Coord } from './shared/models';
  * @returns center Coord
  */
 export function getMarkerCenter(marker: Marker): Coord {
+  if (marker.corners.length !== 4) {
+    console.warn('The Marker should have exactly four Corners!');
+  }
+  if (marker.corners.length === 0) {
+    return { x: -1, y: -1 };
+  }
   return marker.corners.reduce(
     (acc, c, i, arr) => ({
       x: acc.x + c.x / arr.length,
