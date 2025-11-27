@@ -1,6 +1,6 @@
 import cvModule from '@techstark/opencv-js';
 import { Corner } from 'js-aruco2';
-import { Coord } from '../shared/models';
+import { Coord, gridSize } from '../shared/models';
 
 export class ImageProcessor {
   private cv: cvModule.CV | null = null;
@@ -97,25 +97,10 @@ export class ImageProcessor {
     const bottomRight = pts[sums.indexOf(Math.max(...sums))];
 
     const diffs = pts.map((p) => p[0] - p[1]);
-    const topRight = pts[diffs.indexOf(Math.min(...diffs))];
-    const bottomLeft = pts[diffs.indexOf(Math.max(...diffs))];
+    const topRight = pts[diffs.indexOf(Math.max(...diffs))];
+    const bottomLeft = pts[diffs.indexOf(Math.min(...diffs))];
 
     return [topLeft, topRight, bottomRight, bottomLeft];
-  }
-
-  /** get the perspective transform of a given square */
-  private getM(ordered: number[][], size: number) {
-    if (!this.cv) {
-      throw new Error();
-    }
-    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
-    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, size - 1, 0, size - 1, size - 1, 0, size - 1]);
-    const M = this.cv.getPerspectiveTransform(srcPts, dst);
-
-    srcPts.delete();
-    dst.delete();
-
-    return M;
   }
 
   /** crop video w/ given corners and display outputCanvas */
@@ -126,7 +111,9 @@ export class ImageProcessor {
 
     const points = corners.map((c) => [c.x, c.y]);
     const ordered = this.orderPoints(points);
-    const M = this.getM(ordered, size);
+    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
+    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, size - 1, 0, size - 1, size - 1, 0, size - 1]);
+    const M = this.cv.getPerspectiveTransform(srcPts, dst);
     const warped = new this.cv.Mat();
 
     // Wende Perspektivtransformation an
@@ -142,6 +129,8 @@ export class ImageProcessor {
 
     this.cv.imshow(outputCanvas, warped);
 
+    srcPts.delete();
+    dst.delete();
     M.delete();
     warped.delete();
   }
@@ -159,7 +148,11 @@ export class ImageProcessor {
 
     const points = corners.map((c) => [c.x, c.y]);
     const ordered = this.orderPoints(points);
-    const M = this.getM(ordered, 1); // 1 = normed square 0..1
+
+    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
+    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, gridSize, 0, gridSize, gridSize, 0, gridSize]);
+    const M = this.cv.getPerspectiveTransform(srcPts, dst);
+
     const srcPoint = this.cv.matFromArray(1, 1, this.cv.CV_32FC2, [coord.x, coord.y]);
     const dstPoint = new this.cv.Mat();
     this.cv.perspectiveTransform(srcPoint, dstPoint, M);
@@ -167,10 +160,15 @@ export class ImageProcessor {
     const x = dstPoint.data32F[0];
     const y = dstPoint.data32F[1];
 
+    srcPts.delete();
+    dst.delete();
     srcPoint.delete();
     dstPoint.delete();
     M.delete();
 
-    return { x: Math.floor(x * 8), y: Math.floor(y * 8) };
+    return {
+      x: Math.max(0, Math.min(gridSize - 1, Math.floor(x))),
+      y: Math.max(0, Math.min(gridSize - 1, Math.floor(y))),
+    };
   }
 }

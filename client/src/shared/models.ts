@@ -1,3 +1,6 @@
+/** size of the battleship game board */
+export const gridSize = 8;
+
 export enum PlayerNo {
   'PLAYER1',
   'PLAYER2',

@@ -1,4 +1,4 @@
-/** Roles an marker can have */
+/** Roles a marker can have */
 export enum MARKER_ROLE {
   'CORNER_LEFT_GRID',
   'CORNER_RIGHT_GRID',
@@ -8,7 +8,7 @@ export enum MARKER_ROLE {
   'SHIP2',
 }
 
-/** Config information of an marker */
+/** Config information of a marker */
 export interface MarkerConfig {
   id: number;
   role: MARKER_ROLE;
