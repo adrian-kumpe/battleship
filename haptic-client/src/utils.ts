@@ -1,5 +1,5 @@
 import { Corner, Marker } from 'js-aruco2';
-import { Coord } from './shared/models';
+import { Coord, shipDefinitions, ShipPlacement } from './shared/models';
 
 /**
  * Calculates the center of a marker
@@ -49,6 +49,39 @@ export function getMiddleCorners(grid: Marker[]): Corner[] {
       .sort((a, b) => a.distance - b.distance);
     return { x: corners[0].x, y: corners[0].y };
   });
+}
+
+let baseShipId = 0;
+
+/** get a fresh id */
+const getShipId = () => baseShipId++;
+
+export function getShipPlacement(ship: Coord[]): ShipPlacement {
+  if (ship.length !== 2) {
+    console.warn('The ship should consist of exactly two Markers!');
+    return [];
+  }
+  const [end1, end2] = ship;
+  if (!(end1.x - end2.x === 0 || end1.y - end2.y === 0)) {
+    console.warn('Either x or y coordinate of the ship should be the same!');
+    return [];
+  }
+  const orientation = end1.x - end2.x ? '↔️' : '↕️';
+  const size = 1 + Math.abs(end1.x + end1.y - end2.x - end2.y);
+  const shipDefinition = shipDefinitions.find((s) => s.size === size);
+  if (!shipDefinition) {
+    console.warn('The size of the ship is unknown.');
+    return [];
+  }
+  const smallerCoordinate = end1.x + end1.y < end2.x + end2.y ? end1 : end2;
+  return [
+    {
+      ...shipDefinition,
+      shipId: getShipId(),
+      orientation: orientation,
+      ...smallerCoordinate,
+    },
+  ];
 }
 
 // export function deleteDuplicateMarkers(markers: Marker[]): Marker[] {

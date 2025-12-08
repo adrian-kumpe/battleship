@@ -1,9 +1,9 @@
-import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
+import { ClientToServerEvents, ReportMode, ServerToClientEvents, ShipPlacement } from './shared/models';
 import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
 import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
-import { getMarkerCenter, getMiddleCorners } from './utils';
+import { getMarkerCenter, getMiddleCorners, getShipPlacement } from './utils';
 import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
@@ -129,14 +129,15 @@ async function predictWebcam() {
       const gridCorners = getMiddleCorners(grid);
       imageProcessor.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
 
-      const ship1 = markers.filter((m) =>
-        AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.SHIP1).some((s) => s.id === m.id),
-      );
-
-      ship1.forEach((s) => {
-        console.log(getMiddleCorners(grid));
-        console.log(getMarkerCenter(s));
-        console.log(imageProcessor.videoPxToGridCoord(getMarkerCenter(s), getMiddleCorners(grid)));
+      const shipPlacement: ShipPlacement = [];
+      [(MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2)].forEach((r) => {
+        const ship = markers
+          .filter((m) => AVAILABLE_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
+          .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), getMiddleCorners(grid)));
+        console.log(r);
+        console.log(ship);
+        console.log(getShipPlacement(ship));
+        shipPlacement.push(...getShipPlacement(ship));
       });
     }
   };
