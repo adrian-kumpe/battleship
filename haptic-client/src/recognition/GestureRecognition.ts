@@ -48,12 +48,28 @@ export class GestureRecognition {
     if (this.results && this.results.landmarks) {
       for (const landmarks of this.results.landmarks) {
         drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, {
-          color: '#00FF00',
+          color: '#03fc3d',
           lineWidth: 5,
         });
         drawingUtils.drawLandmarks(landmarks, {
-          color: '#FF0000',
+          color: '#01b02a',
           lineWidth: 2,
+        });
+
+        const indexFinger = [5, 6, 7, 8];
+        const indexFingerConnections = indexFinger.slice(0, -1).map((v, i) => ({
+          start: v,
+          end: indexFinger[i + 1],
+        }));
+        const indexFingerLandmarks = indexFinger.map((v) => landmarks[v]);
+        drawingUtils.drawConnectors(landmarks, indexFingerConnections, {
+          color: '#2596be',
+          lineWidth: 6,
+        });
+        drawingUtils.drawLandmarks(indexFingerLandmarks, {
+          color: '#1e5265',
+          lineWidth: 2,
+          radius: 5,
         });
       }
     }
@@ -66,6 +82,21 @@ export class GestureRecognition {
       const categoryScore = parseFloat('' + this.results.gestures[0][0].score * 100).toFixed(2);
       const handedness = this.results.handedness[0][0].displayName;
       gestureOutput.innerText = `GestureRecognizer: ${categoryName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
+      console.log(categoryName, categoryScore);
+
+      // Koordinate des Zeigefingers
+      if (categoryName.toLowerCase().includes('point')) {
+        const firstHandLandmarks = this.results.landmarks?.[0];
+        const indexTip = firstHandLandmarks?.[8];
+        if (indexTip) {
+          const xPx = indexTip.x * canvasElement.width;
+          const yPx = indexTip.y * canvasElement.height;
+          console.log('Pointer gesture detected at (px):', { x: xPx, y: yPx }, 'normalized:', {
+            x: indexTip.x,
+            y: indexTip.y,
+          });
+        }
+      }
     } else {
       gestureOutput.style.display = 'none';
     }

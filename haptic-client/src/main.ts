@@ -130,7 +130,7 @@ async function predictWebcam() {
       imageProcessor.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
 
       const shipPlacement: ShipPlacement = [];
-      [(MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2)].forEach((r) => {
+      [MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2].forEach((r) => {
         const ship = markers
           .filter((m) => AVAILABLE_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
           .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), getMiddleCorners(grid)));
