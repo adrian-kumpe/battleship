@@ -114,7 +114,11 @@ async function predictWebcam() {
 
   frameCounter++;
 
-  await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
+  const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
+
+  if (gestureResult) {
+    console.log('Confirmed gesture:', gestureResult.name, 'pointerPx:', gestureResult.indexTipPx);
+  }
 
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
 

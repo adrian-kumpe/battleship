@@ -1,9 +1,18 @@
 import { DrawingUtils, FilesetResolver, GestureRecognizer, GestureRecognizerResult } from '@mediapipe/tasks-vision';
+import { GESTURE_HOLD_FRAMES } from '../config';
+
+type GestureFrameResult = {
+  name: string;
+  indexTipPx?: { x: number; y: number };
+  indexTipNorm?: { x: number; y: number };
+};
 
 export class GestureRecognition {
   private gestureRecognizer: GestureRecognizer | null = null;
   private lastVideoTime = -1;
   private results: GestureRecognizerResult | undefined = undefined;
+  private gestureStreakName: string | undefined = undefined;
+  private gestureStreakCount = 0;
 
   async initialize(): Promise<void> {
     const vision = await FilesetResolver.forVisionTasks(
@@ -27,7 +36,7 @@ export class GestureRecognition {
     video: HTMLVideoElement,
     canvasElement: HTMLCanvasElement,
     gestureOutput: HTMLParagraphElement,
-  ): Promise<void> {
+  ): Promise<GestureFrameResult | undefined> {
     if (!this.gestureRecognizer) {
       return;
     }
@@ -76,6 +85,8 @@ export class GestureRecognition {
     canvasCtx.restore();
 
     // Display gesture information
+    let confirmedGesture: GestureFrameResult | undefined = undefined;
+
     if (this.results && this.results.gestures.length > 0) {
       gestureOutput.style.display = 'block';
       const categoryName = this.results.gestures[0][0].categoryName;
@@ -84,21 +95,37 @@ export class GestureRecognition {
       gestureOutput.innerText = `GestureRecognizer: ${categoryName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
       console.log(categoryName, categoryScore);
 
-      // Koordinate des Zeigefingers
-      if (categoryName.toLowerCase().includes('point')) {
+      // Streak-Tracking: gleiche Geste über mehrere Frames
+      if (this.gestureStreakName === categoryName) {
+        this.gestureStreakCount += 1;
+      } else {
+        this.gestureStreakName = categoryName;
+        this.gestureStreakCount = 1;
+      }
+
+      // Wenn Streak lang genug, bestätige Geste und liefere Zeigefinger-Koordinate bei Pointer-Geste
+      if (this.gestureStreakCount > GESTURE_HOLD_FRAMES) {
         const firstHandLandmarks = this.results.landmarks?.[0];
         const indexTip = firstHandLandmarks?.[8];
-        if (indexTip) {
-          const xPx = indexTip.x * canvasElement.width;
-          const yPx = indexTip.y * canvasElement.height;
-          console.log('Pointer gesture detected at (px):', { x: xPx, y: yPx }, 'normalized:', {
-            x: indexTip.x,
-            y: indexTip.y,
-          });
+        if (categoryName.toLowerCase().includes('point') && indexTip) {
+          confirmedGesture = {
+            name: categoryName,
+            indexTipPx: {
+              x: indexTip.x * canvasElement.width,
+              y: indexTip.y * canvasElement.height,
+            },
+            indexTipNorm: { x: indexTip.x, y: indexTip.y },
+          };
+        } else {
+          confirmedGesture = { name: categoryName };
         }
       }
     } else {
       gestureOutput.style.display = 'none';
+      this.gestureStreakName = undefined;
+      this.gestureStreakCount = 0;
     }
+
+    return confirmedGesture;
   }
 }
