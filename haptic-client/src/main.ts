@@ -7,6 +7,7 @@ import { getMarkerCenter, getMiddleCorners, getShipPlacement } from './utils';
 import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { Radio } from './elements/Radio';
 
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition();
@@ -15,11 +16,15 @@ const imageProcessor = new ImageProcessor();
 /** ArUco marker recognition w/ js-aruco2 */
 const arucoRecognition = new ArucoRecognition();
 
+const text_output = document.getElementById('text_output') as HTMLPreElement;
+const text_output_wrapper = document.getElementById('text_output_wrapper') as HTMLDivElement;
+const radio = new Radio(text_output, text_output_wrapper);
+radio.sendMessage('das sit ein test');
+
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
 const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
 const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
 
-let enableWebcamButton: HTMLButtonElement;
 let webcamRunning: Boolean = false;
 let frameCounter: number = 0;
 
@@ -48,8 +53,8 @@ function hasGetUserMedia() {
   return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
-// If webcam supported, add event listener to button for when user
-// wants to activate it.
+let enableWebcamButton: HTMLButtonElement;
+// If webcam supported, add event listener to button for when user wants to activate it.
 if (hasGetUserMedia()) {
   enableWebcamButton = document.getElementById('enableCamera') as HTMLButtonElement;
   enableWebcamButton.addEventListener('click', enableCam);
@@ -118,10 +123,14 @@ async function predictWebcam() {
 
   if (gestureResult) {
     console.log('Confirmed gesture:', gestureResult.name, 'pointerPx:', gestureResult.indexTipPx);
+    if (gestureResult.indexTipPx) {
+      radio.sendMessage(
+        'Geste ' + gestureResult.name + ' wurde erkannt und zeigt auf ' + gestureResult.indexTipPx.toString() + '.',
+      );
+    }
   }
 
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
-
   const markers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
 
   const markersLeftGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
