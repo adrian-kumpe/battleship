@@ -34,6 +34,7 @@ export const shipDefinitions: ShipDefinition[] = [
   { size: 2, name: 'cruiser' },
   { size: 3, name: 'battleship' },
   { size: 4, name: 'aircraft carrier' },
+  { size: 5, name: 'todo' },
 ];
 
 export interface ShipInstance {

@@ -1,13 +1,15 @@
-import { ClientToServerEvents, ReportMode, ServerToClientEvents, ShipPlacement } from './shared/models';
+import { ClientToServerEvents, Coord, ReportMode, ServerToClientEvents, ShipPlacement } from './shared/models';
 import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
 import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
+import { GameManager } from './game/GameManager';
 import { getMarkerCenter, getMiddleCorners, getShipPlacement } from './utils';
-import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
+import { AVAILABLE_MARKERS, MARKER_ROLE, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Radio } from './elements/Radio';
+import { Marker } from 'js-aruco2';
 
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition();
@@ -18,7 +20,7 @@ const arucoRecognition = new ArucoRecognition();
 
 const text_output = document.getElementById('text_output') as HTMLPreElement;
 const text_output_wrapper = document.getElementById('text_output_wrapper') as HTMLDivElement;
-const radio = new Radio(text_output, text_output_wrapper);
+export const radio = new Radio(text_output, text_output_wrapper);
 radio.sendMessage('das sit ein test');
 
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
@@ -38,6 +40,9 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
     },
   },
 );
+
+/** gameplay and server communication; socket needed */
+const gameManager = new GameManager();
 
 (async () => {
   await imageProcessor.initialize();
@@ -119,45 +124,71 @@ async function predictWebcam() {
 
   frameCounter++;
 
+  // detect gesture
   const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
 
-  if (gestureResult) {
-    console.log('Confirmed gesture:', gestureResult.name, 'pointerPx:', gestureResult.indexTipPx);
-    if (gestureResult.indexTipPx) {
-      radio.sendMessage(
-        'Geste ' + gestureResult.name + ' wurde erkannt und zeigt auf ' + gestureResult.indexTipPx.toString() + '.',
-      );
-    }
-  }
-
+  // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
   const markers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
 
+  // crop grids
   const markersLeftGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
   const markersRightGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
+  const leftGrid = markers.filter((m) => markersLeftGrid.some((s) => s.id === m.id));
+  const rightGrid = markers.filter((m) => markersRightGrid.some((s) => s.id === m.id));
 
-  const cropGrids = (gridMarkers: MarkerConfig[], croppedGridCanvas: HTMLCanvasElement) => {
-    const grid = markers.filter((m) => gridMarkers.some((s) => s.id === m.id));
-    if (grid.length === 4) {
-      const gridCorners = getMiddleCorners(grid);
-      imageProcessor.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
+  // crop left grid
+  if (leftGrid.length === 4) {
+    const leftGridCorners: Coord[] = getMiddleCorners(leftGrid);
+    imageProcessor.cropGridFromCorners(croppedLeftGrid, leftGridCorners, 400);
 
-      const shipPlacement: ShipPlacement = [];
-      [MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2].forEach((r) => {
-        const ship = markers
-          .filter((m) => AVAILABLE_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
-          .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), getMiddleCorners(grid)));
-        console.log(r);
-        console.log(ship);
-        console.log(getShipPlacement(ship));
-        shipPlacement.push(...getShipPlacement(ship));
-      });
+    // detect shipPlacement if needed
+    if (gameManager.shouldUpdateShipPlacement()) {
+      const shipPlacement = detectShipPlacement(markers, leftGridCorners);
+      gameManager.updateShipPlacement(shipPlacement);
     }
-  };
-  cropGrids(markersLeftGrid, croppedLeftGrid);
-  cropGrids(markersRightGrid, croppedRightGrid);
+
+    // todo1 validieren ob marker auf dem eigenen grid richtig platziert wurden
+  }
+
+  // crop right grid
+  if (rightGrid.length === 4) {
+    const rightGridCorners: Coord[] = getMiddleCorners(rightGrid);
+    imageProcessor.cropGridFromCorners(croppedRightGrid, rightGridCorners, 400);
+
+    // TODo1 hier müssen die marker validiert werden
+  }
+
+  // handle gestures
+  // todo das muss nur passieren, wenn die geste länger als 3sek gehalten wurde
+  if (gestureResult) {
+    gameManager.handleGesture(gestureResult.name, gestureResult.indexTipPx);
+    radio.sendMessage(
+      'Geste ' + gestureResult.name + ' wurde erkannt und zeigt auf ' + gestureResult.indexTipPx?.toString() + '.',
+    );
+  }
 
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
   }
+}
+
+/** detect the shipPlacement todo cache */
+function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
+  const shipPlacement: ShipPlacement = [];
+  //todo hier muss wegen überdeckung gecached werden
+
+  [MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2].forEach((r) => {
+    const ship = markers
+      .filter((m) => AVAILABLE_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
+      .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), grid));
+    shipPlacement.push(...getShipPlacement(ship));
+  });
+
+  return shipPlacement;
+}
+
+/** detect markers */
+function detectMarkers() {
+  // todo
 }

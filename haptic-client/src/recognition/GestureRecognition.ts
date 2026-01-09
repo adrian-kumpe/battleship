@@ -89,17 +89,17 @@ export class GestureRecognition {
 
     if (this.results && this.results.gestures.length > 0) {
       gestureOutput.style.display = 'block';
-      const categoryName = this.results.gestures[0][0].categoryName;
+      const gestureName = this.results.gestures[0][0].categoryName;
       const categoryScore = parseFloat('' + this.results.gestures[0][0].score * 100).toFixed(2);
       const handedness = this.results.handedness[0][0].displayName;
-      gestureOutput.innerText = `GestureRecognizer: ${categoryName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
-      console.log(categoryName, categoryScore);
+      gestureOutput.innerText = `GestureRecognizer: ${gestureName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
+      console.log(gestureName, categoryScore);
 
       // Streak-Tracking: gleiche Geste über mehrere Frames
-      if (this.gestureStreakName === categoryName) {
+      if (this.gestureStreakName === gestureName) {
         this.gestureStreakCount += 1;
       } else {
-        this.gestureStreakName = categoryName;
+        this.gestureStreakName = gestureName;
         this.gestureStreakCount = 1;
       }
 
@@ -107,9 +107,9 @@ export class GestureRecognition {
       if (this.gestureStreakCount > GESTURE_HOLD_FRAMES) {
         const firstHandLandmarks = this.results.landmarks?.[0];
         const indexTip = firstHandLandmarks?.[8];
-        if (categoryName.toLowerCase().includes('point') && indexTip) {
+        if (gestureName.toLowerCase().includes('point') && indexTip) {
           confirmedGesture = {
-            name: categoryName,
+            name: gestureName,
             indexTipPx: {
               x: indexTip.x * canvasElement.width,
               y: indexTip.y * canvasElement.height,
@@ -117,7 +117,7 @@ export class GestureRecognition {
             indexTipNorm: { x: indexTip.x, y: indexTip.y },
           };
         } else {
-          confirmedGesture = { name: categoryName };
+          confirmedGesture = { name: gestureName };
         }
       }
     } else {
