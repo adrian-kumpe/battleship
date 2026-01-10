@@ -1,18 +1,21 @@
 import { DrawingUtils, FilesetResolver, GestureRecognizer, GestureRecognizerResult } from '@mediapipe/tasks-vision';
-import { GESTURE_HOLD_FRAMES } from '../config';
+import { GESTURE_HOLD_DURATION_MS } from '../config';
 
 type GestureFrameResult = {
   name: string;
   indexTipPx?: { x: number; y: number };
-  indexTipNorm?: { x: number; y: number };
 };
 
 export class GestureRecognition {
   private gestureRecognizer: GestureRecognizer | null = null;
   private lastVideoTime = -1;
   private results: GestureRecognizerResult | undefined = undefined;
-  private gestureStreakName: string | undefined = undefined;
-  private gestureStreakCount = 0;
+  private gestureStreak?: { name: string; startTimestamp: number };
+
+  constructor(
+    private gestureProgressBarElement: HTMLDivElement,
+    private confirmedGestureElement: HTMLSpanElement,
+  ) {}
 
   async initialize(): Promise<void> {
     const vision = await FilesetResolver.forVisionTasks(
@@ -35,7 +38,6 @@ export class GestureRecognition {
   async processFrame(
     video: HTMLVideoElement,
     canvasElement: HTMLCanvasElement,
-    gestureOutput: HTMLParagraphElement,
   ): Promise<GestureFrameResult | undefined> {
     if (!this.gestureRecognizer) {
       return;
@@ -88,44 +90,50 @@ export class GestureRecognition {
     let confirmedGesture: GestureFrameResult | undefined = undefined;
 
     if (this.results && this.results.gestures.length > 0) {
-      gestureOutput.style.display = 'block';
       const gestureName = this.results.gestures[0][0].categoryName;
       const categoryScore = parseFloat('' + this.results.gestures[0][0].score * 100).toFixed(2);
       const handedness = this.results.handedness[0][0].displayName;
-      gestureOutput.innerText = `GestureRecognizer: ${gestureName}\n Confidence: ${categoryScore} %\n Handedness: ${handedness}`;
-      console.log(gestureName, categoryScore);
+      this.confirmedGestureElement.innerText = `${gestureName} (${categoryScore}%, ${handedness})`;
 
-      // Streak-Tracking: gleiche Geste über mehrere Frames
-      if (this.gestureStreakName === gestureName) {
-        this.gestureStreakCount += 1;
-      } else {
-        this.gestureStreakName = gestureName;
-        this.gestureStreakCount = 1;
-      }
-
-      // Wenn Streak lang genug, bestätige Geste und liefere Zeigefinger-Koordinate bei Pointer-Geste
-      if (this.gestureStreakCount > GESTURE_HOLD_FRAMES) {
-        const firstHandLandmarks = this.results.landmarks?.[0];
-        const indexTip = firstHandLandmarks?.[8];
-        if (gestureName.toLowerCase().includes('point') && indexTip) {
+      // is gesture confirmed?
+      if (this.gestureStreak?.name === gestureName && gestureName !== 'None') {
+        if (nowInMs - this.gestureStreak.startTimestamp > GESTURE_HOLD_DURATION_MS) {
+          const firstHandLandmarks = this.results.landmarks?.[0];
+          const indexTip = firstHandLandmarks?.[8];
           confirmedGesture = {
             name: gestureName,
-            indexTipPx: {
-              x: indexTip.x * canvasElement.width,
-              y: indexTip.y * canvasElement.height,
-            },
-            indexTipNorm: { x: indexTip.x, y: indexTip.y },
+            indexTipPx:
+              gestureName.toLowerCase().includes('point') && indexTip
+                ? {
+                    x: indexTip.x * canvasElement.width,
+                    y: indexTip.y * canvasElement.height,
+                  }
+                : undefined,
           };
+          this.gestureProgressBarElement.innerText = this.gestureProgressBarElement.style.width = '100%'; // for performance
         } else {
-          confirmedGesture = { name: gestureName };
+          const progress =
+            Math.round(100 * Math.min(1, (nowInMs - this.gestureStreak.startTimestamp) / GESTURE_HOLD_DURATION_MS)) +
+            '%';
+          this.gestureProgressBarElement.innerText = this.gestureProgressBarElement.style.width = progress;
         }
+      } else {
+        this.gestureStreak = {
+          name: gestureName,
+          startTimestamp: nowInMs,
+        };
+        this.resetGestureProgressBar();
       }
     } else {
-      gestureOutput.style.display = 'none';
-      this.gestureStreakName = undefined;
-      this.gestureStreakCount = 0;
+      this.resetGestureProgressBar();
+      this.gestureStreak = undefined;
     }
 
     return confirmedGesture;
+  }
+
+  private resetGestureProgressBar() {
+    this.confirmedGestureElement.innerText = this.gestureProgressBarElement.innerText = '';
+    this.gestureProgressBarElement.style.width = '0';
   }
 }

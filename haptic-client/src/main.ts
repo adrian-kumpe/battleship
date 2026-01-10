@@ -11,8 +11,10 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Radio } from './elements/Radio';
 import { Marker } from 'js-aruco2';
 
+const gestureProgressBar = document.getElementById('gesture_progress_bar') as HTMLDivElement;
+const confirmedGesture = document.getElementById('confirmed_gesture') as HTMLSpanElement;
 /** gesture recognition w/ MediaPipe */
-const gestureRecognition = new GestureRecognition();
+const gestureRecognition = new GestureRecognition(gestureProgressBar, confirmedGesture);
 /** image transformation and cropping w/ OpenCV.js */
 const imageProcessor = new ImageProcessor();
 /** ArUco marker recognition w/ js-aruco2 */
@@ -51,7 +53,6 @@ const gameManager = new GameManager();
 
 const video = document.getElementById('webcam') as HTMLVideoElement;
 const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
-const gestureOutput = document.getElementById('gesture_output') as HTMLParagraphElement;
 
 // Check if webcam access is supported.
 function hasGetUserMedia() {
@@ -125,7 +126,7 @@ async function predictWebcam() {
   frameCounter++;
 
   // detect gesture
-  const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
+  const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures);
 
   // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);

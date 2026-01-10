@@ -74,7 +74,23 @@
           </div>
         </div>
         <div class="col-6">
-          <div class="card h-100">
+          <div class="card mb-2">
+            <div class="card-header">Erkannte Geste: <span id="confirmed_gesture"></span></div>
+            <div class="card-body">
+              <div class="progress">
+                <div
+                  id="gesture_progress_bar"
+                  class="progress-bar"
+                  role="progressbar"
+                  style="width: 0"
+                  aria-valuenow="25"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="height: 333px">
             <div class="card-header">Textausgabe</div>
             <div class="card-body">
               <div
@@ -91,7 +107,6 @@
           </div>
         </div>
       </div>
-      <p id="gesture_output" class="output"></p>
     </div>
   </body>
 </html>

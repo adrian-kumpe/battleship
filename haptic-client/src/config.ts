@@ -58,7 +58,7 @@ export const POSITION_CHANGE_THRESHOLD = 10;
 export const MAX_FRAMES_WITHOUT_DETECTION = 25;
 
 /**
- * number of consecutive frames a gesture must be detected before it is reported
+ * milliseconds a gesture must be detected before it is reported
  * @constant
  */
-export const GESTURE_HOLD_FRAMES = 20;
+export const GESTURE_HOLD_DURATION_MS = 3000;
