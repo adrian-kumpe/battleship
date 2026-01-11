@@ -9,7 +9,7 @@ type GestureFrameResult = {
 export class GestureRecognition {
   private gestureRecognizer: GestureRecognizer | null = null;
   private lastVideoTime = -1;
-  private results: GestureRecognizerResult | undefined = undefined;
+  private results?: GestureRecognizerResult;
   private gestureStreak?: { name: string; startTimestamp: number };
 
   constructor(
