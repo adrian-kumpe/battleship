@@ -1,5 +1,15 @@
-import { ShipPlacement, PlayerNo, Coord } from '../shared/models';
+import {
+  ShipPlacement,
+  PlayerNo,
+  Coord,
+  RoomConfig,
+  ErrorCode,
+  ErrorMessage,
+  PlayerNames,
+  AttackResult,
+} from '../shared/models';
 import { radio, socket } from '../main';
+import { AVAILABLE_SHIPS, BOARD_SIZE } from '../config';
 
 /** manages battleship gameplay */
 export class GameManager {
@@ -7,8 +17,13 @@ export class GameManager {
   private phase: 'MainMenu' | 'GameSetup' | 'GameReady' | 'Game' | 'GameOver' = 'MainMenu';
   /** the currently recognized shipPlacement */
   private currentShipPlacement?: ShipPlacement;
-
-  private playerNo: PlayerNo | null = null; // todo braucht man das
+  /**  */
+  // private currentOwnMarkerPlacement;
+  /**  */
+  // private currentOpponentMarkerPlacement;
+  private roomConfig?: RoomConfig;
+  private ownPlayerNo?: PlayerNo;
+  private playerNames?: PlayerNames;
 
   constructor() {
     this.setupSocketListeners();
@@ -17,44 +32,125 @@ export class GameManager {
 
   /** register event sockets */
   private setupSocketListeners() {
+    socket.on('notification', (args) => {
+      radio.sendMessage(args.text);
+    });
+
     socket.on('gameStart', (args) => {
-      radio.sendMessage('Das Spiel startet.');
-      // ausgeben wer beginnt, sonst nichts machen
+      this.playerNames = args.playerNames;
+      radio.sendMessage('All players ready, the game starts now. ' + this.playerNames[args.firstTurn] + ' begins!');
       this.phase = 'Game';
-      this.playerNo = args.firstTurn === PlayerNo.PLAYER1 ? PlayerNo.PLAYER1 : PlayerNo.PLAYER2;
     });
 
     socket.on('attack', (args) => {
       // angriff muss gesagt werden, damit reagiert werden kann; ausgeben dass reagiert werden muss
-      console.log('Opponent attacked:', args.coord);
+      const ownAttack = this.ownPlayerNo === args.playerNo;
+      radio.sendMessage((ownAttack ? 'You' : 'The opponent') + ' attacked cell ' + args.coord.x + ' ' + args.coord.y);
     });
 
     socket.on('gameOver', (args) => {
-      console.log('Game over');
-      this.phase = 'GameOver';
+      if (args.error) {
+        console.warn(ErrorMessage[args.error]);
+        radio.sendMessage('Error: ' + ErrorMessage[args.error]);
+      }
+      // winner: args.winner, todo
     });
   }
 
-  /** easy implementation: just create a room */
+  /** easy implementation: just create a room todo */
   private beginMultiplayer() {
-    // todo
+    socket.emit(
+      'createRoom',
+      { roomConfig: { boardSize: BOARD_SIZE, availableShips: AVAILABLE_SHIPS }, playerName: 'Haptic Player' },
+      (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
+        if (args) {
+          radio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
+          this.roomConfig = args.roomConfig;
+          this.ownPlayerNo = PlayerNo.PLAYER1;
+          this.phase = 'GameSetup';
+        }
+        if (error) {
+          console.warn(ErrorMessage[error]);
+          radio.sendMessage('Error: ' + ErrorMessage[error]);
+        }
+      },
+    );
+  }
+
+  private confirmShipPlacement() {
+    if (this.currentShipPlacement) {
+      socket.emit('gameReady', { shipPlacement: this.currentShipPlacement }, (error?: ErrorCode) => {
+        if (error) {
+          console.warn(ErrorMessage[error]);
+          radio.sendMessage('Error: ' + ErrorMessage[error]);
+        } else {
+          //todo weiß man hier, ob das senden der placement funktioniert hat? evtl muss cb aufgerufen werden
+          radio.sendMessage('You are ready!');
+          this.phase = 'GameReady';
+        }
+      });
+    }
+  }
+
+  private confirmAttack(coord: Coord) {
+    socket.emit('attack', { coord: coord }, (error?: ErrorCode) => {
+      if (error) {
+        console.warn(ErrorMessage[error]);
+        radio.sendMessage('Error: ' + ErrorMessage[error]);
+      }
+    });
+  }
+
+  private respondToAttack(attackResult: AttackResult) {
+    socket.emit('respond', attackResult, (error?: ErrorCode) => {
+      if (error) {
+        console.warn(ErrorMessage[error]);
+        radio.sendMessage('Error: ' + ErrorMessage[error]);
+      }
+    });
+  }
+
+  private respondToGameOver(winner: PlayerNo) {
+    socket.emit('reportGameOver', { winner: winner }, (error?: ErrorCode) => {
+      if (error) {
+        console.warn(ErrorMessage[error]);
+        radio.sendMessage('Error: ' + ErrorMessage[error]);
+      }
+    });
   }
 
   /** if shipPlacement is still needed */
   shouldUpdateShipPlacement(): boolean {
-    return this.phase === 'GameSetup'; // und shipplacement noch nicht abgesendet; evtl phase ready
+    return this.phase === 'GameSetup';
   }
 
   updateShipPlacement(placement: ShipPlacement) {
     this.currentShipPlacement = placement;
   }
 
-  /** handles the gameplay when a gesture is detected */
+  //update markerplacement
+
+  /** handles the gameplay based on user input (gesture) */
   handleGesture(gestureName: string, pointerCoord?: Coord) {
-    // wenn gamesetup und thumbs up --> dann shipplacement bestätigen
-    // wenn bereits bestätigt, nichts machen (nur ausgabe)
-    // wenn game, dann point als attack senden
-    // wenn game, dann gameOver melden --> response senden
-    // wenn game und thumbs up, dann marker validieren --> response senden an den server
+    switch (this.phase) {
+      default:
+      case 'MainMenu':
+        // hier später beitritt zu raum; wird übersprungen
+        break;
+      case 'GameSetup':
+        // wenn thumbs up --> shiplacement bestätigen
+        break;
+      case 'GameReady':
+        // wird nur vom server unterbrochen
+        break;
+      case 'Game':
+        // point als attack senden
+        // setzen der marker --> respond mit thumbs up
+        // wenn vorbei, dann gameover melden
+        break;
+      case 'GameOver':
+        // hier passiert nichts mehr
+        break;
+    }
   }
 }

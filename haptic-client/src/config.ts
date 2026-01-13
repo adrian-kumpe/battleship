@@ -62,3 +62,15 @@ export const MAX_FRAMES_WITHOUT_DETECTION = 25;
  * @constant
  */
 export const GESTURE_HOLD_DURATION_MS = 3000;
+
+/**
+ * the size of the haptic game board
+ * @constant
+ */
+export const BOARD_SIZE = 8;
+
+/**
+ * the amount of ships for the haptic game board
+ * @constant
+ */
+export const AVAILABLE_SHIPS = [1, 2, 3, 2];

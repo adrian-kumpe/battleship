@@ -3,12 +3,12 @@ import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
 import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
-import { GameManager } from './game/GameManager';
+import { GameManager } from './components/GameManager';
 import { getMarkerCenter, getMiddleCorners, getShipPlacement } from './utils';
 import { AVAILABLE_MARKERS, MARKER_ROLE, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-import { Radio } from './elements/Radio';
+import { Radio } from './components/Radio';
 import { Marker } from 'js-aruco2';
 
 const gestureProgressBar = document.getElementById('gesture_progress_bar') as HTMLDivElement;
@@ -22,8 +22,8 @@ const arucoRecognition = new ArucoRecognition();
 
 const text_output = document.getElementById('text_output') as HTMLPreElement;
 const text_output_wrapper = document.getElementById('text_output_wrapper') as HTMLDivElement;
+/** display text output */
 export const radio = new Radio(text_output, text_output_wrapper);
-radio.sendMessage('das sit ein test');
 
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
 const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
@@ -53,6 +53,7 @@ const gameManager = new GameManager();
 
 const video = document.getElementById('webcam') as HTMLVideoElement;
 const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
+const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement;
 
 // Check if webcam access is supported.
 function hasGetUserMedia() {
@@ -127,6 +128,7 @@ async function predictWebcam() {
 
   // detect gesture
   const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures);
+  recognizedGesturesFrameNumber.innerText = '' + frameCounter;
 
   // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
@@ -138,10 +140,15 @@ async function predictWebcam() {
   const leftGrid = markers.filter((m) => markersLeftGrid.some((s) => s.id === m.id));
   const rightGrid = markers.filter((m) => markersRightGrid.some((s) => s.id === m.id));
 
-  // crop left grid
-  if (leftGrid.length === 4) {
+  // crop left grid every 3 frames (+0)
+  if (leftGrid.length === 4 && !(frameCounter % 3)) {
     const leftGridCorners: Coord[] = getMiddleCorners(leftGrid);
-    imageProcessor.cropGridFromCorners(croppedLeftGrid, leftGridCorners, 400);
+    const leftGridCells = imageProcessor.cropGridFromCorners(
+      croppedLeftGrid,
+      leftGridCorners,
+      Math.floor(frameCounter / 3),
+      400,
+    );
 
     // detect shipPlacement if needed
     if (gameManager.shouldUpdateShipPlacement()) {
@@ -152,10 +159,17 @@ async function predictWebcam() {
     // todo1 validieren ob marker auf dem eigenen grid richtig platziert wurden
   }
 
-  // crop right grid
-  if (rightGrid.length === 4) {
+  // crop right grid every 3 frames (+1)
+  if (rightGrid.length === 4 && !((frameCounter + 1) % 3)) {
     const rightGridCorners: Coord[] = getMiddleCorners(rightGrid);
-    imageProcessor.cropGridFromCorners(croppedRightGrid, rightGridCorners, 400);
+    const rightGridCells = imageProcessor.cropGridFromCorners(
+      croppedRightGrid,
+      rightGridCorners,
+      Math.floor((frameCounter + 1) / 3),
+      400,
+    );
+
+    // croppedRightGridFrameNumber.innerText = '' + Math.floor(frameCounter / 5);
 
     // TODo1 hier müssen die marker validiert werden
   }

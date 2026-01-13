@@ -1,6 +1,7 @@
 import cvModule from '@techstark/opencv-js';
 import { Corner } from 'js-aruco2';
-import { Coord, gridSize } from '../shared/models';
+import { Coord } from '../shared/models';
+import { BOARD_SIZE } from '../config';
 
 export class ImageProcessor {
   private cv: cvModule.CV | null = null;
@@ -103,10 +104,18 @@ export class ImageProcessor {
     return [topLeft, topRight, bottomRight, bottomLeft];
   }
 
-  /** crop video w/ given corners and display outputCanvas */
-  cropGridFromCorners(outputCanvas: HTMLCanvasElement, corners: { x: number; y: number }[], size: number = 400): void {
+  /**
+   * crop video w/ given corners and display outputCanvas; crop all cells
+   * @returns array of cropped cells
+   */
+  cropGridFromCorners(
+    outputCanvas: HTMLCanvasElement,
+    corners: { x: number; y: number }[],
+    frameCounter: number,
+    size: number = 400,
+  ): cvModule.Mat[] {
     if (!this.cv || !this.src || corners.length !== 4) {
-      return;
+      return [];
     }
 
     const points = corners.map((c) => [c.x, c.y]);
@@ -116,7 +125,7 @@ export class ImageProcessor {
     const M = this.cv.getPerspectiveTransform(srcPts, dst);
     const warped = new this.cv.Mat();
 
-    // Wende Perspektivtransformation an
+    // perspective transform
     this.cv.warpPerspective(
       this.src,
       warped,
@@ -127,12 +136,40 @@ export class ImageProcessor {
       new this.cv.Scalar(0, 0, 0, 255),
     );
 
+    // split the grid
+    const cellSize = size / BOARD_SIZE;
+    const cells: cvModule.Mat[] = [];
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const x = c * cellSize;
+        const y = r * cellSize;
+        const roi = warped.roi(new this.cv.Rect(x, y, cellSize, cellSize));
+        cells.push(roi.clone()); // clone!
+        roi.delete();
+      }
+    }
+
+    // display frame number
+    this.cv.putText(
+      warped,
+      '' + frameCounter,
+      new this.cv.Point(8, 24),
+      this.cv.FONT_HERSHEY_PLAIN,
+      1.6,
+      new this.cv.Scalar(0, 255, 0, 255),
+      2,
+      this.cv.LINE_AA,
+    ); // todo helper methode
+
     this.cv.imshow(outputCanvas, warped);
 
     srcPts.delete();
     dst.delete();
     M.delete();
     warped.delete();
+
+    return cells;
   }
 
   /**
@@ -150,7 +187,16 @@ export class ImageProcessor {
     const ordered = this.orderPoints(points);
 
     const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
-    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, gridSize, 0, gridSize, gridSize, 0, gridSize]);
+    const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [
+      0,
+      0,
+      BOARD_SIZE,
+      0,
+      BOARD_SIZE,
+      BOARD_SIZE,
+      0,
+      BOARD_SIZE,
+    ]);
     const M = this.cv.getPerspectiveTransform(srcPts, dst);
 
     const srcPoint = this.cv.matFromArray(1, 1, this.cv.CV_32FC2, [coord.x, coord.y]);
@@ -167,8 +213,8 @@ export class ImageProcessor {
     M.delete();
 
     return {
-      x: Math.max(0, Math.min(gridSize - 1, Math.floor(x))),
-      y: Math.max(0, Math.min(gridSize - 1, Math.floor(y))),
+      x: Math.max(0, Math.min(BOARD_SIZE - 1, Math.floor(x))),
+      y: Math.max(0, Math.min(BOARD_SIZE - 1, Math.floor(y))),
     };
   }
 }

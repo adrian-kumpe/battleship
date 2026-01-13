@@ -102,14 +102,14 @@ export class GestureRecognition {
           const indexTip = firstHandLandmarks?.[8];
           confirmedGesture = {
             name: gestureName,
-            indexTipPx:
-              gestureName.toLowerCase().includes('point') && indexTip
-                ? {
-                    x: indexTip.x * canvasElement.width,
-                    y: indexTip.y * canvasElement.height,
-                  }
-                : undefined,
           };
+          if (gestureName.toLowerCase().includes('point') && indexTip) {
+            confirmedGesture.indexTipPx = {
+              x: indexTip.x * canvasElement.width,
+              y: indexTip.y * canvasElement.height,
+            };
+            this.confirmedGestureElement.innerText += ' (' + indexTip.x + ', ' + indexTip.y + ')';
+          }
           this.gestureProgressBarElement.innerText = this.gestureProgressBarElement.style.width = '100%'; // for performance
         } else {
           const progress =
