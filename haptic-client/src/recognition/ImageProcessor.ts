@@ -1,7 +1,7 @@
 import cvModule from '@techstark/opencv-js';
 import { Corner } from 'js-aruco2';
 import { Coord } from '../shared/models';
-import { BOARD_SIZE } from '../config';
+import { AVAILABLE_CELL_MARKERS, BOARD_SIZE, MARKER_ROLE } from '../config';
 
 export class ImageProcessor {
   private cv: cvModule.CV | null = null;
@@ -216,5 +216,58 @@ export class ImageProcessor {
       x: Math.max(0, Math.min(BOARD_SIZE - 1, Math.floor(x))),
       y: Math.max(0, Math.min(BOARD_SIZE - 1, Math.floor(y))),
     };
+  }
+
+  /**
+   * detect markers by evaluating colors
+   * @param array of cropped cells
+   * @returns array with the roles of detected markers
+   */
+  detectMarkersByHSV(cells: cvModule.Mat[]): (MARKER_ROLE | undefined)[] {
+    if (!this.cv) {
+      return [];
+    }
+
+    const result = [];
+    const mask = new this.cv.Mat();
+
+    for (let i = 0; i < cells.length; i++) {
+      // skip white cells
+      const mean = this.cv.mean(cells[i]);
+      if (mean[0] > 240 && mean[1] > 240 && mean[2] > 240) {
+        // todo werte testen
+        result.push(undefined);
+        continue;
+      }
+
+      const hsv = new this.cv.Mat();
+      this.cv.cvtColor(cells[i], hsv, this.cv.COLOR_RGB2HSV);
+
+      let detected: MARKER_ROLE | undefined;
+      const pixelThreshold = cells[i].rows * cells[i].cols * 0.05;
+
+      // check for all markers
+      for (const marker of AVAILABLE_CELL_MARKERS) {
+        const lower = new this.cv.Mat(hsv.rows, hsv.cols, hsv.type(), [...marker.lowerHSV, 0]);
+        const upper = new this.cv.Mat(hsv.rows, hsv.cols, hsv.type(), [...marker.upperHSV, 255]);
+
+        this.cv.inRange(hsv, lower, upper, mask);
+        const count = this.cv.countNonZero(mask);
+
+        lower.delete();
+        upper.delete();
+
+        if (count >= pixelThreshold) {
+          detected = marker.role;
+          break;
+        }
+      }
+
+      result.push(detected);
+      hsv.delete();
+    }
+
+    mask.delete();
+    return result;
   }
 }

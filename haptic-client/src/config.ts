@@ -8,17 +8,17 @@ export enum MARKER_ROLE {
   'SHIP2',
 }
 
-/** Config information of a marker */
-export interface MarkerConfig {
+/** Config information of an ArUco marker */
+export interface ArUcoMarkerConfig {
   id: number;
   role: MARKER_ROLE;
 }
 
 /**
- * All markers to recognize w/ MarkerConfig
+ * All ArUco markers to recognize w/ MarkerConfig
  * @constant
  */
-export const AVAILABLE_MARKERS: MarkerConfig[] = [
+export const AVAILABLE_ARUCO_MARKERS: ArUcoMarkerConfig[] = [
   { id: 0, role: MARKER_ROLE.CORNER_LEFT_GRID },
   { id: 1, role: MARKER_ROLE.CORNER_LEFT_GRID },
   { id: 2, role: MARKER_ROLE.CORNER_LEFT_GRID },
@@ -31,6 +31,26 @@ export const AVAILABLE_MARKERS: MarkerConfig[] = [
   { id: 9, role: MARKER_ROLE.SHIP1 },
   { id: 10, role: MARKER_ROLE.SHIP2 },
   { id: 11, role: MARKER_ROLE.SHIP2 },
+];
+
+export interface CellMarkerConfig {
+  role: MARKER_ROLE;
+  lowerHSV: number[];
+  upperHSV: number[];
+}
+
+export const AVAILABLE_CELL_MARKERS: CellMarkerConfig[] = [
+  {
+    role: MARKER_ROLE.HIT, // orange
+    lowerHSV: [10, 140, 80],
+    upperHSV: [25, 255, 255],
+  },
+  {
+    role: MARKER_ROLE.MISS, // blue
+    lowerHSV: [100, 120, 50],
+    upperHSV: [130, 255, 255],
+  },
+  // todo werte testen
 ];
 
 /**

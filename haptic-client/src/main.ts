@@ -5,7 +5,7 @@ import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
 import { GameManager } from './components/GameManager';
 import { getMarkerCenter, getMiddleCorners, getShipPlacement } from './utils';
-import { AVAILABLE_MARKERS, MARKER_ROLE, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
+import { AVAILABLE_ARUCO_MARKERS, MARKER_ROLE, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Radio } from './components/Radio';
@@ -129,14 +129,15 @@ async function predictWebcam() {
   // detect gesture
   const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures);
   recognizedGesturesFrameNumber.innerText = '' + frameCounter;
+  // todo wenn gesture detected, dann nichts anderes machen, da hand im bild
 
   // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
   const markers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
 
   // crop grids
-  const markersLeftGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
-  const markersRightGrid = AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
+  const markersLeftGrid = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
+  const markersRightGrid = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
   const leftGrid = markers.filter((m) => markersLeftGrid.some((s) => s.id === m.id));
   const rightGrid = markers.filter((m) => markersRightGrid.some((s) => s.id === m.id));
 
@@ -156,7 +157,8 @@ async function predictWebcam() {
       gameManager.updateShipPlacement(shipPlacement);
     }
 
-    // todo1 validieren ob marker auf dem eigenen grid richtig platziert wurden
+    // validate placed grid markers on the own grid
+    const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells);
   }
 
   // crop right grid every 3 frames (+1)
@@ -169,9 +171,7 @@ async function predictWebcam() {
       400,
     );
 
-    // croppedRightGridFrameNumber.innerText = '' + Math.floor(frameCounter / 5);
-
-    // TODo1 hier müssen die marker validiert werden
+    const rightGridCellMarkers = imageProcessor.detectMarkersByHSV(rightGridCells);
   }
 
   // handle gestures
@@ -195,7 +195,7 @@ function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
 
   [MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2].forEach((r) => {
     const ship = markers
-      .filter((m) => AVAILABLE_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
+      .filter((m) => AVAILABLE_ARUCO_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
       .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), grid));
     shipPlacement.push(...getShipPlacement(ship));
   });

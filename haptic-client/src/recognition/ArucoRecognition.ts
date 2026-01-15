@@ -1,7 +1,7 @@
 import { Corner, Marker } from 'js-aruco2';
 import { getMarkerCenter } from '../utils';
 import {
-  AVAILABLE_MARKERS,
+  AVAILABLE_ARUCO_MARKERS,
   MARKER_ROLE,
   POSITION_CHANGE_THRESHOLD,
   MAX_FRAMES_WITHOUT_DETECTION,
@@ -61,7 +61,7 @@ export class ArucoRecognition {
 
   /** check if grid marker's position changed compared to the cache */
   private checkForPositionChange(detectedMarkers: Marker[]): boolean {
-    const gridCornerIds = AVAILABLE_MARKERS.filter(
+    const gridCornerIds = AVAILABLE_ARUCO_MARKERS.filter(
       (m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID || m.role === MARKER_ROLE.CORNER_RIGHT_GRID,
     ).map((m) => m.id);
 
