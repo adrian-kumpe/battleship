@@ -7,9 +7,12 @@ import {
   ErrorMessage,
   PlayerNames,
   AttackResult,
+  ServerToClientEvents,
+  ClientToServerEvents,
 } from '../shared/models';
-import { radio, socket } from '../main';
 import { AVAILABLE_SHIPS, BOARD_SIZE } from '../config';
+import { Socket } from 'socket.io-client';
+import { Radio } from './Radio';
 
 /** manages battleship gameplay */
 export class GameManager {
@@ -25,33 +28,40 @@ export class GameManager {
   private ownPlayerNo?: PlayerNo;
   private playerNames?: PlayerNames;
 
-  constructor() {
+  constructor(
+    private socket: Socket<ServerToClientEvents, ClientToServerEvents>,
+    private radio: Radio,
+  ) {
     this.setupSocketListeners();
     this.beginMultiplayer();
   }
 
   /** register event sockets */
   private setupSocketListeners() {
-    socket.on('notification', (args) => {
-      radio.sendMessage(args.text);
+    this.socket.on('notification', (args) => {
+      this.radio.sendMessage(args.text);
     });
 
-    socket.on('gameStart', (args) => {
+    this.socket.on('gameStart', (args) => {
       this.playerNames = args.playerNames;
-      radio.sendMessage('All players ready, the game starts now. ' + this.playerNames[args.firstTurn] + ' begins!');
+      this.radio.sendMessage(
+        'All players ready, the game starts now. ' + this.playerNames[args.firstTurn] + ' begins!',
+      );
       this.phase = 'Game';
     });
 
-    socket.on('attack', (args) => {
+    this.socket.on('attack', (args) => {
       // angriff muss gesagt werden, damit reagiert werden kann; ausgeben dass reagiert werden muss
       const ownAttack = this.ownPlayerNo === args.playerNo;
-      radio.sendMessage((ownAttack ? 'You' : 'The opponent') + ' attacked cell ' + args.coord.x + ' ' + args.coord.y);
+      this.radio.sendMessage(
+        (ownAttack ? 'You' : 'The opponent') + ' attacked cell ' + args.coord.x + ' ' + args.coord.y,
+      );
     });
 
-    socket.on('gameOver', (args) => {
+    this.socket.on('gameOver', (args) => {
       if (args.error) {
         console.warn(ErrorMessage[args.error]);
-        radio.sendMessage('Error: ' + ErrorMessage[args.error]);
+        this.radio.sendMessage('Error: ' + ErrorMessage[args.error]);
       }
       // winner: args.winner, todo
     });
@@ -59,19 +69,19 @@ export class GameManager {
 
   /** easy implementation: just create a room todo */
   private beginMultiplayer() {
-    socket.emit(
+    this.socket.emit(
       'createRoom',
       { roomConfig: { boardSize: BOARD_SIZE, availableShips: AVAILABLE_SHIPS }, playerName: 'Haptic Player' },
       (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
         if (args) {
-          radio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
+          this.radio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
           this.roomConfig = args.roomConfig;
           this.ownPlayerNo = PlayerNo.PLAYER1;
           this.phase = 'GameSetup';
         }
         if (error) {
           console.warn(ErrorMessage[error]);
-          radio.sendMessage('Error: ' + ErrorMessage[error]);
+          this.radio.sendMessage('Error: ' + ErrorMessage[error]);
         }
       },
     );
@@ -79,13 +89,13 @@ export class GameManager {
 
   private confirmShipPlacement() {
     if (this.currentShipPlacement) {
-      socket.emit('gameReady', { shipPlacement: this.currentShipPlacement }, (error?: ErrorCode) => {
+      this.socket.emit('gameReady', { shipPlacement: this.currentShipPlacement }, (error?: ErrorCode) => {
         if (error) {
           console.warn(ErrorMessage[error]);
-          radio.sendMessage('Error: ' + ErrorMessage[error]);
+          this.radio.sendMessage('Error: ' + ErrorMessage[error]);
         } else {
           //todo weiß man hier, ob das senden der placement funktioniert hat? evtl muss cb aufgerufen werden
-          radio.sendMessage('You are ready!');
+          this.radio.sendMessage('You are ready!');
           this.phase = 'GameReady';
         }
       });
@@ -93,28 +103,28 @@ export class GameManager {
   }
 
   private confirmAttack(coord: Coord) {
-    socket.emit('attack', { coord: coord }, (error?: ErrorCode) => {
+    this.socket.emit('attack', { coord: coord }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        radio.sendMessage('Error: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Error: ' + ErrorMessage[error]);
       }
     });
   }
 
   private respondToAttack(attackResult: AttackResult) {
-    socket.emit('respond', attackResult, (error?: ErrorCode) => {
+    this.socket.emit('respond', attackResult, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        radio.sendMessage('Error: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Error: ' + ErrorMessage[error]);
       }
     });
   }
 
   private respondToGameOver(winner: PlayerNo) {
-    socket.emit('reportGameOver', { winner: winner }, (error?: ErrorCode) => {
+    this.socket.emit('reportGameOver', { winner: winner }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        radio.sendMessage('Error: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Error: ' + ErrorMessage[error]);
       }
     });
   }

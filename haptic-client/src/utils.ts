@@ -53,7 +53,7 @@ export function getMiddleCorners(grid: Marker[]): Corner[] {
 
 let baseShipId = 0;
 
-/** get a fresh id */
+/** increasing id for ships */
 const getShipId = () => baseShipId++;
 
 export function getShipPlacement(ship: Coord[]): ShipPlacement {
@@ -83,8 +83,3 @@ export function getShipPlacement(ship: Coord[]): ShipPlacement {
     },
   ];
 }
-
-// export function deleteDuplicateMarkers(markers: Marker[]): Marker[] {
-//   // todo hammingDistance
-//   return markers.filter((item, index, self) => index === self.findIndex((t) => t.id === item.id));
-// }

@@ -11,11 +11,14 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Radio } from './components/Radio';
 import { Marker } from 'js-aruco2';
 
+/** display recognition progress of a gesture (time) */
 const gestureProgressBar = document.getElementById('gesture_progress_bar') as HTMLDivElement;
+/** ouput element for recognized gestures and information */
 const confirmedGesture = document.getElementById('confirmed_gesture') as HTMLSpanElement;
 /** gesture recognition w/ MediaPipe */
 const gestureRecognition = new GestureRecognition(gestureProgressBar, confirmedGesture);
-/** image transformation and cropping w/ OpenCV.js */
+
+/** image transformation, cropping, ... w/ OpenCV.js */
 const imageProcessor = new ImageProcessor();
 /** ArUco marker recognition w/ js-aruco2 */
 const arucoRecognition = new ArucoRecognition();
@@ -25,8 +28,11 @@ const text_output_wrapper = document.getElementById('text_output_wrapper') as HT
 /** display text output */
 export const radio = new Radio(text_output, text_output_wrapper);
 
+/** canvas for ArUco recognition */
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
+/** canvas grid of player */
 const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
+/** canvas grid of opponent */
 const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
 
 let webcamRunning: Boolean = false;
@@ -43,22 +49,21 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   },
 );
 
-/** gameplay and server communication; socket needed */
-const gameManager = new GameManager();
+const gameManager = new GameManager(socket, radio);
 
 (async () => {
   await imageProcessor.initialize();
   await gestureRecognition.initialize();
 })();
 
+/** input webcam video */
 const video = document.getElementById('webcam') as HTMLVideoElement;
+/** overlay canvas to display Mediapipe hand landmarks */
 const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
-const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement;
+const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement; // todo entfernen
 
-// Check if webcam access is supported.
-function hasGetUserMedia() {
-  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-}
+/** checks if webcam access is supported */
+const hasGetUserMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
 let enableWebcamButton: HTMLButtonElement;
 // If webcam supported, add event listener to button for when user wants to activate it.
@@ -119,6 +124,7 @@ function activateVideoStream(stream: MediaStream) {
   video.addEventListener('loadeddata', predictWebcam);
 }
 
+/** main prediction loop */
 async function predictWebcam() {
   if (!gestureRecognition.isReady() || !imageProcessor.isReady()) {
     return;
@@ -141,8 +147,8 @@ async function predictWebcam() {
   const leftGrid = markers.filter((m) => markersLeftGrid.some((s) => s.id === m.id));
   const rightGrid = markers.filter((m) => markersRightGrid.some((s) => s.id === m.id));
 
-  // crop left grid every 3 frames (+0)
-  if (leftGrid.length === 4 && !(frameCounter % 3)) {
+  // crop left grid every 3 frames (+0) and if no hands are visible
+  if (leftGrid.length === 4 && !(frameCounter % 3) && !gestureRecognition.landmarksVisible()) {
     const leftGridCorners: Coord[] = getMiddleCorners(leftGrid);
     const leftGridCells = imageProcessor.cropGridFromCorners(
       croppedLeftGrid,
@@ -157,12 +163,12 @@ async function predictWebcam() {
       gameManager.updateShipPlacement(shipPlacement);
     }
 
-    // validate placed grid markers on the own grid
+    // validate grid markers on the own grid
     const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells);
   }
 
-  // crop right grid every 3 frames (+1)
-  if (rightGrid.length === 4 && !((frameCounter + 1) % 3)) {
+  // crop right grid every 3 frames (+1) and if no hands are visible
+  if (rightGrid.length === 4 && !((frameCounter + 1) % 3) && !gestureRecognition.landmarksVisible()) {
     const rightGridCorners: Coord[] = getMiddleCorners(rightGrid);
     const rightGridCells = imageProcessor.cropGridFromCorners(
       croppedRightGrid,
@@ -175,7 +181,6 @@ async function predictWebcam() {
   }
 
   // handle gestures
-  // todo das muss nur passieren, wenn die geste länger als 3sek gehalten wurde
   if (gestureResult) {
     gameManager.handleGesture(gestureResult.name, gestureResult.indexTipPx);
     radio.sendMessage(

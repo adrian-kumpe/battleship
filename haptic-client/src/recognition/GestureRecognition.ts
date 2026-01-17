@@ -35,6 +35,7 @@ export class GestureRecognition {
     return !!this.gestureRecognizer;
   }
 
+  /** process frame w/ Mediapipe; detect gestures, display landmarks */
   async processFrame(
     video: HTMLVideoElement,
     canvasElement: HTMLCanvasElement,
@@ -135,5 +136,10 @@ export class GestureRecognition {
   private resetGestureProgressBar() {
     this.confirmedGestureElement.innerText = this.gestureProgressBarElement.innerText = '';
     this.gestureProgressBarElement.style.width = '0';
+  }
+
+  /** whether landmarks/hand were visible in the last frame */
+  landmarksVisible() {
+    return this.results && this.results.landmarks.length > 0;
   }
 }
