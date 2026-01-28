@@ -60,7 +60,7 @@ const gameManager = new GameManager(socket, radio);
 const video = document.getElementById('webcam') as HTMLVideoElement;
 /** overlay canvas to display Mediapipe hand landmarks */
 const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
-const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement; // todo entfernen
+// const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement; // todo entfernen
 
 /** checks if webcam access is supported */
 const hasGetUserMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -134,8 +134,7 @@ async function predictWebcam() {
 
   // detect gesture
   const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures);
-  recognizedGesturesFrameNumber.innerText = '' + frameCounter;
-  // todo wenn gesture detected, dann nichts anderes machen, da hand im bild
+  imageProcessor.drawFrameNumber(recognizedGestures, frameCounter);
 
   // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);

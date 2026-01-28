@@ -92,6 +92,59 @@ export class ImageProcessor {
     }
   }
 
+  /** draw frame number on mat or canvas */
+  drawFrameNumber(matOrCanvas: cvModule.Mat | HTMLCanvasElement, frameCounter: number): void {
+    if (!this.cv) {
+      return;
+    }
+
+    const isCanvas = matOrCanvas instanceof HTMLCanvasElement;
+    let mat: cvModule.Mat;
+
+    if (isCanvas) {
+      if (!this.src) {
+        return;
+      }
+      mat = this.src.clone();
+    } else {
+      mat = matOrCanvas;
+    }
+
+    try {
+      // Berechne Skalierung basierend auf Größe (1920x1080 als Referenz)
+      const avgDim = (mat.cols + mat.rows) / 2;
+      const scale = avgDim / 1500; // 1920x1080 -> scale=1.0
+
+      // Für kleine Grids (400x400 = scale ~0.27) andere Werte als große (1920x1080)
+      const isSmallGrid = scale < 0.5;
+      const yPos = isSmallGrid ? 35 : 75 * scale;
+      const fontSize = isSmallGrid ? 2.3 : Math.max(2.5, 5.5 * scale);
+      const thickness = isSmallGrid ? 2 : Math.max(1, Math.round(4 * scale));
+
+      // Zeichne Frame-Nummer
+      this.cv.putText(
+        mat,
+        '' + frameCounter,
+        new this.cv.Point(10, yPos),
+        this.cv.FONT_HERSHEY_PLAIN,
+        fontSize,
+        new this.cv.Scalar(0, 255, 0, 255),
+        thickness,
+        this.cv.LINE_AA,
+      );
+
+      // Wenn Canvas, zeige Mat an
+      if (isCanvas) {
+        this.cv.imshow(matOrCanvas as HTMLCanvasElement, mat);
+      }
+    } finally {
+      // Cleanup: Nur löschen wenn wir eine Kopie erstellt haben
+      if (isCanvas) {
+        mat.delete();
+      }
+    }
+  }
+
   private orderPoints(pts: number[][]): number[][] {
     const sums = pts.map((p) => p[0] + p[1]);
     const topLeft = pts[sums.indexOf(Math.min(...sums))];
@@ -151,16 +204,7 @@ export class ImageProcessor {
     }
 
     // display frame number
-    this.cv.putText(
-      warped,
-      '' + frameCounter,
-      new this.cv.Point(8, 24),
-      this.cv.FONT_HERSHEY_PLAIN,
-      1.6,
-      new this.cv.Scalar(0, 255, 0, 255),
-      2,
-      this.cv.LINE_AA,
-    ); // todo helper methode
+    this.drawFrameNumber(warped, frameCounter);
 
     this.cv.imshow(outputCanvas, warped);
 
