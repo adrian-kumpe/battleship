@@ -85,13 +85,13 @@ export const VIDEO_WIDTH = 1440;
 export const VIDEO_HEIGHT = 1080;
 
 /**
- * threshold to detect movement of grid markers
+ * px threshold to detect movement of ArUco markers
  * @constant
  */
 export const POSITION_CHANGE_THRESHOLD = 10;
 
 /**
- * delete old markers from cache
+ * delete ArUco markers from cache if not seen for x frames
  * @constant
  */
 export const MAX_FRAMES_WITHOUT_DETECTION = 25;
