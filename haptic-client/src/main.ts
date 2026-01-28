@@ -163,8 +163,12 @@ async function predictWebcam() {
       gameManager.updateShipPlacement(shipPlacement);
     }
 
-    // validate grid markers on the own grid
-    const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells);
+    // validate grid markers on the own grid if needed
+    if (gameManager.shouldUpdateLeftGridMarkers()) {
+      // detectGridMarker()
+      const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells);
+      // hier validieren, ob neue marker dazu gekommen sind --> handle markers aufrufen
+    }
   }
 
   // crop right grid every 3 frames (+1) and if no hands are visible
@@ -177,7 +181,11 @@ async function predictWebcam() {
       400,
     );
 
-    const rightGridCellMarkers = imageProcessor.detectMarkersByHSV(rightGridCells);
+    // validate grid markers on the own grid if needed
+    if (gameManager.shouldUpdateRightGridMarkers()) {
+      // detectGridMarker()
+      const rightGridCellMarkers = imageProcessor.detectMarkersByHSV(rightGridCells);
+    }
   }
 
   // handle gestures
@@ -198,7 +206,17 @@ function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
   const shipPlacement: ShipPlacement = [];
   //todo hier muss wegen überdeckung gecached werden
 
-  [MARKER_ROLE.SHIP1, MARKER_ROLE.SHIP2].forEach((r) => {
+  [
+    MARKER_ROLE.SHIP1,
+    MARKER_ROLE.SHIP2,
+    MARKER_ROLE.SHIP3,
+    MARKER_ROLE.SHIP4,
+    MARKER_ROLE.SHIP5,
+    MARKER_ROLE.SHIP6,
+    MARKER_ROLE.SHIP7,
+    MARKER_ROLE.SHIP8,
+    MARKER_ROLE.SHIP9,
+  ].forEach((r) => {
     const ship = markers
       .filter((m) => AVAILABLE_ARUCO_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
       .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), grid));
@@ -209,6 +227,6 @@ function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
 }
 
 /** detect markers */
-function detectMarkers() {
+function detectGridMarker() {
   // todo
 }

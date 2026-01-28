@@ -57,29 +57,39 @@ let baseShipId = 0;
 const getShipId = () => baseShipId++;
 
 export function getShipPlacement(ship: Coord[]): ShipPlacement {
-  if (ship.length !== 2) {
-    console.warn('The ship should consist of exactly two Markers!');
-    return [];
+  if (ship.length === 1) {
+    return [
+      {
+        ...shipDefinitions[0],
+        shipId: getShipId(),
+        orientation: '↔️',
+        ...ship[0],
+      },
+    ];
   }
-  const [end1, end2] = ship;
-  if (!(end1.x - end2.x === 0 || end1.y - end2.y === 0)) {
-    console.warn('Either x or y coordinate of the ship should be the same!');
-    return [];
+  if (ship.length === 2) {
+    const [end1, end2] = ship;
+    if (!(end1.x - end2.x === 0 || end1.y - end2.y === 0)) {
+      console.warn('Either x or y coordinate of a ship w/ two Markers should be the same!');
+      return [];
+    }
+    const orientation = end1.x - end2.x ? '↔️' : '↕️';
+    const size = 1 + Math.abs(end1.x + end1.y - end2.x - end2.y);
+    const shipDefinition = shipDefinitions.find((s) => s.size === size);
+    if (!shipDefinition) {
+      console.warn('A ship w/ this size is unknown.');
+      return [];
+    }
+    const smallerCoordinate = end1.x + end1.y < end2.x + end2.y ? end1 : end2;
+    return [
+      {
+        ...shipDefinition,
+        shipId: getShipId(),
+        orientation: orientation,
+        ...smallerCoordinate,
+      },
+    ];
   }
-  const orientation = end1.x - end2.x ? '↔️' : '↕️';
-  const size = 1 + Math.abs(end1.x + end1.y - end2.x - end2.y);
-  const shipDefinition = shipDefinitions.find((s) => s.size === size);
-  if (!shipDefinition) {
-    console.warn('The size of the ship is unknown.');
-    return [];
-  }
-  const smallerCoordinate = end1.x + end1.y < end2.x + end2.y ? end1 : end2;
-  return [
-    {
-      ...shipDefinition,
-      shipId: getShipId(),
-      orientation: orientation,
-      ...smallerCoordinate,
-    },
-  ];
+  console.warn('The ship should consist of one or two Markers!');
+  return [];
 }

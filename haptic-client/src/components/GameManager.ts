@@ -10,7 +10,7 @@ import {
   ServerToClientEvents,
   ClientToServerEvents,
 } from '../shared/models';
-import { AVAILABLE_SHIPS, BOARD_SIZE } from '../config';
+import { AVAILABLE_SHIPS, BOARD_SIZE, MARKER_ROLE } from '../config';
 import { Socket } from 'socket.io-client';
 import { Radio } from './Radio';
 
@@ -20,10 +20,14 @@ export class GameManager {
   private phase: 'MainMenu' | 'GameSetup' | 'GameReady' | 'Game' | 'GameOver' = 'MainMenu';
   /** the currently recognized shipPlacement */
   private currentShipPlacement?: ShipPlacement;
-  /**  */
-  // private currentOwnMarkerPlacement;
-  /**  */
-  // private currentOpponentMarkerPlacement;
+  /** whether the player needs respond after the opponent's attack; lock! */
+  private needToRespondToAttack = false;
+  /** currently recognized markers of the left grid */
+  private currentLeftGridMarkers: (MARKER_ROLE | undefined)[] = [];
+  /** whether the player needs to mark his own attack */
+  private needToMarkAfterOwnAttack = false;
+  /** currently recognized markers of the right grid */
+  private currentRightGridMarkers: (MARKER_ROLE | undefined)[] = [];
   private roomConfig?: RoomConfig;
   private ownPlayerNo?: PlayerNo;
   private playerNames?: PlayerNames;
@@ -56,6 +60,8 @@ export class GameManager {
       this.radio.sendMessage(
         (ownAttack ? 'You' : 'The opponent') + ' attacked cell ' + args.coord.x + ' ' + args.coord.y,
       );
+      this.needToRespondToAttack = !ownAttack;
+      this.needToMarkAfterOwnAttack = ownAttack;
     });
 
     this.socket.on('gameOver', (args) => {
@@ -138,23 +144,75 @@ export class GameManager {
     this.currentShipPlacement = placement;
   }
 
-  //update markerplacement
+  /** whether markers of the left grid need to be validated (after opponent's attack) */
+  shouldUpdateLeftGridMarkers(): boolean {
+    return this.needToRespondToAttack;
+  }
+
+  /** update left grid markers; handle new marker */
+  updateLeftGridMarkers(placement: (MARKER_ROLE | undefined)[]) {
+    console.log('new left grid marker', placement);
+    const diff = this.diffFlatMarkerPlacement(placement, this.currentLeftGridMarkers);
+    console.log('diff', diff);
+    diff.flatMap((p, i) => {
+      console.log('als coord', this.flatMarkerPlacementToCoordinate(i));
+      return p ? i : [];
+    });
+    // todo
+    this.currentLeftGridMarkers = placement;
+  }
+
+  /** whether markers of the right grid need to be validated (after own attack) */
+  shouldUpdateRightGridMarkers(): boolean {
+    return this.needToMarkAfterOwnAttack;
+  }
+
+  /** update right grid markers; handle new marker */
+  updateRightGridMarkers(placement: (MARKER_ROLE | undefined)[]) {
+    console.log('new right grid marker', placement);
+    const diff = this.diffFlatMarkerPlacement(placement, this.currentRightGridMarkers);
+    console.log('diff', diff);
+    diff.flatMap((p, i) => {
+      console.log('als coord', this.flatMarkerPlacementToCoordinate(i));
+      return p ? i : [];
+    });
+    // todo diffFlatMarkerPlacement
+    this.currentRightGridMarkers = placement;
+  }
+
+  private diffFlatMarkerPlacement(p1: (MARKER_ROLE | undefined)[], p2: (MARKER_ROLE | undefined)[]) {
+    return p1.map((v1, i) => (v1 == p2[i] ? undefined : (v1 ?? p2[i])));
+    // todo hier könnte ich auch gleich ein array aus Coord + Marker zurückgeben, das übrig geblieben ist
+  }
+
+  /** row major */
+  private flatMarkerPlacementToCoordinate(i: number): Coord {
+    // todo das funktioniert niemals
+    return {
+      x: i % BOARD_SIZE,
+      y: Math.floor(i / BOARD_SIZE),
+    };
+  }
 
   /** handles the gameplay based on user input (gesture) */
   handleGesture(gestureName: string, pointerCoord?: Coord) {
     switch (this.phase) {
       default:
       case 'MainMenu':
-        // hier später beitritt zu raum; wird übersprungen
+        // todo implement room join
         break;
       case 'GameSetup':
-        // wenn thumbs up --> shiplacement bestätigen
+        if (gestureName === 'thumbs_up') {
+          this.confirmShipPlacement();
+        }
         break;
       case 'GameReady':
-        // wird nur vom server unterbrochen
+        // nothing to see here
         break;
       case 'Game':
-        // point als attack senden
+        if (gestureName === 'point' && pointerCoord) {
+          this.confirmAttack(pointerCoord);
+        }
         // setzen der marker --> respond mit thumbs up
         // wenn vorbei, dann gameover melden
         break;
@@ -163,4 +221,14 @@ export class GameManager {
         break;
     }
   }
+
+  // handleGridMarker() {
+  //   // switch (this.phase) {
+  //   //   default:
+  //   //   case 'MainMenu':
+  //   //     break;
+  //   // }
+  //   // hier muss needToRespondToAttack auf false gesetzt werden, sobald der marker gesetzt wird
+  //   // hier muss
+  // }
 }

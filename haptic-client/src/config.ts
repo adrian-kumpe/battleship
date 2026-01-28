@@ -6,6 +6,13 @@ export enum MARKER_ROLE {
   'MISS',
   'SHIP1',
   'SHIP2',
+  'SHIP3',
+  'SHIP4',
+  'SHIP5',
+  'SHIP6',
+  'SHIP7',
+  'SHIP8',
+  'SHIP9',
 }
 
 /** Config information of an ArUco marker */
@@ -27,10 +34,22 @@ export const AVAILABLE_ARUCO_MARKERS: ArUcoMarkerConfig[] = [
   { id: 5, role: MARKER_ROLE.CORNER_RIGHT_GRID },
   { id: 6, role: MARKER_ROLE.CORNER_RIGHT_GRID },
   { id: 7, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 8, role: MARKER_ROLE.SHIP1 },
-  { id: 9, role: MARKER_ROLE.SHIP1 },
-  { id: 10, role: MARKER_ROLE.SHIP2 },
-  { id: 11, role: MARKER_ROLE.SHIP2 },
+  { id: 8, role: MARKER_ROLE.SHIP7 },
+  { id: 9, role: MARKER_ROLE.SHIP3 },
+  { id: 10, role: MARKER_ROLE.SHIP4 },
+  { id: 11, role: MARKER_ROLE.SHIP8 },
+  { id: 12, role: MARKER_ROLE.SHIP1 },
+  { id: 13, role: MARKER_ROLE.SHIP2 },
+  { id: 14, role: MARKER_ROLE.SHIP9 },
+  { id: 15, role: MARKER_ROLE.SHIP9 },
+  { id: 16, role: MARKER_ROLE.SHIP7 },
+  { id: 17, role: MARKER_ROLE.SHIP3 },
+  { id: 18, role: MARKER_ROLE.SHIP5 },
+  { id: 19, role: MARKER_ROLE.SHIP5 },
+  { id: 20, role: MARKER_ROLE.SHIP8 },
+  { id: 21, role: MARKER_ROLE.SHIP6 },
+  { id: 22, role: MARKER_ROLE.SHIP4 },
+  { id: 23, role: MARKER_ROLE.SHIP6 },
 ];
 
 export interface CellMarkerConfig {
@@ -90,7 +109,7 @@ export const GESTURE_HOLD_DURATION_MS = 3000;
 export const BOARD_SIZE = 8;
 
 /**
- * the amount of ships for the haptic game board
+ * the amount of ships for the haptic game board; ascending length TODO
  * @constant
  */
-export const AVAILABLE_SHIPS = [1, 2, 3, 2];
+export const AVAILABLE_SHIPS = [2, 4, 2, 1];
