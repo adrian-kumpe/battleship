@@ -1,3 +1,6 @@
+/** size of the battleship game board */
+export const gridSize = 8;
+
 export enum PlayerNo {
   'PLAYER1',
   'PLAYER2',
@@ -74,6 +77,10 @@ export enum ErrorCode {
   SHIP_WITH_ILLEGAL_OVERLAPS = 'SHIP_WITH_ILLEGAL_OVERLAPS',
   /** the responseLock is locked; waiting for player to response after attack */
   RESPONSE_LOCK_CLOSED = 'RESPONSE_LOCK_CLOSED',
+  /** the responseLock is open; no need to release */
+  RESPONSE_LOCK_OPEN = 'RESPONSE_LOCK_OPEN',
+  /** the responseLock is not released; wrong response */
+  WRONG_RESPONSE = 'WRONG_RESPONSE',
   /** the gameOverLock is locked; waiting for player to response when gameOver */
   GAME_OVER_LOCK_CLOSED = 'GAME_OVER_LOCK_CLOSED',
   /** a player disconnected from the game */
@@ -82,18 +89,20 @@ export enum ErrorCode {
 
 /** textual description for error codes */
 export const ErrorMessage: Record<ErrorCode, string> = {
-  [ErrorCode.INTERNAL_ERROR]: 'Internal error',
-  [ErrorCode.CLIENT_NOT_AVAILABLE]: 'Client is already in a room',
-  [ErrorCode.ROOM_NOT_FOUND]: 'Room does not exist',
-  [ErrorCode.GAME_HASNT_STARTED]: 'Game has not started yet',
-  [ErrorCode.NOT_PLAYERS_TURN]: "It's not your turn",
-  [ErrorCode.COORD_INVALID]: 'Coord is not valid',
-  [ErrorCode.COORD_NOT_AVAILABLE]: 'Coord already attacked',
-  [ErrorCode.SHIP_OUT_OF_GRID]: 'Not all ships are within the grid',
-  [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'There are illegal overlaps of some ships',
-  [ErrorCode.RESPONSE_LOCK_CLOSED]: 'Player needs to send a response',
-  [ErrorCode.GAME_OVER_LOCK_CLOSED]: 'Player needs to alert game over',
-  [ErrorCode.PLAYER_DISCONNECTED]: 'A player disconnected from the game',
+  [ErrorCode.INTERNAL_ERROR]: 'Interner Fehler',
+  [ErrorCode.CLIENT_NOT_AVAILABLE]: 'Der Spieler ist bereits im Raum',
+  [ErrorCode.ROOM_NOT_FOUND]: 'Der Raum existiert nicht',
+  [ErrorCode.GAME_HASNT_STARTED]: 'Das Spiel hat noch nicht begonnen',
+  [ErrorCode.NOT_PLAYERS_TURN]: 'Der Spieler ist nicht am Zug',
+  [ErrorCode.COORD_INVALID]: 'Die Zelle gibt es nicht',
+  [ErrorCode.COORD_NOT_AVAILABLE]: 'Die Zelle wurde bereits angegriffen',
+  [ErrorCode.SHIP_OUT_OF_GRID]: 'Nicht alle Schiffe sind im Spielfeld',
+  [ErrorCode.SHIP_WITH_ILLEGAL_OVERLAPS]: 'Einige Schiffe überlappen sich',
+  [ErrorCode.RESPONSE_LOCK_CLOSED]: 'Der Spieler muss auf den Angriff reagieren',
+  [ErrorCode.RESPONSE_LOCK_OPEN]: 'Es muss auf keinen Angriff reagiert werden',
+  [ErrorCode.WRONG_RESPONSE]: 'Falsche Reaktion, bitte erneut versuchen',
+  [ErrorCode.GAME_OVER_LOCK_CLOSED]: 'Ein Spieler muss das Ende des Spiels melden',
+  [ErrorCode.PLAYER_DISCONNECTED]: 'Ein Spieler hat das Spiel verlassen',
 };
 
 /** server to client events {@link https://github.com/adrikum/battleship/wiki/Handling-client-server-events-along-with-game-scenes see documentation} */
@@ -158,12 +167,11 @@ export interface ClientToServerEvents {
    * player responds to an attack
    * @param AttackResult w/ information if a ship was hit/sunken (if available)
    */
-  respond: (args: AttackResult, cb: (error?: ErrorCode) => void) => void;
+  respond: (args: { hit: boolean; sunken?: boolean }, cb: (error?: ErrorCode) => void) => void;
   /**
    * player reports the end of the game
-   * @param the winner's playerNo; if not provided the server assumes the reporting player won
    */
-  reportGameOver: (args: { winner?: PlayerNo }, cb: (error?: ErrorCode) => void) => void;
+  reportGameOver: (args: {}, cb: (error?: ErrorCode) => void) => void;
 }
 
 /** data needed to start GameSetup scene */

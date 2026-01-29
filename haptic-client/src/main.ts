@@ -1,30 +1,51 @@
-import { ClientToServerEvents, ReportMode, ServerToClientEvents } from './shared/models';
+import { ClientToServerEvents, Coord, ReportMode, ServerToClientEvents, ShipPlacement } from './shared/models';
 import { io, Socket } from 'socket.io-client';
 import { GestureRecognition } from './recognition/GestureRecognition';
-import { ImageTransformation } from './recognition/ImageTransformation';
+import { ImageProcessor } from './recognition/ImageProcessor';
 import { ArucoRecognition } from './recognition/ArucoRecognition';
-import { getMiddleCorners } from './utils';
-import { AVAILABLE_MARKERS, MARKER_ROLE, MarkerConfig, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
+import { GameManager } from './components/GameManager';
+import { getMarkerCenter, getMiddleCorners, getShipPlacement } from './utils';
+import { AVAILABLE_ARUCO_MARKERS, MARKER_ROLE, VIDEO_WIDTH, VIDEO_HEIGHT } from './config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { Radio } from './components/Radio';
+import { Marker } from 'js-aruco2';
 
+/** display recognition progress of a gesture (time) */
+const gestureProgressBar = document.getElementById('gesture_progress_bar') as HTMLDivElement;
+/** ouput element for recognized gestures and information */
+const confirmedGesture = document.getElementById('confirmed_gesture') as HTMLSpanElement;
 /** gesture recognition w/ MediaPipe */
-const gestureRecognition = new GestureRecognition();
-/** image transformation and cropping w/ OpenCV.js */
-const imageTransformation = new ImageTransformation();
+const gestureRecognition = new GestureRecognition(gestureProgressBar, confirmedGesture);
+
+/** image transformation, cropping, ... w/ OpenCV.js */
+const imageProcessor = new ImageProcessor();
 /** ArUco marker recognition w/ js-aruco2 */
 const arucoRecognition = new ArucoRecognition();
 
-const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
-const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
-const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
+const text_output = document.getElementById('text_output') as HTMLPreElement;
+const text_output_wrapper = document.getElementById('text_output_wrapper') as HTMLDivElement;
+/** display text output */
+export const radio = new Radio(text_output, text_output_wrapper);
 
-let enableWebcamButton: HTMLButtonElement;
+/** canvas for ArUco recognition */
+const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
+const prepareForArucoDetectionFrameNumber = document.querySelector(
+  '#prepareForArucoDetection + .frame-number',
+) as HTMLDivElement;
+/** canvas grid of player */
+const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
+const croppedLeftGridFrameNumber = document.querySelector('#croppedLeftGrid + .frame-number') as HTMLDivElement;
+/** canvas grid of opponent */
+const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
+const croppedRightGridFrameNumber = document.querySelector('#croppedRightGrid + .frame-number') as HTMLDivElement;
+
 let webcamRunning: Boolean = false;
+let frameCounter: number = 0;
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  'http://localhost:3000',
-  // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  // 'http://localhost:3000',
+  'https://battleship-server-4725bfddd6bf.herokuapp.com',
   {
     transports: ['websocket'],
     query: {
@@ -33,22 +54,24 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   },
 );
 
+const gameManager = new GameManager(socket, radio);
+
 (async () => {
-  await imageTransformation.initialize();
+  await imageProcessor.initialize();
   await gestureRecognition.initialize();
 })();
 
+/** input webcam video */
 const video = document.getElementById('webcam') as HTMLVideoElement;
+/** overlay canvas to display Mediapipe hand landmarks */
 const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
-const gestureOutput = document.getElementById('gesture_output') as HTMLParagraphElement;
+const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement;
 
-// Check if webcam access is supported.
-function hasGetUserMedia() {
-  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-}
+/** checks if webcam access is supported */
+const hasGetUserMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
-// If webcam supported, add event listener to button for when user
-// wants to activate it.
+let enableWebcamButton: HTMLButtonElement;
+// If webcam supported, add event listener to button for when user wants to activate it.
 if (hasGetUserMedia()) {
   enableWebcamButton = document.getElementById('enableCamera') as HTMLButtonElement;
   enableWebcamButton.addEventListener('click', enableCam);
@@ -92,7 +115,7 @@ function useDemo() {
 
 function setupRecognition() {
   video.addEventListener('loadedmetadata', () => {
-    imageTransformation.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
+    imageProcessor.setupForVideo(video, VIDEO_WIDTH, VIDEO_HEIGHT);
     recognizedGestures.width = prepareForArucoDetection.width = VIDEO_WIDTH;
     recognizedGestures.height = prepareForArucoDetection.height = VIDEO_HEIGHT;
     croppedLeftGrid.width = croppedLeftGrid.height = croppedRightGrid.height = croppedRightGrid.width = 400;
@@ -106,34 +129,122 @@ function activateVideoStream(stream: MediaStream) {
   video.addEventListener('loadeddata', predictWebcam);
 }
 
+/** main prediction loop */
 async function predictWebcam() {
-  if (!gestureRecognition.isReady() || !imageTransformation.isReady()) {
+  if (!gestureRecognition.isReady() || !imageProcessor.isReady()) {
     return;
   }
 
-  await gestureRecognition.processFrame(video, recognizedGestures, gestureOutput);
+  frameCounter++;
+  recognizedGesturesFrameNumber.innerText = prepareForArucoDetectionFrameNumber.innerText = '' + frameCounter;
 
-  imageTransformation.prepareForArucoDetection(prepareForArucoDetection);
+  // detect gesture
+  const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures);
 
-  const markers = arucoRecognition.processFrame(prepareForArucoDetection);
+  // detect ArUco markers
+  imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
+  const markers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
 
-  const cropGrids = (gridMarkers: MarkerConfig[], croppedGridCanvas: HTMLCanvasElement) => {
-    const grid = markers.filter((m) => gridMarkers.some((s) => s.id === m.id));
-    if (grid.length === 4) {
-      const gridCorners = getMiddleCorners(grid);
-      imageTransformation.cropGridFromCorners(croppedGridCanvas, gridCorners, 400);
+  // crop grids
+  const markersLeftGrid = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
+  const markersRightGrid = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
+  const leftGrid = markers.filter((m) => markersLeftGrid.some((s) => s.id === m.id));
+  const rightGrid = markers.filter((m) => markersRightGrid.some((s) => s.id === m.id));
+
+  // crop left grid every 3 frames (+0) and if no hands are visible
+  if (leftGrid.length === 4 && !(frameCounter % 3) && !gestureRecognition.landmarksVisible()) {
+    croppedLeftGridFrameNumber.innerText = '' + Math.floor(frameCounter / 3);
+    const leftGridCorners: Coord[] = getMiddleCorners(leftGrid);
+    const leftGridCells = imageProcessor.cropGridFromCorners(croppedLeftGrid, leftGridCorners);
+
+    // detect shipPlacement if needed
+    if (gameManager.shouldUpdateShipPlacement()) {
+      const shipPlacement = detectShipPlacement(markers, leftGridCorners);
+      gameManager.updateShipPlacement(shipPlacement);
     }
-  };
-  cropGrids(
-    AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID),
-    croppedLeftGrid,
-  );
-  cropGrids(
-    AVAILABLE_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID),
-    croppedRightGrid,
-  );
+
+    // validate grid markers on the own grid if needed
+    if (gameManager.shouldUpdateLeftGridMarkers()) {
+      const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells, false);
+      console.log('leftGridCellMarkers', leftGridCellMarkers);
+      imageProcessor.drawColorMarkersOnGrid(croppedLeftGrid, leftGridCellMarkers);
+      // hier validieren, ob neue marker dazu gekommen sind --> handle markers aufrufen
+    }
+  }
+
+  // crop right grid every 3 frames (+1) and if no hands are visible
+  if (rightGrid.length === 4 && !((frameCounter + 1) % 3) && !gestureRecognition.landmarksVisible()) {
+    croppedRightGridFrameNumber.innerText = '' + Math.floor((frameCounter + 1) / 3);
+    const rightGridCorners: Coord[] = getMiddleCorners(rightGrid);
+    const rightGridCells = imageProcessor.cropGridFromCorners(croppedRightGrid, rightGridCorners);
+
+    // validate grid markers on the own grid if needed
+    if (gameManager.shouldUpdateRightGridMarkers()) {
+      // detectGridMarker()
+      const rightGridCellMarkers = imageProcessor.detectMarkersByHSV(rightGridCells);
+      console.log('rightGridCellMarkers', rightGridCellMarkers);
+      imageProcessor.drawColorMarkersOnGrid(croppedRightGrid, rightGridCellMarkers);
+    }
+  }
+
+  // handle gestures
+  if (gestureResult) {
+    gameManager.handleGesture(gestureResult.name, gestureResult.indexTipPx);
+    radio.sendMessage(
+      'Geste ' + gestureResult.name + ' wurde erkannt und zeigt auf ' + gestureResult.indexTipPx?.toString() + '.',
+    );
+  }
 
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
   }
 }
+
+/** detect the placement of ships */
+function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
+  const shipPlacement: ShipPlacement = [];
+
+  [
+    MARKER_ROLE.SHIP1,
+    MARKER_ROLE.SHIP2,
+    MARKER_ROLE.SHIP3,
+    MARKER_ROLE.SHIP4,
+    MARKER_ROLE.SHIP5,
+    MARKER_ROLE.SHIP6,
+    MARKER_ROLE.SHIP7,
+    MARKER_ROLE.SHIP8,
+    MARKER_ROLE.SHIP9,
+  ].forEach((r) => {
+    const ship = markers
+      .filter((m) => AVAILABLE_ARUCO_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
+      .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), grid));
+    shipPlacement.push(...getShipPlacement(ship));
+  });
+
+  return shipPlacement;
+}
+
+document.getElementById('wizard_ready')?.addEventListener('click', () => {
+  gameManager.confirmShipPlacement();
+});
+document.getElementById('wizard_fallback_ready')?.addEventListener('click', () => {
+  // prettier-ignore
+  gameManager.confirmShipPlacement([{"size":1,"name":"destroyer","shipId":36,"orientation":"↔️","x":7,"y":3},{"size":1,"name":"destroyer","shipId":37,"orientation":"↔️","x":0,"y":2},{"size":2,"name":"cruiser","shipId":38,"orientation":"↕️","x":3,"y":2},{"size":2,"name":"cruiser","shipId":39,"orientation":"↔️","x":0,"y":4},{"size":2,"name":"cruiser","shipId":40,"orientation":"↔️","x":6,"y":7},{"size":2,"name":"cruiser","shipId":41,"orientation":"↕️","x":7,"y":0},{"size":3,"name":"battleship","shipId":42,"orientation":"↔️","x":0,"y":7},{"size":3,"name":"battleship","shipId":43,"orientation":"↕️","x":5,"y":0},{"size":4,"name":"aircraftcarrier","shipId":44,"orientation":"↔️","x":0,"y":0}]);
+});
+document.getElementById('wizard_attack')?.addEventListener('click', () => {
+  const koordinate1 = (document.getElementById('koordinate1') as HTMLSelectElement)?.value ?? '1';
+  const koordinate2 = (document.getElementById('koordinate2') as HTMLSelectElement)?.value ?? '1';
+  gameManager.confirmAttack({ x: parseInt(koordinate1, 10), y: parseInt(koordinate2, 10) });
+});
+document.getElementById('wizard_miss')?.addEventListener('click', () => {
+  gameManager.respondToAttack(false);
+});
+document.getElementById('wizard_hit')?.addEventListener('click', () => {
+  gameManager.respondToAttack(true);
+});
+document.getElementById('wizard_sunken')?.addEventListener('click', () => {
+  gameManager.respondToAttack(true, true);
+});
+document.getElementById('wizard_game_over')?.addEventListener('click', () => {
+  gameManager.respondToGameOver();
+});

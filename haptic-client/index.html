@@ -23,8 +23,6 @@
               <button id="useDemo" class="list-group-item list-group-item-action list-group-item-danger">
                 Demo verwenden
               </button>
-              <li class="list-group-item">A second item</li>
-              <li class="list-group-item">A third item</li>
             </ul>
           </div>
         </div>
@@ -33,7 +31,8 @@
             <div class="card-header">Video mit Gestenerkennung</div>
             <div class="ratio ratio-4x3 bg-warning">
               <video id="webcam" class="d-block w-100 h-100" autoplay playsinline></video>
-              <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0"></canvas>
+              <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0 pe-none"></canvas>
+              <div class="frame-number m-2 h3 w-auto h-auto text-end end-0 text-success font-monospace"></div>
             </div>
             <div class="card-body">
               <p class="card-text">Video der Webcam mit markierten Händen</p>
@@ -45,20 +44,53 @@
             <div class="card-header">Canvas zur Erkennung von ArUco Markern</div>
             <div class="ratio ratio-4x3 bg-warning">
               <canvas id="prepareForArucoDetection" class="d-block w-100"></canvas>
+              <div class="frame-number m-2 h3 w-auto h-auto text-end end-0 text-success font-monospace"></div>
             </div>
             <div class="card-body">
               <p class="card-text">Erkennung von ArUco Markern in aufbereitetem Bild</p>
             </div>
           </div>
         </div>
+        <div class="col-12">
+          <button id="wizard_ready" class="btn btn-primary mr-2">Platzierung abschicken 🚀</button>
+          <button id="wizard_fallback_ready" class="btn btn-danger mr-2">Fallback-Platzierung</button>
+          <div class="input-group d-inline-block w-auto mr-2">
+            <select id="koordinate1" name="koordinate1" class="form-select align-middle w-auto d-inline-block">
+              <option value="0" selected>A</option>
+              <option value="1">B</option>
+              <option value="2">C</option>
+              <option value="3">D</option>
+              <option value="4">E</option>
+              <option value="5">F</option>
+              <option value="6">G</option>
+              <option value="7">H</option>
+            </select>
+            <select id="koordinate2" name="koordinate2" class="form-select align-middle w-auto d-inline-block">
+              <option value="0" selected>1</option>
+              <option value="1">2</option>
+              <option value="2">3</option>
+              <option value="3">4</option>
+              <option value="4">5</option>
+              <option value="5">6</option>
+              <option value="6">7</option>
+              <option value="7">8</option>
+            </select>
+            <button id="wizard_attack" class="btn btn-primary">Angriff</button>
+          </div>
+          <button id="wizard_miss" class="btn btn-primary mr-2">Daneben 🔵</button>
+          <button id="wizard_hit" class="btn btn-primary mr-2">Getroffen 💥</button>
+          <button id="wizard_sunken" class="btn btn-primary mr-2">Versenkt 🌫️</button>
+          <button id="wizard_game_over" class="btn btn-primary">Game Over</button>
+        </div>
         <div class="col-3">
           <div class="card">
             <div class="card-header">Spielfeld links</div>
             <div class="ratio ratio-1x1 bg-warning">
               <canvas id="croppedLeftGrid" class="d-block w-100"></canvas>
+              <div class="frame-number m-2 h3 w-auto h-auto text-end end-0 text-success font-monospace"></div>
             </div>
             <div class="card-body">
-              <p class="card-text">Der zugeschnittene linke Teil des Spielfelds</p>
+              <p class="card-text">Linker Teil des Spielfelds zugeschnitten</p>
             </div>
           </div>
         </div>
@@ -67,14 +99,47 @@
             <div class="card-header">Spielfeld rechts</div>
             <div class="ratio ratio-1x1 bg-warning">
               <canvas id="croppedRightGrid" class="d-block w-100"></canvas>
+              <div class="frame-number m-2 h3 w-auto h-auto text-end end-0 text-success font-monospace"></div>
             </div>
             <div class="card-body">
-              <p class="card-text">Der zugeschnittene rechts Teil des Spielfelds</p>
+              <p class="card-text">Rechter Teil des Spielfelds zugeschnitten</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card mb-2">
+            <div class="card-header">Erkannte Geste: <span id="confirmed_gesture"></span></div>
+            <div class="card-body">
+              <div class="progress">
+                <div
+                  id="gesture_progress_bar"
+                  class="progress-bar"
+                  role="progressbar"
+                  style="width: 0"
+                  aria-valuenow="25"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="height: 316px">
+            <div class="card-header">Textausgabe</div>
+            <div class="card-body">
+              <div
+                id="text_output_wrapper"
+                class="overflow-auto"
+                style="height: 241px"
+                role="log"
+                aria-live="polite"
+                aria-relevant="additions"
+              >
+                <pre id="text_output"></pre>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <p id="gesture_output" class="output"></p>
     </div>
   </body>
 </html>

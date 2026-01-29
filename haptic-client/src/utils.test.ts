@@ -1,4 +1,4 @@
-import { getMiddleCorners } from './utils';
+import { getMarkerCenter, getMiddleCorners } from './utils';
 import { Marker } from 'js-aruco2';
 
 let consoleWarnMock: jest.SpyInstance;
@@ -27,15 +27,14 @@ const sampleMarkerList: Marker[] = [
 
 describe('haptic-client', () => {
   describe('utils.ts', () => {
+    beforeEach(() => {
+      consoleWarnMock = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleWarnMock.mockRestore();
+    });
     describe('getMiddleCorners', () => {
-      beforeEach(() => {
-        consoleWarnMock = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      });
-
-      afterEach(() => {
-        consoleWarnMock.mockRestore();
-      });
-
       test('should warn when there are not exactly four Markers', () => {
         getMiddleCorners(sampleMarkerList.slice(2));
         expect(consoleWarnMock).toHaveBeenCalled();
@@ -61,6 +60,21 @@ describe('haptic-client', () => {
           { x: 10, y: 200 },
           { x: 100, y: 200 },
         ]);
+      });
+    });
+
+    describe('getMarkerCenter', () => {
+      test('should warn when there are not exactly four Corners', () => {
+        getMarkerCenter({ id: 0, corners: [{ x: 0, y: 0 }] });
+        expect(consoleWarnMock).toHaveBeenCalled();
+      });
+
+      test('should return if there is no Corner', () => {
+        expect(getMarkerCenter({ id: 0, corners: [] })).toEqual({ x: -1, y: -1 });
+      });
+
+      test('should return the correct value', () => {
+        expect(getMarkerCenter(sampleMarkerList[0])).toEqual({ x: 5, y: 5 });
       });
     });
   });

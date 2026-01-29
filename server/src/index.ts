@@ -1,5 +1,4 @@
 import {
-  AttackResult,
   ClientToServerEvents,
   Coord,
   ErrorCode,
@@ -123,6 +122,7 @@ io.on('connection', (socket: Socket) => {
         firstTurn: room.currentPlayer,
       });
     }
+    cb();
   });
 
   /** player attacks */
@@ -132,56 +132,83 @@ io.on('connection', (socket: Socket) => {
     const attackedPlayer = room?.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo);
     const error =
       room?.checkGameStarted() ??
-      room?.checkPlayersTurn(playerNo) ??
-      room?.checkCoordValid(args.coord) ??
       room?.responseLock.checkLocked() ??
       room?.gameOverLock.checkLocked() ??
+      room?.checkCoordValid(args.coord) ??
+      room?.checkPlayersTurn(playerNo) ??
       attackedPlayer?.checkCoordAvailable(args.coord);
     if (error || !room || playerNo === undefined || !attackedPlayer) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
       return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
     const attackResult = attackedPlayer.placeAttack(args.coord);
-    if (room.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo)?.client.mode === 'manualReporting') {
-      room.responseLock.closeLock({ player: (((playerNo ?? 0) + 1) % 2) as PlayerNo, result: attackResult });
-    }
-    room.playerChange();
-    console.info(
-      `[${room.roomConfig.roomId}] Player ${playerNo} attacked ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1}`,
-    );
-    io.to(room.roomConfig.roomId).emit(
-      'attack',
-      Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
-    );
-    if (attackedPlayer.getGameOver()) {
-      console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
-      if (room.getPlayerByPlayerNo(playerNo)?.client.mode === 'manualReporting') {
-        room.gameOverLock.closeLock({ winner: playerNo });
+    const attackResultEvent = () => {
+      io.to(room.roomConfig.roomId).emit(
+        'attack',
+        Object.assign(attackResult, { coord: args.coord, playerNo: playerNo }),
+      );
+      if (attackedPlayer.getGameOver()) {
+        console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
+        const gameOverEvent = () => {
+          io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
+        };
+        if (room.player1.client.mode === 'manualReporting' || room.player2?.client.mode === 'manualReporting') {
+          room.gameOverLock.closeLock({ player: playerNo }, gameOverEvent);
+        } else {
+          gameOverEvent();
+        }
       }
+    };
+
+    let text = `${room.getPlayerByPlayerNo(playerNo)?.client.playerName} greift Zelle ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1} an.`;
+    console.info(`[${room.roomConfig.roomId}] ${text}`);
+    io.to(socket.id).emit('notification', {
+      text: text,
+    });
+    if (attackedPlayer.client.mode === 'manualReporting') {
+      text += ' Du musst auf den Angriff reagieren!';
+    }
+    io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
+    room.playerChange();
+
+    if (room.getPlayerByPlayerNo((((playerNo ?? 0) + 1) % 2) as PlayerNo)?.client.mode === 'manualReporting') {
+      room.responseLock.closeLock(
+        {
+          player: (((playerNo ?? 0) + 1) % 2) as PlayerNo,
+          hit: attackResult.hit,
+          sunken: !!attackResult.sunken,
+        },
+        attackResultEvent,
+      );
+    } else {
+      attackResultEvent();
     }
   });
 
   /** player responds to an attack */
-  socket.on('respond', (args: AttackResult, cb) => {
+  socket.on('respond', (args: { hit: boolean; sunken?: boolean }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
+    const error = !room?.responseLock.checkLocked ? ErrorCode.RESPONSE_LOCK_OPEN : undefined; // todo dieser errorcode müsste schöner funktionieren; evtl das error attribut entfernen aus der lock klasse
     const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
-    if (!room || playerNo === undefined) {
-      console.warn(ErrorMessage[ErrorCode.INTERNAL_ERROR]);
-      return cb(ErrorCode.INTERNAL_ERROR);
+    if (error || !room || playerNo === undefined) {
+      console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
+      return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
-    room.responseLock.releaseLock({ player: playerNo, result: args });
+    const released = room.responseLock.releaseLock({ player: playerNo, hit: args.hit, sunken: !!args.sunken }); // releaseLockCb --> emit attack
+    if (!released) {
+      return cb(ErrorCode.WRONG_RESPONSE);
+    }
   });
 
   /** player (usually the winner) reports, that the game ended */
-  socket.on('reportGameOver', (args: { winner?: PlayerNo }, cb) => {
+  socket.on('reportGameOver', (args: {}, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
     const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
     if (!room || playerNo === undefined) {
       console.warn(ErrorMessage[ErrorCode.INTERNAL_ERROR]);
       return cb(ErrorCode.INTERNAL_ERROR);
     }
-    if (room.gameOverLock.releaseLock({ winner: args.winner ?? playerNo })) {
+    if (room.gameOverLock.releaseLock({ player: playerNo })) {
       roomList.deleteRoom(room.roomConfig.roomId);
       cb();
       // todo hier müsste danach das gameover event ausgelös werden

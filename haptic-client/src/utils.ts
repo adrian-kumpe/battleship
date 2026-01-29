@@ -1,4 +1,26 @@
 import { Corner, Marker } from 'js-aruco2';
+import { Coord, shipDefinitions, ShipPlacement } from './shared/models';
+
+/**
+ * Calculates the center of a marker
+ * @param marker
+ * @returns center Coord
+ */
+export function getMarkerCenter(marker: Marker): Coord {
+  if (marker.corners.length !== 4) {
+    console.warn('The Marker should have exactly four Corners!');
+  }
+  if (marker.corners.length === 0) {
+    return { x: -1, y: -1 };
+  }
+  return marker.corners.reduce(
+    (acc, c, i, arr) => ({
+      x: acc.x + c.x / arr.length,
+      y: acc.y + c.y / arr.length,
+    }),
+    { x: 0, y: 0 },
+  );
+}
 
 /**
  * Calculates the closest Corners of Markers to the total center of the grid
@@ -27,4 +49,47 @@ export function getMiddleCorners(grid: Marker[]): Corner[] {
       .sort((a, b) => a.distance - b.distance);
     return { x: corners[0].x, y: corners[0].y };
   });
+}
+
+let baseShipId = 0;
+
+/** increasing id for ships */
+const getShipId = () => baseShipId++;
+
+export function getShipPlacement(ship: Coord[]): ShipPlacement {
+  if (ship.length === 1) {
+    return [
+      {
+        ...shipDefinitions[0],
+        shipId: getShipId(),
+        orientation: '↔️',
+        ...ship[0],
+      },
+    ];
+  }
+  if (ship.length === 2) {
+    const [end1, end2] = ship;
+    if (!(end1.x - end2.x === 0 || end1.y - end2.y === 0)) {
+      console.warn('Either x or y coordinate of a ship w/ two Markers should be the same!');
+      return [];
+    }
+    const orientation = end1.x - end2.x ? '↔️' : '↕️';
+    const size = 1 + Math.abs(end1.x + end1.y - end2.x - end2.y);
+    const shipDefinition = shipDefinitions.find((s) => s.size === size);
+    if (!shipDefinition) {
+      console.warn('A ship w/ this size is unknown.');
+      return [];
+    }
+    const smallerCoordinate = end1.x + end1.y < end2.x + end2.y ? end1 : end2;
+    return [
+      {
+        ...shipDefinition,
+        shipId: getShipId(),
+        orientation: orientation,
+        ...smallerCoordinate,
+      },
+    ];
+  }
+  console.warn('The ship should consist of one or two Markers!');
+  return [];
 }
