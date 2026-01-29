@@ -44,8 +44,8 @@ let webcamRunning: Boolean = false;
 let frameCounter: number = 0;
 
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  'http://localhost:3000',
-  // 'https://battleship-server-4725bfddd6bf.herokuapp.com',
+  // 'http://localhost:3000',
+  'https://battleship-server-4725bfddd6bf.herokuapp.com',
   {
     transports: ['websocket'],
     query: {
@@ -165,7 +165,6 @@ async function predictWebcam() {
 
     // validate grid markers on the own grid if needed
     if (gameManager.shouldUpdateLeftGridMarkers()) {
-      // detectGridMarker()
       const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells, false);
       console.log('leftGridCellMarkers', leftGridCellMarkers);
       imageProcessor.drawColorMarkersOnGrid(croppedLeftGrid, leftGridCellMarkers);
@@ -224,3 +223,28 @@ function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
 
   return shipPlacement;
 }
+
+document.getElementById('wizard_ready')?.addEventListener('click', () => {
+  gameManager.confirmShipPlacement();
+});
+document.getElementById('wizard_fallback_ready')?.addEventListener('click', () => {
+  // prettier-ignore
+  gameManager.confirmShipPlacement([{"size":1,"name":"destroyer","shipId":36,"orientation":"↔️","x":7,"y":3},{"size":1,"name":"destroyer","shipId":37,"orientation":"↔️","x":0,"y":2},{"size":2,"name":"cruiser","shipId":38,"orientation":"↕️","x":3,"y":2},{"size":2,"name":"cruiser","shipId":39,"orientation":"↔️","x":0,"y":4},{"size":2,"name":"cruiser","shipId":40,"orientation":"↔️","x":6,"y":7},{"size":2,"name":"cruiser","shipId":41,"orientation":"↕️","x":7,"y":0},{"size":3,"name":"battleship","shipId":42,"orientation":"↔️","x":0,"y":7},{"size":3,"name":"battleship","shipId":43,"orientation":"↕️","x":5,"y":0},{"size":4,"name":"aircraftcarrier","shipId":44,"orientation":"↔️","x":0,"y":0}]);
+});
+document.getElementById('wizard_attack')?.addEventListener('click', () => {
+  const koordinate1 = (document.getElementById('koordinate1') as HTMLSelectElement)?.value ?? '1';
+  const koordinate2 = (document.getElementById('koordinate2') as HTMLSelectElement)?.value ?? '1';
+  gameManager.confirmAttack({ x: parseInt(koordinate1, 10), y: parseInt(koordinate2, 10) });
+});
+document.getElementById('wizard_miss')?.addEventListener('click', () => {
+  gameManager.respondToAttack(false);
+});
+document.getElementById('wizard_hit')?.addEventListener('click', () => {
+  gameManager.respondToAttack(true);
+});
+document.getElementById('wizard_sunken')?.addEventListener('click', () => {
+  gameManager.respondToAttack(true, true);
+});
+document.getElementById('wizard_game_over')?.addEventListener('click', () => {
+  gameManager.respondToGameOver();
+});

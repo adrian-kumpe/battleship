@@ -77,18 +77,22 @@ export class Game extends Scene {
     this.inputLogic.registerExtension(this.pointerAndGestureInputLogic);
 
     socket.on('attack', (args) => {
+      const ownAttack = args.playerNo === this.gameData.playerNo;
       ((grid: Grid) => {
         grid.drawResultMarker(args.coord, args.hit ? 'explosion' : 'dot', this.add);
         if (args.sunken) {
           const shipCount = grid.shipCount.getShipCount();
           shipCount[args.sunken.size - 1]--;
           grid.shipCount.updateShipCount(shipCount);
-          const attackedPlayer = this.gameData.playerNames[((args.playerNo + 1) % 2) as PlayerNo];
-          gameRadio.sendMessage(
-            `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ${args.sunken.name} (size ${args.sunken.size}) was sunk`,
-          );
+          // const attackedPlayer = this.gameData.playerNames[((args.playerNo + 1) % 2) as PlayerNo];
+          // gameRadio.sendMessage(
+          //   `${attackedPlayer}'${attackedPlayer.slice(-1) === 's' ? '' : 's'} ${args.sunken.name} (size ${args.sunken.size}) was sunk`,
+          // );
         }
-      })(args.playerNo === this.gameData.playerNo ? this.opposingGrid : this.ownGrid);
+      })(ownAttack ? this.opposingGrid : this.ownGrid);
+      gameRadio.sendMessage(
+        (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? ' Du bist am Zug!' : ''),
+      );
     });
 
     socket.on('gameOver', (args) => {

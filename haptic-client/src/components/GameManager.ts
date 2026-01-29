@@ -6,7 +6,6 @@ import {
   ErrorCode,
   ErrorMessage,
   PlayerNames,
-  AttackResult,
   ServerToClientEvents,
   ClientToServerEvents,
 } from '../shared/models';
@@ -55,21 +54,20 @@ export class GameManager {
     });
 
     this.socket.on('attack', (args) => {
-      // angriff muss gesagt werden, damit reagiert werden kann; ausgeben dass reagiert werden muss
       const ownAttack = this.ownPlayerNo === args.playerNo;
       this.radio.sendMessage(
-        (ownAttack ? 'You' : 'The opponent') + ' attacked cell ' + args.coord.x + ' ' + args.coord.y,
+        (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? '' : ' Du bist am Zug!'),
       );
-      this.needToRespondToAttack = !ownAttack;
+      this.needToRespondToAttack = !ownAttack; // todo das ist garnicht optimal
       this.needToMarkAfterOwnAttack = ownAttack;
     });
 
     this.socket.on('gameOver', (args) => {
       if (args.error) {
         console.warn(ErrorMessage[args.error]);
-        this.radio.sendMessage('Error: ' + ErrorMessage[args.error]);
+        this.radio.sendMessage('Fehler: ' + ErrorMessage[args.error]);
       }
-      // winner: args.winner, todo
+      this.radio.sendMessage('Das Spiel ist vorbei! Spieler ' + args.winner + ' hat gewonnen!');
     });
   }
 
@@ -77,7 +75,7 @@ export class GameManager {
   private beginMultiplayer() {
     this.socket.emit(
       'createRoom',
-      { roomConfig: { boardSize: BOARD_SIZE, availableShips: AVAILABLE_SHIPS }, playerName: 'Haptic Player' },
+      { roomConfig: { boardSize: BOARD_SIZE, availableShips: AVAILABLE_SHIPS }, playerName: 'Haptischer Spieler' },
       (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
         if (args) {
           this.radio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
@@ -87,50 +85,50 @@ export class GameManager {
         }
         if (error) {
           console.warn(ErrorMessage[error]);
-          this.radio.sendMessage('Error: ' + ErrorMessage[error]);
+          this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
         }
       },
     );
   }
 
-  private confirmShipPlacement() {
-    if (this.currentShipPlacement) {
-      this.socket.emit('gameReady', { shipPlacement: this.currentShipPlacement }, (error?: ErrorCode) => {
+  confirmShipPlacement(forcedPlacement?: ShipPlacement) {
+    const placement = forcedPlacement ?? this.currentShipPlacement;
+    if (placement) {
+      this.socket.emit('gameReady', { shipPlacement: placement }, (error?: ErrorCode) => {
         if (error) {
           console.warn(ErrorMessage[error]);
-          this.radio.sendMessage('Error: ' + ErrorMessage[error]);
+          this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
         } else {
-          //todo weiß man hier, ob das senden der placement funktioniert hat? evtl muss cb aufgerufen werden
-          this.radio.sendMessage('You are ready!');
           this.phase = 'GameReady';
         }
       });
     }
   }
 
-  private confirmAttack(coord: Coord) {
+  confirmAttack(coord: Coord) {
     this.socket.emit('attack', { coord: coord }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        this.radio.sendMessage('Error: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
       }
     });
   }
 
-  private respondToAttack(attackResult: AttackResult) {
-    this.socket.emit('respond', attackResult, (error?: ErrorCode) => {
+  respondToAttack(hit: boolean, sunken?: boolean) {
+    // todo woher weiß man ob das schiff versenkt wurde
+    this.socket.emit('respond', { hit: hit, sunken: sunken }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        this.radio.sendMessage('Error: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
       }
     });
   }
 
-  private respondToGameOver(winner: PlayerNo) {
-    this.socket.emit('reportGameOver', { winner: winner }, (error?: ErrorCode) => {
+  respondToGameOver() {
+    this.socket.emit('reportGameOver', {}, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        this.radio.sendMessage('Error: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
       }
     });
   }
@@ -141,7 +139,7 @@ export class GameManager {
   }
 
   updateShipPlacement(placement: ShipPlacement) {
-    if (placement.length !== AVAILABLE_SHIPS.length) {
+    if (placement.length !== AVAILABLE_SHIPS.reduce((p, c) => p + c, 0)) {
       // placement has not the right amount of ships
       return;
     }
@@ -150,6 +148,7 @@ export class GameManager {
 
   /** whether markers of the left grid need to be validated (after opponent's attack) */
   shouldUpdateLeftGridMarkers(): boolean {
+    return true; // todo falsch, erkennung öfter, koordinate zwischenspeichern
     return this.needToRespondToAttack;
   }
 
@@ -168,6 +167,7 @@ export class GameManager {
 
   /** whether markers of the right grid need to be validated (after own attack) */
   shouldUpdateRightGridMarkers(): boolean {
+    return true; // todo
     return this.needToMarkAfterOwnAttack;
   }
 

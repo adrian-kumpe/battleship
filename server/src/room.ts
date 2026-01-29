@@ -39,8 +39,8 @@ export class RoomList {
 }
 
 export class Room {
-  public responseLock: Lock<{ player: PlayerNo; result: AttackResult }>;
-  public gameOverLock: Lock<{ winner: PlayerNo }>;
+  public responseLock: Lock<{ player: PlayerNo; hit: boolean; sunken: boolean }>;
+  public gameOverLock: Lock<{ player: PlayerNo }>;
   public currentPlayer: PlayerNo;
   public roomConfig: RoomConfig;
   public player2?: BattleshipGameBoard;
@@ -53,10 +53,10 @@ export class Room {
     this.roomConfig = Object.assign(roomConfig, { roomId: newRoomId });
     this.currentPlayer = Math.random() < 0.5 ? PlayerNo.PLAYER1 : PlayerNo.PLAYER2;
     this.responseLock = new Lock(
-      (a, b) => a.player === b.player && a.result.hit === b.result.hit && a.result.sunken === b.result.sunken,
+      (a, b) => a.player === b.player && a.hit === b.hit && a.sunken === b.sunken,
       ErrorCode.RESPONSE_LOCK_CLOSED,
     );
-    this.gameOverLock = new Lock((a, b) => a.winner === b.winner, ErrorCode.GAME_OVER_LOCK_CLOSED);
+    this.gameOverLock = new Lock((a, b) => a.player === b.player, ErrorCode.GAME_OVER_LOCK_CLOSED);
   }
 
   public getPlayerBySocketId(socketId: string): { player: BattleshipGameBoard; playerNo: PlayerNo } | undefined {

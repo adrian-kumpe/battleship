@@ -23,12 +23,6 @@
               <button id="useDemo" class="list-group-item list-group-item-action list-group-item-danger">
                 Demo verwenden
               </button>
-              <li class="list-group-item">Videoframe speichern</li>
-              <li class="list-group-item">Schiff-Platzierung abschicken</li>
-              <li class="list-group-item">Schicke Fallback-Schiff-Platzierung</li>
-              <li class="list-group-item">Angriff</li>
-              <li class="list-group-item">Reaktion</li>
-              <li class="list-group-item">GameOver</li>
             </ul>
           </div>
         </div>
@@ -37,7 +31,7 @@
             <div class="card-header">Video mit Gestenerkennung</div>
             <div class="ratio ratio-4x3 bg-warning">
               <video id="webcam" class="d-block w-100 h-100" autoplay playsinline></video>
-              <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0"></canvas>
+              <canvas id="recognizedGestures" class="d-block w-100 position-absolute top-0 start-0 pe-none"></canvas>
               <div class="frame-number m-2 h3 w-auto h-auto text-end end-0 text-success font-monospace"></div>
             </div>
             <div class="card-body">
@@ -56,6 +50,37 @@
               <p class="card-text">Erkennung von ArUco Markern in aufbereitetem Bild</p>
             </div>
           </div>
+        </div>
+        <div class="col-12">
+          <button id="wizard_ready" class="btn btn-primary mr-2">Platzierung abschicken 🚀</button>
+          <button id="wizard_fallback_ready" class="btn btn-danger mr-2">Fallback-Platzierung</button>
+          <div class="input-group d-inline-block w-auto mr-2">
+            <select id="koordinate1" name="koordinate1" class="form-select align-middle w-auto d-inline-block">
+              <option value="0" selected>A</option>
+              <option value="1">B</option>
+              <option value="2">C</option>
+              <option value="3">D</option>
+              <option value="4">E</option>
+              <option value="5">F</option>
+              <option value="6">G</option>
+              <option value="7">H</option>
+            </select>
+            <select id="koordinate2" name="koordinate2" class="form-select align-middle w-auto d-inline-block">
+              <option value="0" selected>1</option>
+              <option value="1">2</option>
+              <option value="2">3</option>
+              <option value="3">4</option>
+              <option value="4">5</option>
+              <option value="5">6</option>
+              <option value="6">7</option>
+              <option value="7">8</option>
+            </select>
+            <button id="wizard_attack" class="btn btn-primary">Angriff</button>
+          </div>
+          <button id="wizard_miss" class="btn btn-primary mr-2">Daneben 🔵</button>
+          <button id="wizard_hit" class="btn btn-primary mr-2">Getroffen 💥</button>
+          <button id="wizard_sunken" class="btn btn-primary mr-2">Versenkt 🌫️</button>
+          <button id="wizard_game_over" class="btn btn-primary">Game Over</button>
         </div>
         <div class="col-3">
           <div class="card">
@@ -104,7 +129,7 @@
               <div
                 id="text_output_wrapper"
                 class="overflow-auto"
-                style="height: 350px"
+                style="height: 241px"
                 role="log"
                 aria-live="polite"
                 aria-relevant="additions"

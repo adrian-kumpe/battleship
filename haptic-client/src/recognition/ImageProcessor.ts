@@ -14,7 +14,7 @@ export class ImageProcessor {
    */
   async initialize(): Promise<void> {
     this.cv = await this.getOpenCv();
-    console.log(this.cv.getBuildInformation());
+    console.info(this.cv.getBuildInformation());
   }
 
   /**
@@ -241,7 +241,7 @@ export class ImageProcessor {
       this.cv.cvtColor(centerROI, rgb, this.cv.COLOR_RGBA2RGB);
       const hsv = new this.cv.Mat();
       this.cv.cvtColor(rgb, hsv, this.cv.COLOR_RGB2HSV);
-      this.cv.GaussianBlur(hsv, hsv, new this.cv.Size(3, 3), 0);
+      // this.cv.GaussianBlur(hsv, hsv, new this.cv.Size(3, 3), 0);
       rgb.delete();
 
       /* -----------------------------
