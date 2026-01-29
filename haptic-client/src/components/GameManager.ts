@@ -141,6 +141,10 @@ export class GameManager {
   }
 
   updateShipPlacement(placement: ShipPlacement) {
+    if (placement.length !== AVAILABLE_SHIPS.length) {
+      // placement has not the right amount of ships
+      return;
+    }
     this.currentShipPlacement = placement;
   }
 

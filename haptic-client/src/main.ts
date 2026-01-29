@@ -30,10 +30,15 @@ export const radio = new Radio(text_output, text_output_wrapper);
 
 /** canvas for ArUco recognition */
 const prepareForArucoDetection = document.getElementById('prepareForArucoDetection') as HTMLCanvasElement;
+const prepareForArucoDetectionFrameNumber = document.querySelector(
+  '#prepareForArucoDetection + .frame-number',
+) as HTMLDivElement;
 /** canvas grid of player */
 const croppedLeftGrid = document.getElementById('croppedLeftGrid') as HTMLCanvasElement;
+const croppedLeftGridFrameNumber = document.querySelector('#croppedLeftGrid + .frame-number') as HTMLDivElement;
 /** canvas grid of opponent */
 const croppedRightGrid = document.getElementById('croppedRightGrid') as HTMLCanvasElement;
+const croppedRightGridFrameNumber = document.querySelector('#croppedRightGrid + .frame-number') as HTMLDivElement;
 
 let webcamRunning: Boolean = false;
 let frameCounter: number = 0;
@@ -60,7 +65,7 @@ const gameManager = new GameManager(socket, radio);
 const video = document.getElementById('webcam') as HTMLVideoElement;
 /** overlay canvas to display Mediapipe hand landmarks */
 const recognizedGestures = document.getElementById('recognizedGestures') as HTMLCanvasElement;
-// const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement; // todo entfernen
+const recognizedGesturesFrameNumber = document.querySelector('#recognizedGestures + .frame-number') as HTMLDivElement;
 
 /** checks if webcam access is supported */
 const hasGetUserMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -131,10 +136,10 @@ async function predictWebcam() {
   }
 
   frameCounter++;
+  recognizedGesturesFrameNumber.innerText = prepareForArucoDetectionFrameNumber.innerText = '' + frameCounter;
 
   // detect gesture
   const gestureResult = await gestureRecognition.processFrame(video, recognizedGestures);
-  imageProcessor.drawFrameNumber(recognizedGestures, frameCounter);
 
   // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
@@ -148,13 +153,9 @@ async function predictWebcam() {
 
   // crop left grid every 3 frames (+0) and if no hands are visible
   if (leftGrid.length === 4 && !(frameCounter % 3) && !gestureRecognition.landmarksVisible()) {
+    croppedLeftGridFrameNumber.innerText = '' + Math.floor(frameCounter / 3);
     const leftGridCorners: Coord[] = getMiddleCorners(leftGrid);
-    const leftGridCells = imageProcessor.cropGridFromCorners(
-      croppedLeftGrid,
-      leftGridCorners,
-      Math.floor(frameCounter / 3),
-      400,
-    );
+    const leftGridCells = imageProcessor.cropGridFromCorners(croppedLeftGrid, leftGridCorners);
 
     // detect shipPlacement if needed
     if (gameManager.shouldUpdateShipPlacement()) {
@@ -165,25 +166,25 @@ async function predictWebcam() {
     // validate grid markers on the own grid if needed
     if (gameManager.shouldUpdateLeftGridMarkers()) {
       // detectGridMarker()
-      const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells);
+      const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells, false);
+      console.log('leftGridCellMarkers', leftGridCellMarkers);
+      imageProcessor.drawColorMarkersOnGrid(croppedLeftGrid, leftGridCellMarkers);
       // hier validieren, ob neue marker dazu gekommen sind --> handle markers aufrufen
     }
   }
 
   // crop right grid every 3 frames (+1) and if no hands are visible
   if (rightGrid.length === 4 && !((frameCounter + 1) % 3) && !gestureRecognition.landmarksVisible()) {
+    croppedRightGridFrameNumber.innerText = '' + Math.floor((frameCounter + 1) / 3);
     const rightGridCorners: Coord[] = getMiddleCorners(rightGrid);
-    const rightGridCells = imageProcessor.cropGridFromCorners(
-      croppedRightGrid,
-      rightGridCorners,
-      Math.floor((frameCounter + 1) / 3),
-      400,
-    );
+    const rightGridCells = imageProcessor.cropGridFromCorners(croppedRightGrid, rightGridCorners);
 
     // validate grid markers on the own grid if needed
     if (gameManager.shouldUpdateRightGridMarkers()) {
       // detectGridMarker()
       const rightGridCellMarkers = imageProcessor.detectMarkersByHSV(rightGridCells);
+      console.log('rightGridCellMarkers', rightGridCellMarkers);
+      imageProcessor.drawColorMarkersOnGrid(croppedRightGrid, rightGridCellMarkers);
     }
   }
 
@@ -200,10 +201,9 @@ async function predictWebcam() {
   }
 }
 
-/** detect the shipPlacement todo cache */
+/** detect the placement of ships */
 function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
   const shipPlacement: ShipPlacement = [];
-  //todo hier muss wegen überdeckung gecached werden
 
   [
     MARKER_ROLE.SHIP1,
@@ -223,9 +223,4 @@ function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
   });
 
   return shipPlacement;
-}
-
-/** detect markers */
-function detectGridMarker() {
-  // todo
 }

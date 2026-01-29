@@ -61,15 +61,14 @@ export interface CellMarkerConfig {
 export const AVAILABLE_CELL_MARKERS: CellMarkerConfig[] = [
   {
     role: MARKER_ROLE.HIT, // orange
-    lowerHSV: [10, 140, 80],
-    upperHSV: [25, 255, 255],
+    lowerHSV: [5, 70, 50],
+    upperHSV: [35, 255, 255],
   },
   {
     role: MARKER_ROLE.MISS, // blue
-    lowerHSV: [100, 120, 50],
-    upperHSV: [130, 255, 255],
+    lowerHSV: [90, 90, 50],
+    upperHSV: [140, 255, 255],
   },
-  // todo werte testen
 ];
 
 /**

@@ -92,59 +92,6 @@ export class ImageProcessor {
     }
   }
 
-  /** draw frame number on mat or canvas */
-  drawFrameNumber(matOrCanvas: cvModule.Mat | HTMLCanvasElement, frameCounter: number): void {
-    if (!this.cv) {
-      return;
-    }
-
-    const isCanvas = matOrCanvas instanceof HTMLCanvasElement;
-    let mat: cvModule.Mat;
-
-    if (isCanvas) {
-      if (!this.src) {
-        return;
-      }
-      mat = this.src.clone();
-    } else {
-      mat = matOrCanvas;
-    }
-
-    try {
-      // Berechne Skalierung basierend auf Größe (1920x1080 als Referenz)
-      const avgDim = (mat.cols + mat.rows) / 2;
-      const scale = avgDim / 1500; // 1920x1080 -> scale=1.0
-
-      // Für kleine Grids (400x400 = scale ~0.27) andere Werte als große (1920x1080)
-      const isSmallGrid = scale < 0.5;
-      const yPos = isSmallGrid ? 35 : 75 * scale;
-      const fontSize = isSmallGrid ? 2.3 : Math.max(2.5, 5.5 * scale);
-      const thickness = isSmallGrid ? 2 : Math.max(1, Math.round(4 * scale));
-
-      // Zeichne Frame-Nummer
-      this.cv.putText(
-        mat,
-        '' + frameCounter,
-        new this.cv.Point(10, yPos),
-        this.cv.FONT_HERSHEY_PLAIN,
-        fontSize,
-        new this.cv.Scalar(0, 255, 0, 255),
-        thickness,
-        this.cv.LINE_AA,
-      );
-
-      // Wenn Canvas, zeige Mat an
-      if (isCanvas) {
-        this.cv.imshow(matOrCanvas as HTMLCanvasElement, mat);
-      }
-    } finally {
-      // Cleanup: Nur löschen wenn wir eine Kopie erstellt haben
-      if (isCanvas) {
-        mat.delete();
-      }
-    }
-  }
-
   private orderPoints(pts: number[][]): number[][] {
     const sums = pts.map((p) => p[0] + p[1]);
     const topLeft = pts[sums.indexOf(Math.min(...sums))];
@@ -164,7 +111,6 @@ export class ImageProcessor {
   cropGridFromCorners(
     outputCanvas: HTMLCanvasElement,
     corners: { x: number; y: number }[],
-    frameCounter: number,
     size: number = 400,
   ): cvModule.Mat[] {
     if (!this.cv || !this.src || corners.length !== 4) {
@@ -189,6 +135,9 @@ export class ImageProcessor {
       new this.cv.Scalar(0, 0, 0, 255),
     );
 
+    // apply Gaussian blur 3x3
+    this.cv.GaussianBlur(warped, warped, new this.cv.Size(3, 3), 0);
+
     // split the grid
     const cellSize = size / BOARD_SIZE;
     const cells: cvModule.Mat[] = [];
@@ -202,9 +151,6 @@ export class ImageProcessor {
         roi.delete();
       }
     }
-
-    // display frame number
-    this.drawFrameNumber(warped, frameCounter);
 
     this.cv.imshow(outputCanvas, warped);
 
@@ -263,55 +209,227 @@ export class ImageProcessor {
   }
 
   /**
-   * detect markers by evaluating colors
+   * detect markers by evaluating colors {@link AVAILABLE_CELL_MARKERS}
    * @param array of cropped cells
+   * @param shouldDetectMissedMarkers - whether blue markers should be detected
    * @returns array with the roles of detected markers
    */
-  detectMarkersByHSV(cells: cvModule.Mat[]): (MARKER_ROLE | undefined)[] {
+  detectMarkersByHSV(cells: cvModule.Mat[], shouldDetectMissedMarkers = true): (MARKER_ROLE | undefined)[] {
     if (!this.cv) {
       return [];
     }
 
-    const result = [];
-    const mask = new this.cv.Mat();
+    const results: (MARKER_ROLE | undefined)[] = [];
 
     for (let i = 0; i < cells.length; i++) {
-      // skip white cells
-      const mean = this.cv.mean(cells[i]);
-      if (mean[0] > 240 && mean[1] > 240 && mean[2] > 240) {
-        // todo werte testen
-        result.push(undefined);
+      const cell = cells[i];
+
+      /* -----------------------------
+       * 1️⃣ Crop: Zellzentrum (Form & Farbe sitzen dort)
+       * ----------------------------- */
+      const cx = Math.floor(cell.cols * 0.2);
+      const cy = Math.floor(cell.rows * 0.2);
+      const cw = Math.floor(cell.cols * 0.6);
+      const ch = Math.floor(cell.rows * 0.6);
+
+      const centerROI = cell.roi(new this.cv.Rect(cx, cy, cw, ch));
+
+      /* -----------------------------
+       * 2️⃣ HSV + leichtes Glätten
+       * ----------------------------- */
+      const rgb = new this.cv.Mat();
+      this.cv.cvtColor(centerROI, rgb, this.cv.COLOR_RGBA2RGB);
+      const hsv = new this.cv.Mat();
+      this.cv.cvtColor(rgb, hsv, this.cv.COLOR_RGB2HSV);
+      this.cv.GaussianBlur(hsv, hsv, new this.cv.Size(3, 3), 0);
+      rgb.delete();
+
+      /* -----------------------------
+       * 3️⃣ Sättigungsmaske (Marker-Kandidat?)
+       * ----------------------------- */
+      const satMask = new this.cv.Mat();
+      const lowerSat = new this.cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 70, 0, 0]);
+      const upperSat = new this.cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 255]);
+
+      this.cv.inRange(hsv, lowerSat, upperSat, satMask);
+
+      const coloredPixels = this.cv.countNonZero(satMask);
+      const area = hsv.rows * hsv.cols;
+      const satRatio = coloredPixels / area;
+
+      lowerSat.delete();
+      upperSat.delete();
+
+      // ❌ Kein Marker → ArUco / leer
+      if (satRatio < 0.08) {
+        results.push(undefined);
+        satMask.delete();
+        hsv.delete();
+        centerROI.delete();
         continue;
       }
 
-      const hsv = new this.cv.Mat();
-      this.cv.cvtColor(cells[i], hsv, this.cv.COLOR_RGB2HSV);
+      /* -----------------------------
+       * 4️⃣ Konturen → größte nehmen
+       * ----------------------------- */
+      const contours = new this.cv.MatVector();
+      const hierarchy = new this.cv.Mat();
+      this.cv.findContours(satMask, contours, hierarchy, this.cv.RETR_EXTERNAL, this.cv.CHAIN_APPROX_SIMPLE);
 
-      let detected: MARKER_ROLE | undefined;
-      const pixelThreshold = cells[i].rows * cells[i].cols * 0.05;
+      if (contours.size() === 0) {
+        results.push(undefined);
+        contours.delete();
+        hierarchy.delete();
+        satMask.delete();
+        hsv.delete();
+        centerROI.delete();
+        continue;
+      }
 
-      // check for all markers
-      for (const marker of AVAILABLE_CELL_MARKERS) {
-        const lower = new this.cv.Mat(hsv.rows, hsv.cols, hsv.type(), [...marker.lowerHSV, 0]);
-        const upper = new this.cv.Mat(hsv.rows, hsv.cols, hsv.type(), [...marker.upperHSV, 255]);
+      let maxIdx = 0;
+      let maxArea = 0;
 
-        this.cv.inRange(hsv, lower, upper, mask);
-        const count = this.cv.countNonZero(mask);
-
-        lower.delete();
-        upper.delete();
-
-        if (count >= pixelThreshold) {
-          detected = marker.role;
-          break;
+      for (let j = 0; j < contours.size(); j++) {
+        const cnt = contours.get(j);
+        const a = this.cv.contourArea(cnt);
+        if (a > maxArea) {
+          maxArea = a;
+          maxIdx = j;
         }
       }
 
-      result.push(detected);
+      const fillRatio = maxArea / area;
+
+      // ❌ Echter Marker füllt die Zelle fast komplett
+      if (fillRatio < 0.5) {
+        results.push(undefined);
+        contours.delete();
+        hierarchy.delete();
+        satMask.delete();
+        hsv.delete();
+        centerROI.delete();
+        continue;
+      }
+
+      /* -----------------------------
+       * 5️⃣ Kreisförmigkeit prüfen
+       * ----------------------------- */
+      const contour = contours.get(maxIdx);
+      const perimeter = this.cv.arcLength(contour, true);
+      const circularity = (4 * Math.PI * maxArea) / (perimeter * perimeter);
+
+      if (circularity < 0.55) {
+        results.push(undefined);
+        contour.delete();
+        contours.delete();
+        hierarchy.delete();
+        satMask.delete();
+        hsv.delete();
+        centerROI.delete();
+        continue;
+      }
+
+      /* -----------------------------
+       * 6️⃣ Marker-Maske + Hue-StdDev
+       * ----------------------------- */
+      const markerMask = this.cv.Mat.zeros(hsv.rows, hsv.cols, this.cv.CV_8UC1);
+      this.cv.drawContours(markerMask, contours, maxIdx, new this.cv.Scalar(255), -1);
+
+      const mean = new this.cv.Mat();
+      const std = new this.cv.Mat();
+      this.cv.meanStdDev(hsv, mean, std, markerMask);
+
+      const satStd = std.doubleAt(1, 0);
+      const hueMean = mean.doubleAt(0, 0);
+      const hueStd = std.doubleAt(0, 0);
+
+      mean.delete();
+      std.delete();
+
+      // ❌ ArUco / Muster → hohe Hue-Varianz
+      if (hueStd > 15 || satStd > 25) {
+        results.push(undefined);
+        markerMask.delete();
+        contour.delete();
+        contours.delete();
+        hierarchy.delete();
+        satMask.delete();
+        hsv.delete();
+        centerROI.delete();
+        continue;
+      }
+
+      /* -----------------------------
+       * 7️⃣ Farbklassifikation
+       * ----------------------------- */
+
+      let detected: MARKER_ROLE | undefined;
+
+      // Orange → HIT
+      if (hueMean >= 5 && hueMean <= 35) {
+        detected = MARKER_ROLE.HIT;
+      }
+      // Blau → MISS
+      else if (hueMean >= 90 && hueMean <= 140 && shouldDetectMissedMarkers) {
+        detected = MARKER_ROLE.MISS;
+      }
+
+      results.push(detected);
+
+      /* -----------------------------
+       * Cleanup
+       * ----------------------------- */
+      markerMask.delete();
+      contour.delete();
+      contours.delete();
+      hierarchy.delete();
+      satMask.delete();
       hsv.delete();
+      centerROI.delete();
     }
 
-    mask.delete();
-    return result;
+    return results;
+  }
+
+  /**
+   * draw detected color markers on grid canvas
+   * @param canvas - the canvas to draw on
+   * @param markers - array of detected marker roles
+   * @param size - size of the grid in pixels
+   */
+  drawColorMarkersOnGrid(canvas: HTMLCanvasElement, markers: (MARKER_ROLE | undefined)[], size: number = 400): void {
+    if (!this.cv || markers.length === 0) {
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    const cellSize = size / BOARD_SIZE;
+
+    for (let i = 0; i < markers.length; i++) {
+      const marker = markers[i];
+      if (!marker) {
+        continue;
+      }
+
+      const row = Math.floor(i / BOARD_SIZE);
+      const col = i % BOARD_SIZE;
+      const x = col * cellSize;
+      const y = row * cellSize;
+
+      // draw marker text in center
+      const centerX = x + cellSize / 2;
+      const centerY = y + cellSize / 2;
+      const fontSize = Math.max(16, cellSize * 0.5);
+
+      ctx.font = `bold ${fontSize}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = marker === MARKER_ROLE.HIT ? '#FF0000' : '#0000FF';
+      ctx.fillText(marker === MARKER_ROLE.HIT ? 'H' : 'M', centerX, centerY);
+    }
   }
 }
