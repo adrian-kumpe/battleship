@@ -91,7 +91,7 @@ export class Game extends Scene {
         }
       })(ownAttack ? this.opposingGrid : this.ownGrid);
       gameRadio.sendMessage(
-        (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? ' Du bist am Zug!' : ''),
+        (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? '' : ' Du bist am Zug!'),
       );
     });
 

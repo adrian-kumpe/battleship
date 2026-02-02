@@ -24,7 +24,7 @@ export class MarkerCache {
   /** update cache w/ Markers of a new frame */
   updateCachedMarkers(detectedMarkers: Marker[], frameCounter: number) {
     // check for position change
-    this.checkForPositionChangeToDeleteMarkerRoleGroup(detectedMarkers);
+    this.checkForPositionChangeToDeleteMarkerCacheGroup(detectedMarkers);
 
     // update cache
     detectedMarkers.forEach((m: Marker) => {
@@ -44,8 +44,8 @@ export class MarkerCache {
     return Array.from(this.markerCache.values()).map((cached) => cached.marker);
   }
 
-  /** check if Marker's position changed compared to the cache; calls {@link deleteMarkerRoleGroup} */
-  private checkForPositionChangeToDeleteMarkerRoleGroup(detectedMarkers: Marker[]) {
+  /** check if Marker's position changed compared to the cache; calls {@link deleteMarkerCacheGroup} */
+  private checkForPositionChangeToDeleteMarkerCacheGroup(detectedMarkers: Marker[]) {
     detectedMarkers.forEach((m) => {
       const cached = this.markerCache.get(m.id);
       if (!cached) {
@@ -57,15 +57,36 @@ export class MarkerCache {
       if (distanceSq > POSITION_CHANGE_THRESHOLD ** 2) {
         const role = AVAILABLE_ARUCO_MARKERS.find((m2) => m2.id === m.id)?.role;
         if (role) {
-          this.deleteMarkerRoleGroup(role);
+          this.deleteMarkerCacheGroup(role);
         }
       }
     });
   }
 
-  /** delete Markers w/ specific role; e.g. 'CORNER_LEFT_GRID' */
-  private deleteMarkerRoleGroup(role: MARKER_ROLE) {
-    const idsToDelete = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === role).map(({ id }) => id);
+  /** get the cache group of a marker role; default is marker role by itself */
+  private getMarkerCacheGroup(role: MARKER_ROLE): MARKER_ROLE[] {
+    const cacheGroups = [
+      [
+        MARKER_ROLE.CORNER_LEFT_GRID_TL,
+        MARKER_ROLE.CORNER_LEFT_GRID_TR,
+        MARKER_ROLE.CORNER_LEFT_GRID_BL,
+        MARKER_ROLE.CORNER_LEFT_GRID_BR,
+      ],
+      [
+        MARKER_ROLE.CORNER_RIGHT_GRID_TL,
+        MARKER_ROLE.CORNER_RIGHT_GRID_TR,
+        MARKER_ROLE.CORNER_RIGHT_GRID_BL,
+        MARKER_ROLE.CORNER_RIGHT_GRID_BR,
+      ],
+    ];
+    return cacheGroups.find((group) => group.includes(role)) ?? [role];
+  }
+
+  /** delete Markers of a cache group; e.g. role 'CORNER_LEFT_GRID' by {@link getMarkerCacheGroup} */
+  private deleteMarkerCacheGroup(role: MARKER_ROLE) {
+    const idsToDelete = AVAILABLE_ARUCO_MARKERS.filter((m) => this.getMarkerCacheGroup(role).includes(m.role)).map(
+      ({ id }) => id,
+    );
     this.markerCache.forEach((_, id) => {
       if (idsToDelete.includes(id)) {
         this.markerCache.delete(id);

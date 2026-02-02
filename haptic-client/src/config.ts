@@ -1,7 +1,13 @@
-/** Roles a marker can have */
+/** Roles a marker can have; ordered */
 export enum MARKER_ROLE {
-  'CORNER_LEFT_GRID',
-  'CORNER_RIGHT_GRID',
+  'CORNER_LEFT_GRID_TL',
+  'CORNER_LEFT_GRID_TR',
+  'CORNER_LEFT_GRID_BR',
+  'CORNER_LEFT_GRID_BL',
+  'CORNER_RIGHT_GRID_TL',
+  'CORNER_RIGHT_GRID_TR',
+  'CORNER_RIGHT_GRID_BR',
+  'CORNER_RIGHT_GRID_BL',
   'HIT',
   'MISS',
   'SHIP1',
@@ -26,14 +32,14 @@ export interface ArUcoMarkerConfig {
  * @constant
  */
 export const AVAILABLE_ARUCO_MARKERS: ArUcoMarkerConfig[] = [
-  { id: 0, role: MARKER_ROLE.CORNER_LEFT_GRID },
-  { id: 1, role: MARKER_ROLE.CORNER_LEFT_GRID },
-  { id: 2, role: MARKER_ROLE.CORNER_LEFT_GRID },
-  { id: 3, role: MARKER_ROLE.CORNER_LEFT_GRID },
-  { id: 4, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 5, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 6, role: MARKER_ROLE.CORNER_RIGHT_GRID },
-  { id: 7, role: MARKER_ROLE.CORNER_RIGHT_GRID },
+  { id: 0, role: MARKER_ROLE.CORNER_LEFT_GRID_TL },
+  { id: 1, role: MARKER_ROLE.CORNER_LEFT_GRID_TR },
+  { id: 2, role: MARKER_ROLE.CORNER_LEFT_GRID_BL },
+  { id: 3, role: MARKER_ROLE.CORNER_LEFT_GRID_BR },
+  { id: 4, role: MARKER_ROLE.CORNER_RIGHT_GRID_TL },
+  { id: 5, role: MARKER_ROLE.CORNER_RIGHT_GRID_TR },
+  { id: 6, role: MARKER_ROLE.CORNER_RIGHT_GRID_BR },
+  { id: 7, role: MARKER_ROLE.CORNER_RIGHT_GRID_BL },
   { id: 8, role: MARKER_ROLE.SHIP7 },
   { id: 9, role: MARKER_ROLE.SHIP3 },
   { id: 10, role: MARKER_ROLE.SHIP4 },

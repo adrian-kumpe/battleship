@@ -105,21 +105,20 @@ export class ImageProcessor {
   }
 
   /**
-   * crop video w/ given corners and display outputCanvas; crop all cells
+   * crop video w/ given corners and display outputCanvas; order by MARKER_ROLE; crop all cells
    * @returns array of cropped cells
    */
   cropGridFromCorners(
     outputCanvas: HTMLCanvasElement,
-    corners: { x: number; y: number }[],
+    corners: { x: number; y: number; role: MARKER_ROLE }[],
     size: number = 400,
   ): cvModule.Mat[] {
     if (!this.cv || !this.src || corners.length !== 4) {
       return [];
     }
 
-    const points = corners.map((c) => [c.x, c.y]);
-    const ordered = this.orderPoints(points);
-    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
+    const points = corners.sort((a, b) => a.role - b.role).map((c) => [c.x, c.y]);
+    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, points.flat());
     const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [0, 0, size - 1, 0, size - 1, size - 1, 0, size - 1]);
     const M = this.cv.getPerspectiveTransform(srcPts, dst);
     const warped = new this.cv.Mat();

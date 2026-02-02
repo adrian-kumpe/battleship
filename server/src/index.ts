@@ -63,7 +63,7 @@ io.on('connection', (socket: Socket) => {
     console.info(`[${newRoomId}] was created by ${args.playerName} ${socket.id}`);
     roomList.addRoom(room);
     socket.join(newRoomId);
-    io.to(newRoomId).emit('notification', { text: `${args.playerName} joined the game` });
+    io.to(newRoomId).emit('notification', { text: `${args.playerName} ist dem Spiel beigetreten` });
     cb({ roomConfig: room.roomConfig });
   });
 
@@ -83,7 +83,7 @@ io.on('connection', (socket: Socket) => {
     console.info(`[${args.roomId}] Client ${args.playerName} ${socket.id} joined the game`);
     room.player2 = new BattleshipGameBoard(client, room.roomConfig.boardSize);
     socket.join(args.roomId);
-    io.to(args.roomId).emit('notification', { text: `${args.playerName} joined the game` });
+    io.to(args.roomId).emit('notification', { text: `${args.playerName} ist dem Spiel beigetreten` });
     cb({ roomConfig: room.roomConfig });
   });
 
@@ -109,7 +109,7 @@ io.on('connection', (socket: Socket) => {
       return cb(error ?? ErrorCode.INTERNAL_ERROR);
     }
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
-    io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} is ready to start` });
+    io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} ist bereit zum Starten` });
     player.shipPlacement = args.shipPlacement;
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);

@@ -143,18 +143,35 @@ async function predictWebcam() {
 
   // detect ArUco markers
   imageProcessor.prepareForArucoDetection(prepareForArucoDetection, frameCounter);
-  const markers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
+  const recognizedMarkers = arucoRecognition.processFrame(prepareForArucoDetection, frameCounter);
 
   // crop grids
-  const markersLeftGrid = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_LEFT_GRID);
-  const markersRightGrid = AVAILABLE_ARUCO_MARKERS.filter((m) => m.role === MARKER_ROLE.CORNER_RIGHT_GRID);
-  const leftGrid = markers.filter((m) => markersLeftGrid.some((s) => s.id === m.id));
-  const rightGrid = markers.filter((m) => markersRightGrid.some((s) => s.id === m.id));
+  const markers = recognizedMarkers.map((m) => {
+    return { id: m.id, corners: m.corners, role: AVAILABLE_ARUCO_MARKERS.find((m2) => m.id === m2.id)?.role };
+  });
+  const rolesLeftGrid = [
+    MARKER_ROLE.CORNER_LEFT_GRID_TL,
+    MARKER_ROLE.CORNER_LEFT_GRID_TR,
+    MARKER_ROLE.CORNER_LEFT_GRID_BR,
+    MARKER_ROLE.CORNER_LEFT_GRID_BL,
+  ];
+  const rolesRightGrid = [
+    MARKER_ROLE.CORNER_RIGHT_GRID_TL,
+    MARKER_ROLE.CORNER_RIGHT_GRID_TR,
+    MARKER_ROLE.CORNER_RIGHT_GRID_BR,
+    MARKER_ROLE.CORNER_RIGHT_GRID_BL,
+  ];
+  const leftGrid = markers.filter(
+    (m): m is Marker & { role: MARKER_ROLE } => m.role !== undefined && rolesLeftGrid.includes(m.role),
+  );
+  const rightGrid = markers.filter(
+    (m): m is Marker & { role: MARKER_ROLE } => m.role !== undefined && rolesRightGrid.includes(m.role),
+  );
 
   // crop left grid every 3 frames (+0) and if no hands are visible
   if (leftGrid.length === 4 && !(frameCounter % 3) && !gestureRecognition.landmarksVisible()) {
     croppedLeftGridFrameNumber.innerText = '' + Math.floor(frameCounter / 3);
-    const leftGridCorners: Coord[] = getMiddleCorners(leftGrid);
+    const leftGridCorners = getMiddleCorners(leftGrid);
     const leftGridCells = imageProcessor.cropGridFromCorners(croppedLeftGrid, leftGridCorners);
 
     // detect shipPlacement if needed
@@ -175,7 +192,7 @@ async function predictWebcam() {
   // crop right grid every 3 frames (+1) and if no hands are visible
   if (rightGrid.length === 4 && !((frameCounter + 1) % 3) && !gestureRecognition.landmarksVisible()) {
     croppedRightGridFrameNumber.innerText = '' + Math.floor((frameCounter + 1) / 3);
-    const rightGridCorners: Coord[] = getMiddleCorners(rightGrid);
+    const rightGridCorners = getMiddleCorners(rightGrid);
     const rightGridCells = imageProcessor.cropGridFromCorners(croppedRightGrid, rightGridCorners);
 
     // validate grid markers on the own grid if needed

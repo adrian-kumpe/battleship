@@ -1,5 +1,6 @@
 import { Corner, Marker } from 'js-aruco2';
 import { Coord, shipDefinitions, ShipPlacement } from './shared/models';
+import { MARKER_ROLE } from './config';
 
 /**
  * Calculates the center of a marker
@@ -27,7 +28,7 @@ export function getMarkerCenter(marker: Marker): Coord {
  * @param grid - array of four Markers
  * @returns array of four Corners being the Corners of grid
  */
-export function getMiddleCorners(grid: Marker[]): Corner[] {
+export function getMiddleCorners(grid: (Marker & { role: MARKER_ROLE })[]): (Corner & { role: MARKER_ROLE })[] {
   if (grid.length !== 4) {
     console.warn('The grid should consist of exactly four Markers!');
   }
@@ -47,7 +48,7 @@ export function getMiddleCorners(grid: Marker[]): Corner[] {
         return { x: c.x, y: c.y, distance: (c.x - gridCenter.x) ** 2 + (c.y - gridCenter.y) ** 2 };
       })
       .sort((a, b) => a.distance - b.distance);
-    return { x: corners[0].x, y: corners[0].y };
+    return { x: corners[0].x, y: corners[0].y, role: m.role };
   });
 }
 

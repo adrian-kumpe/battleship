@@ -65,7 +65,7 @@ export class GameManager {
     this.socket.on('gameOver', (args) => {
       if (args.error) {
         console.warn(ErrorMessage[args.error]);
-        this.radio.sendMessage('Fehler: ' + ErrorMessage[args.error]);
+        this.radio.sendMessage('Hinweis: ' + ErrorMessage[args.error]);
       }
       this.radio.sendMessage('Das Spiel ist vorbei! Spieler ' + args.winner + ' hat gewonnen!');
     });
@@ -85,7 +85,7 @@ export class GameManager {
         }
         if (error) {
           console.warn(ErrorMessage[error]);
-          this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
+          this.radio.sendMessage('Hinweis: ' + ErrorMessage[error]);
         }
       },
     );
@@ -97,7 +97,7 @@ export class GameManager {
       this.socket.emit('gameReady', { shipPlacement: placement }, (error?: ErrorCode) => {
         if (error) {
           console.warn(ErrorMessage[error]);
-          this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
+          this.radio.sendMessage('Hinweis: ' + ErrorMessage[error]);
         } else {
           this.phase = 'GameReady';
         }
@@ -109,7 +109,7 @@ export class GameManager {
     this.socket.emit('attack', { coord: coord }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Hinweis: ' + ErrorMessage[error]);
       }
     });
   }
@@ -119,7 +119,7 @@ export class GameManager {
     this.socket.emit('respond', { hit: hit, sunken: sunken }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Hinweis: ' + ErrorMessage[error]);
       }
     });
   }
@@ -128,7 +128,7 @@ export class GameManager {
     this.socket.emit('reportGameOver', {}, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
-        this.radio.sendMessage('Fehler: ' + ErrorMessage[error]);
+        this.radio.sendMessage('Hinweis: ' + ErrorMessage[error]);
       }
     });
   }
