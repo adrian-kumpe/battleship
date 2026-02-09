@@ -90,7 +90,8 @@ export class GestureRecognition {
     // Display gesture information
     let confirmedGesture: GestureFrameResult | undefined = undefined;
 
-    if (this.results && this.results.gestures.length > 0) {
+    const DEACTIVATE = false; // deactivate gesture recognition
+    if (this.results && this.results.gestures.length > 0 && DEACTIVATE /* deactivate gesture recognition */) {
       const gestureName = this.results.gestures[0][0].categoryName;
       const categoryScore = parseFloat('' + this.results.gestures[0][0].score * 100).toFixed(2);
       const handedness = this.results.handedness[0][0].displayName;

@@ -188,7 +188,8 @@ io.on('connection', (socket: Socket) => {
   /** player responds to an attack */
   socket.on('respond', (args: { hit: boolean; sunken?: boolean }, cb) => {
     const room = roomList.getRoomBySocketId(socket.id);
-    const error = !room?.responseLock.checkLocked ? ErrorCode.RESPONSE_LOCK_OPEN : undefined; // todo dieser errorcode müsste schöner funktionieren; evtl das error attribut entfernen aus der lock klasse
+    const error =
+      room?.checkGameStarted() ?? (!room?.responseLock.checkLocked ? ErrorCode.RESPONSE_LOCK_OPEN : undefined); // todo dieser errorcode müsste schöner funktionieren; evtl das error attribut entfernen aus der lock klasse
     const playerNo = room?.getPlayerBySocketId(socket.id)?.playerNo;
     if (error || !room || playerNo === undefined) {
       console.warn(ErrorMessage[error ?? ErrorCode.INTERNAL_ERROR]);
