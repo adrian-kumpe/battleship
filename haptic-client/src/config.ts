@@ -118,3 +118,15 @@ export const BOARD_SIZE = 8;
  * @constant
  */
 export const AVAILABLE_SHIPS = [2, 4, 2, 1];
+
+/**
+ * number of frames for a pin to be registered
+ * @constant
+ */
+export const STREAK_THRESHOLD = 3;
+
+/**
+ * number of frames a registered pin is allowed to not be detected
+ * @constant
+ */
+export const NOT_SEEN_LIMIT = 2;

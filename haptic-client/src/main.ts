@@ -10,6 +10,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Radio } from './components/Radio';
 import { Marker } from 'js-aruco2';
+import { PinManager } from './components/PinManager';
 
 /** display recognition progress of a gesture (time) */
 const gestureProgressBar = document.getElementById('gesture_progress_bar') as HTMLDivElement;
@@ -55,6 +56,7 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 );
 
 const gameManager = new GameManager(socket, radio);
+const pinManager = new PinManager();
 
 (async () => {
   await imageProcessor.initialize();
@@ -181,11 +183,12 @@ async function predictWebcam() {
     }
 
     // validate grid markers on the own grid if needed
-    if (gameManager.shouldUpdateLeftGridMarkers()) {
+    if (gameManager.shouldUpdatePins()) {
       const leftGridCellMarkers = imageProcessor.detectMarkersByHSV(leftGridCells, false);
-      console.log('leftGridCellMarkers', leftGridCellMarkers);
-      imageProcessor.drawColorMarkersOnGrid(croppedLeftGrid, leftGridCellMarkers);
-      // hier validieren, ob neue marker dazu gekommen sind --> handle markers aufrufen
+      pinManager.updateGridPins(leftGridCellMarkers, '⬅️');
+      const pinPlacement = pinManager.getPins('⬅️');
+      imageProcessor.drawColorMarkersOnGrid(croppedLeftGrid, pinPlacement);
+      gameManager.updatePinPlacement(pinPlacement, '⬅️');
     }
   }
 
@@ -196,19 +199,24 @@ async function predictWebcam() {
     const rightGridCells = imageProcessor.cropGridFromCorners(croppedRightGrid, rightGridCorners);
 
     // validate grid markers on the own grid if needed
-    if (gameManager.shouldUpdateRightGridMarkers()) {
-      // detectGridMarker()
+    if (gameManager.shouldUpdatePins()) {
       const rightGridCellMarkers = imageProcessor.detectMarkersByHSV(rightGridCells);
-      console.log('rightGridCellMarkers', rightGridCellMarkers);
-      imageProcessor.drawColorMarkersOnGrid(croppedRightGrid, rightGridCellMarkers);
+      pinManager.updateGridPins(rightGridCellMarkers, '➡️');
+      const pinPlacement = pinManager.getPins('➡️');
+      imageProcessor.drawColorMarkersOnGrid(croppedRightGrid, pinPlacement);
+      gameManager.updatePinPlacement(pinPlacement, '➡️');
     }
   }
 
   // handle gestures
   if (gestureResult) {
-    gameManager.handleGesture(gestureResult.name, gestureResult.indexTipPx);
+    // removed
     radio.sendMessage(
-      'Geste ' + gestureResult.name + ' wurde erkannt und zeigt auf ' + gestureResult.indexTipPx?.toString() + '.',
+      'Geste ' +
+        gestureResult.name +
+        ' wurde erkannt' +
+        (gestureResult.indexTipPx ? ' und zeigt auf ' + gestureResult.indexTipPx?.toString() : '') +
+        '.',
     );
   }
 
@@ -249,8 +257,9 @@ document.getElementById('wizard_fallback_ready')?.addEventListener('click', () =
   gameManager.confirmShipPlacement([{"size":1,"name":"destroyer","shipId":36,"orientation":"↔️","x":7,"y":3},{"size":1,"name":"destroyer","shipId":37,"orientation":"↔️","x":0,"y":2},{"size":2,"name":"cruiser","shipId":38,"orientation":"↕️","x":3,"y":2},{"size":2,"name":"cruiser","shipId":39,"orientation":"↔️","x":0,"y":4},{"size":2,"name":"cruiser","shipId":40,"orientation":"↔️","x":6,"y":7},{"size":2,"name":"cruiser","shipId":41,"orientation":"↕️","x":7,"y":0},{"size":3,"name":"battleship","shipId":42,"orientation":"↔️","x":0,"y":7},{"size":3,"name":"battleship","shipId":43,"orientation":"↕️","x":5,"y":0},{"size":4,"name":"aircraftcarrier","shipId":44,"orientation":"↔️","x":0,"y":0}]);
 });
 document.getElementById('wizard_attack')?.addEventListener('click', () => {
-  const koordinate1 = (document.getElementById('koordinate1') as HTMLSelectElement)?.value ?? '1';
-  const koordinate2 = (document.getElementById('koordinate2') as HTMLSelectElement)?.value ?? '1';
+  const koordinate1 = (document.querySelector('input[name="koordinate1"]:checked') as HTMLInputElement)?.value ?? '1';
+  const koordinate2 = (document.querySelector('input[name="koordinate2"]:checked') as HTMLInputElement)?.value ?? '1';
+  console.log(koordinate2);
   gameManager.confirmAttack({ x: parseInt(koordinate1, 10), y: parseInt(koordinate2, 10) });
 });
 document.getElementById('wizard_miss')?.addEventListener('click', () => {

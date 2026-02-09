@@ -15,7 +15,7 @@ interface CachedMarker {
 }
 
 /**
- * Markers are cached, when position remains the same for all (detected) Markers w/ the same role
+ * Markers are cached, when position remains the same for all (detected) Markers w/ the same cache group
  * configure {@link MAX_FRAMES_WITHOUT_DETECTION} and {@link POSITION_CHANGE_THRESHOLD}
  */
 export class MarkerCache {

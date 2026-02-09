@@ -51,36 +51,164 @@
             </div>
           </div>
         </div>
-        <div class="col-12">
-          <button id="wizard_ready" class="btn btn-primary mr-2">Platzierung abschicken 🚀</button>
-          <button id="wizard_fallback_ready" class="btn btn-danger mr-2">Fallback-Platzierung</button>
+        <div class="col-12 d-flex justify-content-between">
+          <button id="wizard_ready" class="btn btn-primary mr-2">Platzierung 🚀</button>
+          <button id="wizard_fallback_ready" class="btn btn-danger mr-2">Fallback</button>
           <div class="input-group d-inline-block w-auto mr-2">
-            <select id="koordinate1" name="koordinate1" class="form-select align-middle w-auto d-inline-block">
-              <option value="0" selected>A</option>
-              <option value="1">B</option>
-              <option value="2">C</option>
-              <option value="3">D</option>
-              <option value="4">E</option>
-              <option value="5">F</option>
-              <option value="6">G</option>
-              <option value="7">H</option>
-            </select>
-            <select id="koordinate2" name="koordinate2" class="form-select align-middle w-auto d-inline-block">
-              <option value="0" selected>1</option>
-              <option value="1">2</option>
-              <option value="2">3</option>
-              <option value="3">4</option>
-              <option value="4">5</option>
-              <option value="5">6</option>
-              <option value="6">7</option>
-              <option value="7">8</option>
-            </select>
-            <button id="wizard_attack" class="btn btn-primary">Angriff</button>
+            <div class="btn-group">
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_1"
+                value="1"
+                autocomplete="off"
+                checked
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_1">A</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_2"
+                value="2"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_2">B</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_3"
+                value="3"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_3">C</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_4"
+                value="4"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_4">D</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_5"
+                value="5"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_5">E</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_6"
+                value="6"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_6">F</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_7"
+                value="7"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_7">G</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate1"
+                id="koordinate1_8"
+                value="8"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-primary" for="koordinate1_8">H</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_1"
+                value="1"
+                autocomplete="off"
+                checked
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_1">1</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_2"
+                value="2"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_2">2</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_3"
+                value="3"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_3">3</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_4"
+                value="4"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_4">4</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_5"
+                value="5"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_5">5</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_6"
+                value="6"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_6">6</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_7"
+                value="7"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_7">7</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="koordinate2"
+                id="koordinate2_8"
+                value="8"
+                autocomplete="off"
+              />
+              <label class="btn btn-outline-secondary" for="koordinate2_8">8</label>
+              <button id="wizard_attack" class="btn btn-primary">Angriff</button>
+            </div>
           </div>
           <button id="wizard_miss" class="btn btn-primary mr-2">Daneben 🔵</button>
           <button id="wizard_hit" class="btn btn-primary mr-2">Getroffen 💥</button>
           <button id="wizard_sunken" class="btn btn-primary mr-2">Versenkt 🌫️</button>
-          <button id="wizard_game_over" class="btn btn-primary">Game Over</button>
+          <button id="wizard_game_over" class="btn btn-primary">Ende 🏆</button>
         </div>
         <div class="col-3">
           <div class="card">

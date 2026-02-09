@@ -19,17 +19,12 @@ export class GameManager {
   private phase: 'MainMenu' | 'GameSetup' | 'GameReady' | 'Game' | 'GameOver' = 'MainMenu';
   /** the currently recognized shipPlacement */
   private currentShipPlacement?: ShipPlacement;
-  /** whether the player needs respond after the opponent's attack; lock! */
-  private needToRespondToAttack = false;
-  /** currently recognized markers of the left grid */
-  private currentLeftGridMarkers: (MARKER_ROLE | undefined)[] = [];
-  /** whether the player needs to mark his own attack */
-  private needToMarkAfterOwnAttack = false;
-  /** currently recognized markers of the right grid */
-  private currentRightGridMarkers: (MARKER_ROLE | undefined)[] = [];
   private roomConfig?: RoomConfig;
   private ownPlayerNo?: PlayerNo;
   private playerNames?: PlayerNames;
+  private leftPinPlacement?: (MARKER_ROLE | undefined)[];
+  private rightPinPlacement?: (MARKER_ROLE | undefined)[];
+  private attackedCoord?: Coord;
 
   constructor(
     private socket: Socket<ServerToClientEvents, ClientToServerEvents>,
@@ -58,8 +53,7 @@ export class GameManager {
       this.radio.sendMessage(
         (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? '' : ' Du bist am Zug!'),
       );
-      this.needToRespondToAttack = !ownAttack; // todo das ist garnicht optimal
-      this.needToMarkAfterOwnAttack = ownAttack;
+      this.attackedCoord = args.coord;
     });
 
     this.socket.on('gameOver', (args) => {
@@ -115,7 +109,6 @@ export class GameManager {
   }
 
   respondToAttack(hit: boolean, sunken?: boolean) {
-    // todo woher weiß man ob das schiff versenkt wurde
     this.socket.emit('respond', { hit: hit, sunken: sunken }, (error?: ErrorCode) => {
       if (error) {
         console.warn(ErrorMessage[error]);
@@ -146,93 +139,30 @@ export class GameManager {
     this.currentShipPlacement = placement;
   }
 
-  /** whether markers of the left grid need to be validated (after opponent's attack) */
-  shouldUpdateLeftGridMarkers(): boolean {
-    return true; // todo falsch, erkennung öfter, koordinate zwischenspeichern
-    return this.needToRespondToAttack;
+  /** whether pins need to be validated (after own/opponent's attack) */
+  shouldUpdatePins(): boolean {
+    return this.phase === 'Game';
   }
 
-  /** update left grid markers; handle new marker */
-  updateLeftGridMarkers(placement: (MARKER_ROLE | undefined)[]) {
-    console.log('new left grid marker', placement);
-    const diff = this.diffFlatMarkerPlacement(placement, this.currentLeftGridMarkers);
-    console.log('diff', diff);
-    diff.flatMap((p, i) => {
-      console.log('als coord', this.flatMarkerPlacementToCoordinate(i));
-      return p ? i : [];
-    });
-    // todo
-    this.currentLeftGridMarkers = placement;
-  }
-
-  /** whether markers of the right grid need to be validated (after own attack) */
-  shouldUpdateRightGridMarkers(): boolean {
-    return true; // todo
-    return this.needToMarkAfterOwnAttack;
-  }
-
-  /** update right grid markers; handle new marker */
-  updateRightGridMarkers(placement: (MARKER_ROLE | undefined)[]) {
-    console.log('new right grid marker', placement);
-    const diff = this.diffFlatMarkerPlacement(placement, this.currentRightGridMarkers);
-    console.log('diff', diff);
-    diff.flatMap((p, i) => {
-      console.log('als coord', this.flatMarkerPlacementToCoordinate(i));
-      return p ? i : [];
-    });
-    // todo diffFlatMarkerPlacement
-    this.currentRightGridMarkers = placement;
-  }
-
-  private diffFlatMarkerPlacement(p1: (MARKER_ROLE | undefined)[], p2: (MARKER_ROLE | undefined)[]) {
-    return p1.map((v1, i) => (v1 == p2[i] ? undefined : (v1 ?? p2[i])));
-    // todo hier könnte ich auch gleich ein array aus Coord + Marker zurückgeben, das übrig geblieben ist
-  }
-
-  /** row major */
-  private flatMarkerPlacementToCoordinate(i: number): Coord {
-    // todo das funktioniert niemals
-    return {
-      x: i % BOARD_SIZE,
-      y: Math.floor(i / BOARD_SIZE),
-    };
-  }
-
-  /** handles the gameplay based on user input (gesture) */
-  handleGesture(gestureName: string, pointerCoord?: Coord) {
-    switch (this.phase) {
-      default:
-      case 'MainMenu':
-        // todo implement room join
-        break;
-      case 'GameSetup':
-        if (gestureName === 'thumbs_up') {
-          this.confirmShipPlacement();
+  updatePinPlacement(placement: (MARKER_ROLE | undefined)[], grid: '⬅️' | '➡️') {
+    const getCurrent = () =>
+      grid === '⬅️'
+        ? { get: () => this.leftPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.leftPinPlacement = v) }
+        : { get: () => this.rightPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.rightPinPlacement = v) };
+    if (getCurrent().get()) {
+      const diff = placement.map((m, i) => {
+        return getCurrent().get()![i] === m ? undefined : (placement ?? getCurrent().get()![i]);
+      });
+      if (this.attackedCoord) {
+        const attackedCoordIndex = this.attackedCoord.x * BOARD_SIZE + this.attackedCoord.y;
+        console.log('Marker an der attacked Coord:', diff[attackedCoordIndex]);
+        if (diff[attackedCoordIndex]) {
+          console.log('Ausgabe Bestätigung');
+        } else {
+          console.log('Ausgabe Du hast den Angriff noch nicht richtig markiert');
         }
-        break;
-      case 'GameReady':
-        // nothing to see here
-        break;
-      case 'Game':
-        if (gestureName === 'point' && pointerCoord) {
-          this.confirmAttack(pointerCoord);
-        }
-        // setzen der marker --> respond mit thumbs up
-        // wenn vorbei, dann gameover melden
-        break;
-      case 'GameOver':
-        // hier passiert nichts mehr
-        break;
+      }
     }
+    getCurrent().set(placement);
   }
-
-  // handleGridMarker() {
-  //   // switch (this.phase) {
-  //   //   default:
-  //   //   case 'MainMenu':
-  //   //     break;
-  //   // }
-  //   // hier muss needToRespondToAttack auf false gesetzt werden, sobald der marker gesetzt wird
-  //   // hier muss
-  // }
 }
