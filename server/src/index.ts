@@ -36,6 +36,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 });
 const roomList: RoomList = new RoomList();
 const botPlayers = new Map<string, BotPlayer>(); // roomId -> BotPlayer
+const roomsWithBots = new Set<string>(); // Speichert roomIds, die einen Bot haben
 const PORT = process.env.PORT || 3000;
 
 io.engine.on('connection_error', (err) => {
@@ -75,7 +76,7 @@ function performBotAttackIfNeeded(room: Room): void {
       `[${room.roomConfig.roomId}] Bot greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
     );
 
-    // Führe den Angriff durch
+    // Berechne das Angriffsresultat
     const attackResult = attackedPlayer.placeAttack(attackCoord);
 
     // Aktualisiere Bot-Treffer
@@ -89,30 +90,59 @@ function performBotAttackIfNeeded(room: Room): void {
       }
     }
 
-    // Sende Attack-Event an alle Clients
-    io.to(room.roomConfig.roomId).emit(
-      'attack',
-      Object.assign(attackResult, { coord: attackCoord, playerNo: PlayerNo.PLAYER2 }),
-    );
+    // Callback, der das Attack-Event sendet und den nächsten Zug vorbereitet
+    const performAttackCallback = () => {
+      // Sende Attack-Event an alle Clients
+      io.to(room.roomConfig.roomId).emit(
+        'attack',
+        Object.assign(attackResult, { coord: attackCoord, playerNo: PlayerNo.PLAYER2 }),
+      );
 
-    // Notification an Spieler 1
+      // Prüfe ob Bot gewonnen hat
+      if (attackedPlayer.getGameOver()) {
+        console.info(`[${room.roomConfig.roomId}] Bot has won the game`);
+        const gameOverEvent = () => {
+          io.to(room.roomConfig.roomId).emit('gameOver', { winner: PlayerNo.PLAYER2 });
+          botPlayers.delete(room.roomConfig.roomId);
+          roomsWithBots.delete(room.roomConfig.roomId);
+        };
+        if (attackedPlayer.client.mode === 'manualReporting') {
+          room.gameOverLock.closeLock({ player: PlayerNo.PLAYER2 }, gameOverEvent);
+        } else {
+          gameOverEvent();
+        }
+        return;
+      }
+
+      // Spielerwechsel
+      room.playerChange();
+
+      // Rekursiv: wenn Bot wieder dran ist (sollte nicht passieren), erneut angreifen
+      performBotAttackIfNeeded(room);
+    };
+
+    // Benachrichtigungen
     const text = `Bot greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
-    io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
+    // io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
 
-    // Prüfe ob Bot gewonnen hat
-    if (attackedPlayer.getGameOver()) {
-      console.info(`[${room.roomConfig.roomId}] Bot has won the game`);
-      io.to(room.roomConfig.roomId).emit('gameOver', { winner: PlayerNo.PLAYER2 });
-      botPlayers.delete(room.roomConfig.roomId);
-      roomList.deleteRoom(room.roomConfig.roomId);
-      return;
+    // Wenn Spieler 1 im manualReporting-Mode ist, warten auf Response
+    if (attackedPlayer.client.mode === 'manualReporting') {
+      const responseText = text + ' Du musst auf den Angriff reagieren!';
+      io.to(attackedPlayer.client.socketId).emit('notification', { text: responseText });
+
+      // Lock schließen - erwartet Response vom Spieler mit den KORREKTEN Werten
+      room.responseLock.closeLock(
+        {
+          player: PlayerNo.PLAYER1,
+          hit: attackResult.hit,
+          sunken: !!attackResult.sunken,
+        },
+        performAttackCallback,
+      );
+    } else {
+      // autoReporting - direkt ausführen
+      performAttackCallback();
     }
-
-    // Spielerwechsel
-    room.playerChange();
-
-    // Rekursiv: wenn Bot wieder dran ist (sollte nicht passieren), erneut angreifen
-    performBotAttackIfNeeded(room);
   }, 500);
 }
 
@@ -137,26 +167,6 @@ io.on('connection', (socket: Socket) => {
     roomList.addRoom(room);
     socket.join(newRoomId);
     io.to(newRoomId).emit('notification', { text: `${args.playerName} ist dem Spiel beigetreten` });
-
-    // Bot als Spieler 2 hinzufügen
-    const botClient: Client = {
-      socketId: 'bot-' + newRoomId,
-      playerName: 'Bot',
-      mode: 'autoReporting',
-    };
-    room.player2 = new BattleshipGameBoard(botClient, args.roomConfig.boardSize);
-    const botPlayer = new BotPlayer(room.player2, args.roomConfig.boardSize);
-    botPlayers.set(newRoomId, botPlayer);
-
-    // Bot-Schiffsplatzierung setzen (Standard-Konfiguration)
-    try {
-      const botShipPlacement = getBotShipPlacement();
-      room.player2.shipPlacement = botShipPlacement;
-      console.info(`[${newRoomId}] Bot joined the game and is ready`);
-      io.to(newRoomId).emit('notification', { text: 'Bot ist dem Spiel beigetreten und bereit' });
-    } catch (e) {
-      console.error(`[${newRoomId}] Error setting bot ship placement:`, e);
-    }
 
     cb({ roomConfig: room.roomConfig });
   });
@@ -190,6 +200,7 @@ io.on('connection', (socket: Socket) => {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} left the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { error: ErrorCode.PLAYER_DISCONNECTED });
       botPlayers.delete(room.roomConfig.roomId);
+      roomsWithBots.delete(room.roomConfig.roomId);
       roomList.deleteRoom(room.roomConfig.roomId);
     }
   });
@@ -206,6 +217,31 @@ io.on('connection', (socket: Socket) => {
     console.info(`[${room.roomConfig.roomId}] Client ${player.client.playerName} ${socket.id} ready to start`);
     io.to(room.roomConfig.roomId).emit('notification', { text: `${player.client.playerName} ist bereit zum Starten` });
     player.shipPlacement = args.shipPlacement;
+
+    // Füge Bot als Fallback hinzu, wenn noch niemand beigetreten ist
+    if (!room.player2 && !roomsWithBots.has(room.roomConfig.roomId)) {
+      console.info(`[${room.roomConfig.roomId}] No second player joined, adding bot as fallback`);
+      const botClient: Client = {
+        socketId: 'bot-' + room.roomConfig.roomId,
+        playerName: 'Bot',
+        mode: 'autoReporting',
+      };
+      room.player2 = new BattleshipGameBoard(botClient, room.roomConfig.boardSize);
+      const botPlayer = new BotPlayer(room.player2, room.roomConfig.boardSize);
+      botPlayers.set(room.roomConfig.roomId, botPlayer);
+      roomsWithBots.add(room.roomConfig.roomId);
+
+      // Bot-Schiffsplatzierung setzen (Standard-Konfiguration)
+      try {
+        const botShipPlacement = getBotShipPlacement();
+        room.player2.shipPlacement = botShipPlacement;
+        console.info(`[${room.roomConfig.roomId}] Bot joined the game and is ready`);
+        io.to(room.roomConfig.roomId).emit('notification', { text: 'Bot ist dem Spiel beigetreten und bereit' });
+      } catch (e) {
+        console.error(`[${room.roomConfig.roomId}] Error setting bot ship placement:`, e);
+      }
+    }
+
     if (room.getGameReady()) {
       console.info(`[${room.roomConfig.roomId}] All players are ready, the game starts now`);
       console.info(`[${room.roomConfig.roomId}] Player ${room.currentPlayer} begins`);
@@ -250,6 +286,7 @@ io.on('connection', (socket: Socket) => {
         const gameOverEvent = () => {
           io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
           botPlayers.delete(room.roomConfig.roomId);
+          roomsWithBots.delete(room.roomConfig.roomId);
         };
         if (room.player1.client.mode === 'manualReporting' || room.player2?.client.mode === 'manualReporting') {
           room.gameOverLock.closeLock({ player: playerNo }, gameOverEvent);
@@ -313,6 +350,7 @@ io.on('connection', (socket: Socket) => {
     }
     if (room.gameOverLock.releaseLock({ player: playerNo })) {
       botPlayers.delete(room.roomConfig.roomId);
+      roomsWithBots.delete(room.roomConfig.roomId);
       roomList.deleteRoom(room.roomConfig.roomId);
       cb();
       // todo hier müsste danach das gameover event ausgelös werden
