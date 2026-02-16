@@ -9,7 +9,7 @@ import { AVAILABLE_ARUCO_MARKERS, MARKER_ROLE, VIDEO_WIDTH, VIDEO_HEIGHT } from 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Radio } from './components/Radio';
-import { Marker } from 'js-aruco2';
+import { Marker, Corner } from 'js-aruco2';
 import { PinManager } from './components/PinManager';
 
 /** display recognition progress of a gesture (time) */
@@ -226,7 +226,10 @@ async function predictWebcam() {
 }
 
 /** detect the placement of ships */
-function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
+function detectShipPlacement(
+  markers: (Marker & { role?: MARKER_ROLE })[],
+  gridCorners: (Corner & { role: MARKER_ROLE })[],
+): ShipPlacement {
   const shipPlacement: ShipPlacement = [];
 
   [
@@ -242,7 +245,7 @@ function detectShipPlacement(markers: Marker[], grid: Coord[]): ShipPlacement {
   ].forEach((r) => {
     const ship = markers
       .filter((m) => AVAILABLE_ARUCO_MARKERS.filter((a) => a.role === r).some((s) => s.id === m.id))
-      .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), grid));
+      .map((s) => imageProcessor.videoPxToGridCoord(getMarkerCenter(s), gridCorners));
     shipPlacement.push(...getShipPlacement(ship));
   });
 

@@ -41,11 +41,11 @@ export class GameManager {
     });
 
     this.socket.on('gameStart', (args) => {
+      this.phase = 'Game';
       this.playerNames = args.playerNames;
       this.radio.sendMessage(
-        'All players ready, the game starts now. ' + this.playerNames[args.firstTurn] + ' begins!',
+        'Alle Spieler sind bereit, das Spiel startet. ' + this.playerNames[args.firstTurn] + ' beginnt!',
       );
-      this.phase = 'Game';
     });
 
     this.socket.on('attack', (args) => {
@@ -53,7 +53,12 @@ export class GameManager {
       this.radio.sendMessage(
         (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? '' : ' Du bist am Zug!'),
       );
-      this.attackedCoord = args.coord;
+      // if (this.attackedCoord) {
+      //   this.radio.sendMessage(
+      //     'Du kannst noch den vergangenen Angriff markieren: ' + this.attackedCoord.x + ' ' + this.attackedCoord.y,
+      //   );
+      // } //todo bug
+      this.attackedCoord = args.hit ? args.coord : undefined;
     });
 
     this.socket.on('gameOver', (args) => {
@@ -72,7 +77,7 @@ export class GameManager {
       { roomConfig: { boardSize: BOARD_SIZE, availableShips: AVAILABLE_SHIPS }, playerName: 'Haptischer Spieler' },
       (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
         if (args) {
-          this.radio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
+          this.radio.sendMessage(`Raum erfolgreich erstellt [${args.roomConfig.roomId}]`);
           this.roomConfig = args.roomConfig;
           this.ownPlayerNo = PlayerNo.PLAYER1;
           this.phase = 'GameSetup';
@@ -93,7 +98,7 @@ export class GameManager {
           console.warn(ErrorMessage[error]);
           this.radio.sendMessage('Hinweis: ' + ErrorMessage[error]);
         } else {
-          this.phase = 'GameReady';
+          this.phase = 'GameReady'; // todo bug: das wird aufgerufen, nachdem bereits auf Game umgestellt wurde
         }
       });
     }
@@ -141,28 +146,31 @@ export class GameManager {
 
   /** whether pins need to be validated (after own/opponent's attack) */
   shouldUpdatePins(): boolean {
-    return this.phase === 'Game';
+    return this.phase !== 'MainMenu' && this.phase !== 'GameSetup';
   }
 
   updatePinPlacement(placement: (MARKER_ROLE | undefined)[], grid: '⬅️' | '➡️') {
-    const getCurrent = () =>
-      grid === '⬅️'
-        ? { get: () => this.leftPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.leftPinPlacement = v) }
-        : { get: () => this.rightPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.rightPinPlacement = v) };
-    if (getCurrent().get()) {
-      const diff = placement.map((m, i) => {
-        return getCurrent().get()![i] === m ? undefined : (placement ?? getCurrent().get()![i]);
-      });
+    // const getCurrent = () =>
+    //   grid === '⬅️'
+    //     ? { get: () => this.leftPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.leftPinPlacement = v) }
+    //     : { get: () => this.rightPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.rightPinPlacement = v) };
+    const current = grid === '⬅️' ? this.leftPinPlacement : this.rightPinPlacement;
+    if (current) {
+      // const diff = placement.map((m, i) => {
+      //   return getCurrent().get()![i] === m ? undefined : (m ?? getCurrent().get()![i]);
+      // });
       if (this.attackedCoord) {
-        const attackedCoordIndex = this.attackedCoord.x * BOARD_SIZE + this.attackedCoord.y;
-        console.log('Marker an der attacked Coord:', diff[attackedCoordIndex]);
-        if (diff[attackedCoordIndex]) {
-          console.log('Ausgabe Bestätigung');
-        } else {
-          console.log('Ausgabe Du hast den Angriff noch nicht richtig markiert');
+        const attackedCoordIndex = this.attackedCoord.x * BOARD_SIZE + this.attackedCoord.y; // todo testen
+        if (current[attackedCoordIndex]) {
+          this.radio.sendMessage('Du hast die Zelle richtig markiert!');
+          this.attackedCoord = undefined;
         }
       }
     }
-    getCurrent().set(placement);
+    if (grid === '⬅️') {
+      this.leftPinPlacement = placement;
+    } else {
+      this.rightPinPlacement = placement;
+    }
   }
 }

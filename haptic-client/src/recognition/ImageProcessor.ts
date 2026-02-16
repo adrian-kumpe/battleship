@@ -164,18 +164,21 @@ export class ImageProcessor {
   /**
    * Calculate the grid Coords of a px coordinate using perspective transform
    * @param coord - the px Coord from the video frame
-   * @param corners - the Corners of the grid in the video frame
+   * @param corners - the Corners of the grid in the video frame (must be ordered by MARKER_ROLE)
    * @returns the Coord
    */
-  videoPxToGridCoord(coord: Coord, corners: Corner[]): Coord {
+  videoPxToGridCoord(coord: Coord, corners: (Corner & { role?: MARKER_ROLE })[]): Coord {
     if (!this.cv || corners.length !== 4) {
       return { x: -1, y: -1 };
     }
 
-    const points = corners.map((c) => [c.x, c.y]);
-    const ordered = this.orderPoints(points);
+    // Sort by MARKER_ROLE to account for grid rotation (same as cropGridFromCorners)
+    const points =
+      corners.length > 0 && corners[0].role !== undefined
+        ? (corners as (Corner & { role: MARKER_ROLE })[]).sort((a, b) => a.role - b.role).map((c) => [c.x, c.y])
+        : corners.map((c) => [c.x, c.y]);
 
-    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, ordered.flat());
+    const srcPts = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, points.flat());
     const dst = this.cv.matFromArray(4, 1, this.cv.CV_32FC2, [
       0,
       0,

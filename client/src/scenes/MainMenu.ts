@@ -84,7 +84,7 @@ export class MainMenu extends Scene {
           { roomConfig: { boardSize: 8, availableShips: [2, 2, 2, 1] }, playerName: 'Spieler 1' }, // Todo Name sollte eingegeben werden könnten
           (args?: { roomConfig: RoomConfig }, error?: ErrorCode) => {
             if (args) {
-              gameRadio.sendMessage(`Successfully created room [${args.roomConfig.roomId}]`);
+              gameRadio.sendMessage(`Raum erfolgreich erstellt [${args.roomConfig.roomId}]`);
               this.scene.start('GameSetup', {
                 roomConfig: args.roomConfig,
                 playerNo: PlayerNo.PLAYER1,
