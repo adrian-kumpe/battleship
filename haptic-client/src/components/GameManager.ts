@@ -37,6 +37,12 @@ export class GameManager {
   /** register event sockets */
   private setupSocketListeners() {
     this.socket.on('notification', (args) => {
+      if (args.text.includes('greift Zelle') && this.attackedCoord) {
+        this.radio.sendMessage(
+          `Du kannst noch den vergangenen Angriff markieren: ${String.fromCharCode(65 + this.attackedCoord.x)}${this.attackedCoord.y + 1}`,
+        );
+        this.attackedCoord = undefined;
+      }
       this.radio.sendMessage(args.text);
     });
 
