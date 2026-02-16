@@ -13,6 +13,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { Room, RoomList } from './room';
 import { BattleshipGameBoard } from './game';
+import { BotPlayer, getBotShipPlacement } from './bot';
 
 export interface Client {
   socketId: string;
@@ -34,6 +35,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
   connectionStateRecovery: {},
 });
 const roomList: RoomList = new RoomList();
+const botPlayers = new Map<string, BotPlayer>(); // roomId -> BotPlayer
 const PORT = process.env.PORT || 3000;
 
 io.engine.on('connection_error', (err) => {
@@ -42,6 +44,77 @@ io.engine.on('connection_error', (err) => {
   console.warn(err.message); // the error message, for example "Session ID unknown"
   console.warn(err.context); // some additional error context
 });
+
+/**
+ * Führt automatisch einen Bot-Angriff aus, wenn der Bot an der Reihe ist
+ */
+function performBotAttackIfNeeded(room: Room): void {
+  // Prüfe ob der Bot überhaupt in diesem Raum ist
+  const botPlayer = botPlayers.get(room.roomConfig.roomId);
+  if (!botPlayer || !room.player2) {
+    return;
+  }
+
+  // Prüfe ob der Bot an der Reihe ist (Bot ist immer Spieler 2)
+  if (room.currentPlayer !== PlayerNo.PLAYER2) {
+    return;
+  }
+
+  // Prüfe ob das Spiel überhaupt gestartet ist
+  if (!room.getGameReady()) {
+    return;
+  }
+
+  // Warte kurz, damit der Bot realistischer wirkt (500ms)
+  setTimeout(() => {
+    // Hole die nächste Angriffs-Koordinate vom Bot
+    const attackCoord = botPlayer.getNextAttackCoord();
+    const attackedPlayer = room.player1; // Bot greift immer Spieler 1 an
+
+    console.info(
+      `[${room.roomConfig.roomId}] Bot greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
+    );
+
+    // Führe den Angriff durch
+    const attackResult = attackedPlayer.placeAttack(attackCoord);
+
+    // Aktualisiere Bot-Treffer
+    if (attackResult.hit) {
+      if (attackResult.sunken) {
+        // Schiff versenkt - entferne alle Treffer dieses Schiffs
+        botPlayer.removeHitsForSunkenShip(attackResult.sunken);
+      } else {
+        // Treffer, aber nicht versenkt - speichere Koordinate
+        botPlayer.addHit(attackCoord);
+      }
+    }
+
+    // Sende Attack-Event an alle Clients
+    io.to(room.roomConfig.roomId).emit(
+      'attack',
+      Object.assign(attackResult, { coord: attackCoord, playerNo: PlayerNo.PLAYER2 }),
+    );
+
+    // Notification an Spieler 1
+    const text = `Bot greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
+    io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
+
+    // Prüfe ob Bot gewonnen hat
+    if (attackedPlayer.getGameOver()) {
+      console.info(`[${room.roomConfig.roomId}] Bot has won the game`);
+      io.to(room.roomConfig.roomId).emit('gameOver', { winner: PlayerNo.PLAYER2 });
+      botPlayers.delete(room.roomConfig.roomId);
+      roomList.deleteRoom(room.roomConfig.roomId);
+      return;
+    }
+
+    // Spielerwechsel
+    room.playerChange();
+
+    // Rekursiv: wenn Bot wieder dran ist (sollte nicht passieren), erneut angreifen
+    performBotAttackIfNeeded(room);
+  }, 500);
+}
 
 io.on('connection', (socket: Socket) => {
   console.info('Client connected', socket.id);
@@ -64,6 +137,27 @@ io.on('connection', (socket: Socket) => {
     roomList.addRoom(room);
     socket.join(newRoomId);
     io.to(newRoomId).emit('notification', { text: `${args.playerName} ist dem Spiel beigetreten` });
+
+    // Bot als Spieler 2 hinzufügen
+    const botClient: Client = {
+      socketId: 'bot-' + newRoomId,
+      playerName: 'Bot',
+      mode: 'autoReporting',
+    };
+    room.player2 = new BattleshipGameBoard(botClient, args.roomConfig.boardSize);
+    const botPlayer = new BotPlayer(room.player2, args.roomConfig.boardSize);
+    botPlayers.set(newRoomId, botPlayer);
+
+    // Bot-Schiffsplatzierung setzen (Standard-Konfiguration)
+    try {
+      const botShipPlacement = getBotShipPlacement();
+      room.player2.shipPlacement = botShipPlacement;
+      console.info(`[${newRoomId}] Bot joined the game and is ready`);
+      io.to(newRoomId).emit('notification', { text: 'Bot ist dem Spiel beigetreten und bereit' });
+    } catch (e) {
+      console.error(`[${newRoomId}] Error setting bot ship placement:`, e);
+    }
+
     cb({ roomConfig: room.roomConfig });
   });
 
@@ -95,6 +189,7 @@ io.on('connection', (socket: Socket) => {
     if (room && player && playerNo !== undefined) {
       console.info(`[${room.roomConfig.roomId}] Player ${playerNo} left the game`);
       io.to(room.roomConfig.roomId).emit('gameOver', { error: ErrorCode.PLAYER_DISCONNECTED });
+      botPlayers.delete(room.roomConfig.roomId);
       roomList.deleteRoom(room.roomConfig.roomId);
     }
   });
@@ -121,6 +216,9 @@ io.on('connection', (socket: Socket) => {
         },
         firstTurn: room.currentPlayer,
       });
+
+      // Bot-Angriff starten, falls Bot beginnt
+      performBotAttackIfNeeded(room);
     }
     cb();
   });
@@ -151,12 +249,16 @@ io.on('connection', (socket: Socket) => {
         console.info(`[${room.roomConfig.roomId}] Player ${playerNo} has won the game`);
         const gameOverEvent = () => {
           io.to(room.roomConfig.roomId).emit('gameOver', { winner: playerNo });
+          botPlayers.delete(room.roomConfig.roomId);
         };
         if (room.player1.client.mode === 'manualReporting' || room.player2?.client.mode === 'manualReporting') {
           room.gameOverLock.closeLock({ player: playerNo }, gameOverEvent);
         } else {
           gameOverEvent();
         }
+      } else {
+        // Wenn Spiel nicht vorbei ist, Bot-Angriff starten
+        performBotAttackIfNeeded(room);
       }
     };
 
@@ -210,6 +312,7 @@ io.on('connection', (socket: Socket) => {
       return cb(ErrorCode.INTERNAL_ERROR);
     }
     if (room.gameOverLock.releaseLock({ player: playerNo })) {
+      botPlayers.delete(room.roomConfig.roomId);
       roomList.deleteRoom(room.roomConfig.roomId);
       cb();
       // todo hier müsste danach das gameover event ausgelös werden

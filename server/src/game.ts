@@ -42,6 +42,34 @@ export class BattleshipGameBoard {
     );
   }
 
+  public getRandomCoord(): Coord {
+    let coord: Coord;
+    do {
+      coord = { x: Math.floor(Math.random() * this.boardSize), y: Math.floor(Math.random() * this.boardSize) };
+    } while (this.checkCoordAvailable(coord));
+    return coord;
+  }
+
+  public getAdjacentCoords(coord: Coord): Coord[] {
+    const adjacentCoords: Coord[] = [];
+    const directions = [
+      { x: 0, y: -1 }, // oben
+      { x: 1, y: 0 }, // rechts
+      { x: 0, y: 1 }, // unten
+      { x: -1, y: 0 }, // links
+    ];
+
+    for (const dir of directions) {
+      const newCoord = { x: coord.x + dir.x, y: coord.y + dir.y };
+      if (newCoord.x >= 0 && newCoord.x < this.boardSize && newCoord.y >= 0 && newCoord.y < this.boardSize) {
+        if (!this.checkCoordAvailable(newCoord)) {
+          adjacentCoords.push(newCoord);
+        }
+      }
+    }
+    return adjacentCoords;
+  }
+
   public placeAttack(coord: Coord): AttackResult {
     this.dirtyCoords.push(coord);
     for (const s of this._shipPlacement ?? []) {
