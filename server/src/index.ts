@@ -66,7 +66,7 @@ function performBotAttackIfNeeded(room: Room): void {
     return;
   }
 
-  // Warte kurz, damit der Bot realistischer wirkt (500ms)
+  // Warte kurz, damit der Bot realistischer wirkt (1000ms)
   setTimeout(() => {
     // Hole die nächste Angriffs-Koordinate vom Bot
     const attackCoord = botPlayer.getNextAttackCoord();
@@ -143,7 +143,7 @@ function performBotAttackIfNeeded(room: Room): void {
       // autoReporting - direkt ausführen
       performAttackCallback();
     }
-  }, 500);
+  }, 1000);
 }
 
 io.on('connection', (socket: Socket) => {
