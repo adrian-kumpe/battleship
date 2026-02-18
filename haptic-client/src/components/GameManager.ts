@@ -56,13 +56,13 @@ export class GameManager {
       );
       if (!ownAttack && this.attackedCoord) {
         this.radio.sendMessage(
-          `Du kannst noch deinen vergangenen Angriff markieren: ${String.fromCharCode(65 + this.attackedCoord.x)}${this.attackedCoord.y + 1}`,
+          `Markiere deinen vergangenen Angriff: ${String.fromCharCode(65 + this.attackedCoord.x)}${this.attackedCoord.y + 1}`,
         );
         this.attackedCoord = undefined;
       }
       if (ownAttack && this.attackedCoord2) {
         this.radio.sendMessage(
-          `Du kannst noch den vergangenen Angriff des Computers markieren: ${String.fromCharCode(65 + this.attackedCoord2.x)}${this.attackedCoord2.y + 1}`,
+          `Markiere den vergangenen Angriff des Computers: ${String.fromCharCode(65 + this.attackedCoord2.x)}${this.attackedCoord2.y + 1}`,
         );
         this.attackedCoord2 = undefined;
       }
@@ -78,7 +78,9 @@ export class GameManager {
         console.warn(ErrorMessage[args.error]);
         this.radio.sendMessage('Hinweis: ' + ErrorMessage[args.error]);
       }
-      this.radio.sendMessage('Das Spiel ist vorbei! Spieler ' + args.winner + ' hat gewonnen!');
+      if (this.playerNames && args.winner) {
+        this.radio.sendMessage('Das Spiel ist vorbei! ' + this.playerNames[args.winner] + ' hat gewonnen!');
+      }
     });
   }
 
@@ -162,26 +164,23 @@ export class GameManager {
   }
 
   updatePinPlacement(placement: (MARKER_ROLE | undefined)[], grid: '⬅️' | '➡️') {
-    // const getCurrent = () =>
-    //   grid === '⬅️'
-    //     ? { get: () => this.leftPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.leftPinPlacement = v) }
-    //     : { get: () => this.rightPinPlacement, set: (v: (MARKER_ROLE | undefined)[]) => (this.rightPinPlacement = v) };
     const current = grid === '⬅️' ? this.leftPinPlacement : this.rightPinPlacement;
     if (current) {
-      // const diff = placement.map((m, i) => {
-      //   return getCurrent().get()![i] === m ? undefined : (m ?? getCurrent().get()![i]);
-      // });
       if (this.attackedCoord) {
-        const attackedCoordIndex = this.attackedCoord.x * BOARD_SIZE + this.attackedCoord.y; // todo testen
+        const attackedCoordIndex = this.attackedCoord.y * BOARD_SIZE + this.attackedCoord.x;
         if (current[attackedCoordIndex]) {
-          this.radio.sendMessage('Du hast das Schiff des Computers richtig markiert!');
+          this.radio.sendMessage(
+            `Zelle ${String.fromCharCode(65 + this.attackedCoord.x)}${this.attackedCoord.y + 1} richtig markiert!`,
+          );
           this.attackedCoord = undefined;
         }
       }
       if (this.attackedCoord2) {
-        const attackedCoord2Index = this.attackedCoord2.x * BOARD_SIZE + this.attackedCoord2.y;
+        const attackedCoord2Index = this.attackedCoord2.y * BOARD_SIZE + this.attackedCoord2.x;
         if (current[attackedCoord2Index]) {
-          this.radio.sendMessage('Du hast dein Schiff richtig markiert!');
+          this.radio.sendMessage(
+            `Zelle ${String.fromCharCode(65 + this.attackedCoord2.x)}${this.attackedCoord2.y + 1} richtig markiert!`,
+          );
           this.attackedCoord2 = undefined;
         }
       }

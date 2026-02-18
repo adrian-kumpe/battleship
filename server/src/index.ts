@@ -73,7 +73,7 @@ function performBotAttackIfNeeded(room: Room): void {
     const attackedPlayer = room.player1; // Bot greift immer Spieler 1 an
 
     console.info(
-      `[${room.roomConfig.roomId}] Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
+      `[${room.roomConfig.roomId}] Computer greift ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
     );
 
     // Berechne das Angriffsresultat
@@ -122,7 +122,7 @@ function performBotAttackIfNeeded(room: Room): void {
     };
 
     // Benachrichtigungen
-    const text = `Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
+    const text = `Computer greift ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
     // io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
 
     // Wenn Spieler 1 im manualReporting-Mode ist, warten auf Response
@@ -236,7 +236,7 @@ io.on('connection', (socket: Socket) => {
         const botShipPlacement = getBotShipPlacement();
         room.player2.shipPlacement = botShipPlacement;
         console.info(`[${room.roomConfig.roomId}] Bot joined the game and is ready`);
-        io.to(room.roomConfig.roomId).emit('notification', { text: 'Bot ist dem Spiel beigetreten und bereit' });
+        io.to(room.roomConfig.roomId).emit('notification', { text: 'Computer ist dem Spiel beigetreten und bereit' });
       } catch (e) {
         console.error(`[${room.roomConfig.roomId}] Error setting bot ship placement:`, e);
       }
@@ -299,7 +299,7 @@ io.on('connection', (socket: Socket) => {
       }
     };
 
-    let text = `${room.getPlayerByPlayerNo(playerNo)?.client.playerName} greift Zelle ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1} an.`;
+    let text = `${room.getPlayerByPlayerNo(playerNo)?.client.playerName} greift ${String.fromCharCode(65 + args.coord.x)}${args.coord.y + 1} an.`;
     console.info(`[${room.roomConfig.roomId}] ${text}`);
     io.to(socket.id).emit('notification', {
       text: text,
