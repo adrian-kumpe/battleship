@@ -65,13 +65,21 @@ export class BotPlayer {
   public getNextAttackCoord(): Coord {
     // Wenn es Treffer gibt, die noch nicht versenkt wurden
     if (this.hitCoords.length > 0) {
-      // Durchlaufe alle Treffer und finde benachbarte freie Zellen
+      // Sammle alle benachbarten Koordinaten von ALLEN Treffern
+      const allAdjacentCoords: Coord[] = [];
       for (const hit of this.hitCoords) {
         const adjacentCoords = this.board.getAdjacentCoords(hit);
-        if (adjacentCoords.length > 0) {
-          // Wähle zufällig eine der benachbarten Koordinaten
-          return adjacentCoords[Math.floor(Math.random() * adjacentCoords.length)];
-        }
+        allAdjacentCoords.push(...adjacentCoords);
+      }
+
+      // Dedupliziere die Koordinaten (entferne Duplikate)
+      const uniqueAdjacentCoords = allAdjacentCoords.filter(
+        (coord, index, arr) => arr.findIndex((c) => c.x === coord.x && c.y === coord.y) === index,
+      );
+
+      if (uniqueAdjacentCoords.length > 0) {
+        // Wähle zufällig eine der benachbarten Koordinaten
+        return uniqueAdjacentCoords[Math.floor(Math.random() * uniqueAdjacentCoords.length)];
       }
     }
 

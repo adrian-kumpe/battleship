@@ -73,7 +73,7 @@ function performBotAttackIfNeeded(room: Room): void {
     const attackedPlayer = room.player1; // Bot greift immer Spieler 1 an
 
     console.info(
-      `[${room.roomConfig.roomId}] Bot greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
+      `[${room.roomConfig.roomId}] Der Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
     );
 
     // Berechne das Angriffsresultat
@@ -100,7 +100,7 @@ function performBotAttackIfNeeded(room: Room): void {
 
       // Prüfe ob Bot gewonnen hat
       if (attackedPlayer.getGameOver()) {
-        console.info(`[${room.roomConfig.roomId}] Bot has won the game`);
+        console.info(`[${room.roomConfig.roomId}] Der Computer hat das Spiel gewonnen.`);
         const gameOverEvent = () => {
           io.to(room.roomConfig.roomId).emit('gameOver', { winner: PlayerNo.PLAYER2 });
           botPlayers.delete(room.roomConfig.roomId);
@@ -122,7 +122,7 @@ function performBotAttackIfNeeded(room: Room): void {
     };
 
     // Benachrichtigungen
-    const text = `Bot greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
+    const text = `Der Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
     // io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
 
     // Wenn Spieler 1 im manualReporting-Mode ist, warten auf Response

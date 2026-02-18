@@ -25,6 +25,7 @@ export class GameManager {
   private leftPinPlacement?: (MARKER_ROLE | undefined)[];
   private rightPinPlacement?: (MARKER_ROLE | undefined)[];
   private attackedCoord?: Coord;
+  private attackedCoord2?: Coord;
 
   constructor(
     private socket: Socket<ServerToClientEvents, ClientToServerEvents>,
@@ -37,12 +38,6 @@ export class GameManager {
   /** register event sockets */
   private setupSocketListeners() {
     this.socket.on('notification', (args) => {
-      if (args.text.includes('greift Zelle') && this.attackedCoord) {
-        this.radio.sendMessage(
-          `Du kannst noch den vergangenen Angriff markieren: ${String.fromCharCode(65 + this.attackedCoord.x)}${this.attackedCoord.y + 1}`,
-        );
-        this.attackedCoord = undefined;
-      }
       this.radio.sendMessage(args.text);
     });
 
@@ -59,12 +54,23 @@ export class GameManager {
       this.radio.sendMessage(
         (args.sunken ? 'Versenkt!' : args.hit ? 'Getroffen!' : 'Daneben!') + (ownAttack ? '' : ' Du bist am Zug!'),
       );
-      // if (this.attackedCoord) {
-      //   this.radio.sendMessage(
-      //     'Du kannst noch den vergangenen Angriff markieren: ' + this.attackedCoord.x + ' ' + this.attackedCoord.y,
-      //   );
-      // } //todo bug
-      this.attackedCoord = args.hit ? args.coord : undefined;
+      if (!ownAttack && this.attackedCoord) {
+        this.radio.sendMessage(
+          `Du kannst noch deinen vergangenen Angriff markieren: ${String.fromCharCode(65 + this.attackedCoord.x)}${this.attackedCoord.y + 1}`,
+        );
+        this.attackedCoord = undefined;
+      }
+      if (ownAttack && this.attackedCoord2) {
+        this.radio.sendMessage(
+          `Du kannst noch den vergangenen Angriff des Computers markieren: ${String.fromCharCode(65 + this.attackedCoord2.x)}${this.attackedCoord2.y + 1}`,
+        );
+        this.attackedCoord2 = undefined;
+      }
+      if (args.playerNo === PlayerNo.PLAYER1) {
+        this.attackedCoord = args.hit ? args.coord : undefined;
+      } else {
+        this.attackedCoord2 = args.hit ? args.coord : undefined;
+      }
     });
 
     this.socket.on('gameOver', (args) => {
@@ -168,11 +174,19 @@ export class GameManager {
       if (this.attackedCoord) {
         const attackedCoordIndex = this.attackedCoord.x * BOARD_SIZE + this.attackedCoord.y; // todo testen
         if (current[attackedCoordIndex]) {
-          this.radio.sendMessage('Du hast die Zelle richtig markiert!');
+          this.radio.sendMessage('Du hast das Schiff des Computers richtig markiert!');
           this.attackedCoord = undefined;
         }
       }
+      if (this.attackedCoord2) {
+        const attackedCoord2Index = this.attackedCoord2.x * BOARD_SIZE + this.attackedCoord2.y;
+        if (current[attackedCoord2Index]) {
+          this.radio.sendMessage('Du hast dein Schiff richtig markiert!');
+          this.attackedCoord2 = undefined;
+        }
+      }
     }
+
     if (grid === '⬅️') {
       this.leftPinPlacement = placement;
     } else {
