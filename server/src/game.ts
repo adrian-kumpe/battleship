@@ -46,7 +46,7 @@ export class BattleshipGameBoard {
     let coord: Coord;
     do {
       coord = { x: Math.floor(Math.random() * this.boardSize), y: Math.floor(Math.random() * this.boardSize) };
-    } while (this.checkCoordAvailable(coord));
+    } while (this.checkCoordAvailable(coord) !== undefined); // Wiederhole, solange Koordinate NICHT verfügbar ist
     return coord;
   }
 

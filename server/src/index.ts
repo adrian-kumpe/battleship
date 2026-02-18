@@ -73,7 +73,7 @@ function performBotAttackIfNeeded(room: Room): void {
     const attackedPlayer = room.player1; // Bot greift immer Spieler 1 an
 
     console.info(
-      `[${room.roomConfig.roomId}] Der Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
+      `[${room.roomConfig.roomId}] Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`,
     );
 
     // Berechne das Angriffsresultat
@@ -122,7 +122,7 @@ function performBotAttackIfNeeded(room: Room): void {
     };
 
     // Benachrichtigungen
-    const text = `Der Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
+    const text = `Computer greift Zelle ${String.fromCharCode(65 + attackCoord.x)}${attackCoord.y + 1} an.`;
     // io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
 
     // Wenn Spieler 1 im manualReporting-Mode ist, warten auf Response
@@ -227,7 +227,7 @@ io.on('connection', (socket: Socket) => {
         mode: 'autoReporting',
       };
       room.player2 = new BattleshipGameBoard(botClient, room.roomConfig.boardSize);
-      const botPlayer = new BotPlayer(room.player2, room.roomConfig.boardSize);
+      const botPlayer = new BotPlayer(room.player1, room.roomConfig.boardSize); // Bot greift player1 an
       botPlayers.set(room.roomConfig.roomId, botPlayer);
       roomsWithBots.add(room.roomConfig.roomId);
 
