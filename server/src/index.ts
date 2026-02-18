@@ -127,7 +127,7 @@ function performBotAttackIfNeeded(room: Room): void {
 
     // Wenn Spieler 1 im manualReporting-Mode ist, warten auf Response
     if (attackedPlayer.client.mode === 'manualReporting') {
-      const responseText = text + ' Du musst auf den Angriff reagieren!';
+      const responseText = text + ' Reagiere!';
       io.to(attackedPlayer.client.socketId).emit('notification', { text: responseText });
 
       // Lock schließen - erwartet Response vom Spieler mit den KORREKTEN Werten
@@ -305,7 +305,7 @@ io.on('connection', (socket: Socket) => {
       text: text,
     });
     if (attackedPlayer.client.mode === 'manualReporting') {
-      text += ' Du musst auf den Angriff reagieren!';
+      text += ' Reagiere!';
     }
     io.to(attackedPlayer.client.socketId).emit('notification', { text: text });
     room.playerChange();
