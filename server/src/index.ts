@@ -143,7 +143,7 @@ function performBotAttackIfNeeded(room: Room): void {
       // autoReporting - direkt ausführen
       performAttackCallback();
     }
-  }, 8000);
+  }, 6500);
 }
 
 io.on('connection', (socket: Socket) => {
